@@ -14,6 +14,7 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    // Registro
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
@@ -24,16 +25,20 @@ public class AuthController {
         }
     }
 
-    // Clase interna para errores
+    // Login
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            AuthResponse response = authService.login(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
     static class ErrorResponse {
         private String error;
-
-        public ErrorResponse(String error) {
-            this.error = error;
-        }
-
-        public String getError() {
-            return error;
-        }
+        public ErrorResponse(String error) { this.error = error; }
+        public String getError() { return error; }
     }
 }
