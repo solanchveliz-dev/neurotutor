@@ -7,9 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.neurotutor.app.mobile.ui.screens.LoginScreen
 import com.neurotutor.app.mobile.ui.screens.RegisterScreen
 import com.neurotutor.app.mobile.ui.theme.NeuroTutorTheme
 
@@ -19,25 +21,37 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NeuroTutorTheme {
-                // Scaffold con estructura moderna
+                val navController = rememberNavController()
+                
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
-                    // Pasamos el padding al contenido
-                    RegisterScreen(
+                    NavHost(
+                        navController = navController,
+                        startDestination = "register",
                         modifier = Modifier.padding(innerPadding)
-                    )
+                    ) {
+                        composable("login") {
+                            LoginScreen(
+                                onNavigateToRegister = {
+                                    navController.navigate("register") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+                        composable("register") {
+                            RegisterScreen(
+                                onNavigateToLogin = {
+                                    navController.navigate("login") {
+                                        popUpTo("register") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-// Preview para Android Studio
-@Preview(showBackground = true)
-@Composable
-fun RegisterScreenPreview() {
-    NeuroTutorTheme {
-        RegisterScreen()
     }
 }
