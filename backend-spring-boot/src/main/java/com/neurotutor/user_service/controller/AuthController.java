@@ -14,7 +14,7 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    // Registro
+    // ==================== REGISTRO ====================
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
@@ -25,7 +25,7 @@ public class AuthController {
         }
     }
 
-    // Login
+    // ==================== LOGIN ====================
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
@@ -36,9 +36,50 @@ public class AuthController {
         }
     }
 
+    // ==================== RECUPERACIÓN DE CONTRASEÑA ====================
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        try {
+            String token = authService.forgotPassword(request);
+            return ResponseEntity.ok(new TokenResponse(token, "Token generado exitosamente. Úsalo para restablecer tu contraseña."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            authService.resetPassword(request);
+            return ResponseEntity.ok(new MessageResponse("Contraseña restablecida con éxito"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    // ==================== CLASES DE RESPUESTA ====================
+
     static class ErrorResponse {
         private String error;
         public ErrorResponse(String error) { this.error = error; }
         public String getError() { return error; }
+    }
+
+    static class MessageResponse {
+        private String message;
+        public MessageResponse(String message) { this.message = message; }
+        public String getMessage() { return message; }
+    }
+
+    static class TokenResponse {
+        private String token;
+        private String message;
+        public TokenResponse(String token, String message) {
+            this.token = token;
+            this.message = message;
+        }
+        public String getToken() { return token; }
+        public String getMessage() { return message; }
     }
 }
