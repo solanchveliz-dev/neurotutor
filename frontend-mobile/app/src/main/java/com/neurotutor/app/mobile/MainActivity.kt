@@ -7,10 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.neurotutor.app.mobile.ui.screens.*
 import com.neurotutor.app.mobile.ui.theme.NeuroTutorTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +20,72 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NeuroTutorTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
+                val navController = rememberNavController()
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = "login",  // Cambiado a "login" como pantalla inicial
                         modifier = Modifier.padding(innerPadding)
-                    )
+                    ) {
+                        // ==================== LOGIN ====================
+                        composable("login") {
+                            LoginScreen(
+                                onNavigateToRegister = {
+                                    navController.navigate("register") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                },
+                                onNavigateToForgotPassword = {
+                                    navController.navigate("forgot-password")
+                                }
+                            )
+                        }
+
+                        // ==================== REGISTRO ====================
+                        composable("register") {
+                            RegisterScreen(
+                                onNavigateToLogin = {
+                                    navController.navigate("login") {
+                                        popUpTo("register") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
+                        // ==================== RECUPERACIÓN DE CONTRASEÑA ====================
+
+                        // Pantalla para ingresar email
+                        composable("forgot-password") {
+                            ForgotPasswordScreen(
+                                onNavigateToLogin = {
+                                    navController.navigate("login") {
+                                        popUpTo("forgot-password") { inclusive = true }
+                                    }
+                                },
+                                onNavigateToReset = { email ->
+                                    navController.navigate("reset-password/$email")
+                                }
+                            )
+                        }
+
+                        // Pantalla para ingresar token y nueva contraseña
+                        composable("reset-password/{email}") { backStackEntry ->
+                            val email = backStackEntry.arguments?.getString("email") ?: ""
+                            ResetPasswordScreen(
+                                email = email,
+                                onNavigateToLogin = {
+                                    navController.navigate("login") {
+                                        popUpTo("reset-password/{email}") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    NeuroTutorTheme {
-        Greeting("Android")
     }
 }
