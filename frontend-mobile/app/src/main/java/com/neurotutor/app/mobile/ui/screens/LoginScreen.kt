@@ -31,7 +31,8 @@ import com.neurotutor.app.mobile.ui.network.RetrofitClient
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    onNavigateToRegister: () -> Unit = {}
+    onNavigateToRegister: () -> Unit = {},
+    onNavigateToForgotPassword: () -> Unit = {}  // ← NUEVO PARÁMETRO
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -249,6 +250,20 @@ fun LoginScreen(
                                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                             }
                         }
+                    }
+
+                    // ✅ ENLACE "¿OLVIDASTE TU CONTRASEÑA?"
+                    Spacer(modifier = Modifier.height(12.dp))
+                    TextButton(
+                        onClick = onNavigateToForgotPassword,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "¿Olvidaste tu contraseña?",
+                            fontSize = 14.sp,
+                            color = PrimaryPurple,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
 
                     // Mensaje de error

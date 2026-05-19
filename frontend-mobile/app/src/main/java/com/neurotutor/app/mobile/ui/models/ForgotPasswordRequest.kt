@@ -1,4 +1,5 @@
 package com.neurotutor.app.mobile.ui.models
 
-class ForgotPasswordRequest {
-}
+data class ForgotPasswordRequest(
+    val email: String
+)
