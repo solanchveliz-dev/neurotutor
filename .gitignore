@@ -1,0 +1,4 @@
+backend-spring-boot/target/
+frontend-mobile/.gradle/
+frontend-web/node_modules/
+frontend-web/.vite/

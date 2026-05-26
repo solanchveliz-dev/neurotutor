@@ -1,0 +1,256 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+}
+
+.examCard,
+.resultCard {
+  width: 100%;
+  max-width: 850px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-weight: 700;
+  color: #4b5563;
+  margin-bottom: 14px;
+}
+
+.progressBar {
+  width: 100%;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.progressFill {
+  height: 100%;
+  background: #7c3aed;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.questionArea {
+  margin-bottom: 28px;
+}
+
+.tutorBox {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #f3e8ff;
+  border: 2px solid #c084fc;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 24px;
+  color: #581c87;
+  font-weight: 600;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #7c3aed;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+}
+
+.questionText {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #1f2937;
+  margin-bottom: 22px;
+  white-space: pre-line;
+}
+
+.imageBox {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0;
+}
+
+.imageBox img {
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 14px;
+  border: 2px solid #e5e7eb;
+}
+
+.optionsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.optionButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 16px;
+  text-align: left;
+  transition: all 0.25s ease;
+}
+
+.optionButton span {
+  min-width: 34px;
+  height: 34px;
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.optionButton:hover {
+  border-color: #7c3aed;
+  transform: translateY(-2px);
+}
+
+.correctOption {
+  border-color: #22c55e;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.incorrectOption {
+  border-color: #ef4444;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.selected {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.feedbackBox {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid transparent;
+}
+
+.feedbackCorrect {
+  background: #ecfdf5;
+  border-color: #22c55e;
+  color: #166534;
+}
+
+.feedbackIncorrect {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.feedbackTitle {
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+
+.primaryButton {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 14px;
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  opacity: 0.95;
+}
+
+.primaryButton:disabled {
+  background: #c4b5fd;
+  cursor: not-allowed;
+}
+
+.resultCard {
+  text-align: center;
+  max-width: 520px;
+}
+
+.resultCard h1 {
+  color: #1f2937;
+  margin-bottom: 20px;
+}
+
+.resultText {
+  font-size: 18px;
+  color: #4b5563;
+  margin-bottom: 24px;
+}
+
+.levelBox {
+  background: #f3e8ff;
+  color: #581c87;
+  padding: 20px;
+  border-radius: 18px;
+  margin-bottom: 28px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.levelBox span {
+  display: block;
+  font-size: 32px;
+  margin-top: 8px;
+  color: #7c3aed;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 14px;
+  }
+
+  .examCard,
+  .resultCard {
+    padding: 22px;
+    border-radius: 18px;
+  }
+
+  .progressHeader {
+    flex-direction: column;
+    font-size: 14px;
+  }
+
+  .questionText {
+    font-size: 16px;
+  }
+
+  .optionsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .optionButton {
+    font-size: 15px;
+  }
+}
