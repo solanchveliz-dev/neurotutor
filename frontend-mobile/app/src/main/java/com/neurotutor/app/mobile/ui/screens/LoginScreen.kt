@@ -21,55 +21,35 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.ui.theme.*
-import kotlinx.coroutines.*
-import com.neurotutor.app.mobile.ui.models.LoginRequest
-import com.neurotutor.app.mobile.ui.network.RetrofitClient
+import com.neurotutor.app.mobile.ui.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
+    authViewModel: AuthViewModel = viewModel(),
     onNavigateToRegister: () -> Unit = {},
-    onNavigateToForgotPassword: () -> Unit = {}  // ← NUEVO PARÁMETRO
+    onNavigateToForgotPassword: () -> Unit = {},
+    onNavigateToDashboard: (String, Boolean) -> Unit = { _, _ -> } // 🚀 RECIBE ID Y FLAG
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
-    fun performLogin() {
-        if (email.isEmpty() || password.isEmpty()) {
-            errorMessage = "Ingresa email y contraseña"
-            return
+    LaunchedEffect(authViewModel.isLoginSuccess, authViewModel.successMessage) {
+        authViewModel.successMessage?.let { msg ->
+            Toast.makeText(context, "✅ $msg", Toast.LENGTH_LONG).show()
+            authViewModel.clearSuccessMessage()
         }
-        isLoading = true
-        errorMessage = null
-
-        val request = LoginRequest(email, password)
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = RetrofitClient.apiService.login(request)
-                withContext(Dispatchers.Main) {
-                    isLoading = false
-                    if (response.isSuccessful) {
-                        val authResponse = response.body()
-                        Toast.makeText(context, "✅ ${authResponse?.mensaje}", Toast.LENGTH_LONG).show()
-                        // Aquí puedes guardar el token y navegar al Dashboard
-                    } else {
-                        val errorBody = response.errorBody()?.string()
-                        errorMessage = errorBody ?: "Error en el login"
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    isLoading = false
-                    errorMessage = "Error de conexión: ${e.message}"
-                }
-            }
+        if (authViewModel.isLoginSuccess) {
+            // 🚀 Pasamos el ID real y si ya completó el examen
+            onNavigateToDashboard(
+                authViewModel.loggedStudentId ?: "",
+                authViewModel.hasCompletedExam
+            )
         }
     }
 
@@ -86,7 +66,6 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Logo
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -124,7 +103,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Tab Selector
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -167,7 +145,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Form Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,8 +204,8 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
-                        onClick = { performLogin() },
-                        enabled = !isLoading,
+                        onClick = { authViewModel.performLogin(email, password) },
+                        enabled = !authViewModel.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -238,7 +215,7 @@ fun LoginScreen(
                             contentColor = Color.White
                         )
                     ) {
-                        if (isLoading) {
+                        if (authViewModel.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                         } else {
                             Row(
@@ -252,7 +229,6 @@ fun LoginScreen(
                         }
                     }
 
-                    // ✅ ENLACE "¿OLVIDASTE TU CONTRASEÑA?"
                     Spacer(modifier = Modifier.height(12.dp))
                     TextButton(
                         onClick = onNavigateToForgotPassword,
@@ -266,11 +242,10 @@ fun LoginScreen(
                         )
                     }
 
-                    // Mensaje de error
-                    if (errorMessage != null) {
+                    if (authViewModel.errorMessage != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = errorMessage!!,
+                            text = authViewModel.errorMessage!!,
                             color = Color.Red,
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,

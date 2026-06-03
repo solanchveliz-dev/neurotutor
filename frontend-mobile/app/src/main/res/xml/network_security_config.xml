@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+
     <domain-config cleartextTrafficPermitted="true">
+
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">10.200.168.93</domain>
-        <domain includeSubdomains="true">192.168.101.28</domain>
+
+        <!-- IP actual de tu laptop -->
+        <domain includeSubdomains="true">10.200.168.222</domain>
+
+        <!-- IPs antiguas (opcionales) -->
+        <domain includeSubdomains="true">10.200.169.175</domain>
+        <domain includeSubdomains="true">192.168.56.1</domain>
+        <domain includeSubdomains="true">10.83.61.240</domain>
+
     </domain-config>
+
 </network-security-config>

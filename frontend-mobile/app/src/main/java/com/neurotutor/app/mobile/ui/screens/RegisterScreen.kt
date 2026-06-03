@@ -24,19 +24,19 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
-import com.neurotutor.app.mobile.ui.models.RegisterRequest
-import com.neurotutor.app.mobile.ui.network.RetrofitClient
 import com.neurotutor.app.mobile.ui.theme.*
-import kotlinx.coroutines.*
+import com.neurotutor.app.mobile.ui.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     modifier: Modifier = Modifier,
+    authViewModel: AuthViewModel = viewModel(), // 🧠 Inyectamos el mismo cerebro compartido
     onNavigateToLogin: () -> Unit = {}
 ) {
-    // --- Lógica original del usuario ---
+    // --- Estado local para los campos del formulario ---
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var grado by remember { mutableStateOf("") }
@@ -44,13 +44,11 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+    // --- Validaciones locales de UI ---
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
 
-    // Variables para la conexión con Spring Boot
-    var isLoading by remember { mutableStateOf(false) }
-    var serverError by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
     fun isValidEmail(email: String): Boolean {
@@ -98,47 +96,19 @@ fun RegisterScreen(
             passwordError == null &&
             confirmPasswordError == null
 
-    // Función para registrar en Spring Boot
-    fun performRegister() {
-        if (!isFormValid) return
-        isLoading = true
-        serverError = null
-
-        val request = RegisterRequest(
-            email = email,
-            nombreCompleto = nombre,
-            grado = grado,
-            seccion = seccion,
-            password = password,
-            password2 = confirmPassword
-        )
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = RetrofitClient.apiService.register(request)
-                withContext(Dispatchers.Main) {
-                    isLoading = false
-                    if (response.isSuccessful) {
-                        val authResponse = response.body()
-                        Toast.makeText(context, "✅ ${authResponse?.mensaje}", Toast.LENGTH_LONG).show()
-                        onNavigateToLogin()
-                    } else {
-                        val errorBody = response.errorBody()?.string()
-                        serverError = errorBody ?: "Error en el registro"
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    isLoading = false
-                    serverError = "Error de conexión: ${e.message}"
-                }
-            }
+    // 🔔 EFECTO: Escucha si el ViewModel procesó el registro de forma exitosa
+    LaunchedEffect(authViewModel.isRegisterSuccess, authViewModel.registerSuccessMessage) {
+        authViewModel.registerSuccessMessage?.let { msg ->
+            Toast.makeText(context, "✨ $msg", Toast.LENGTH_LONG).show()
+            authViewModel.clearRegisterSuccessMessage() // Limpia el mensaje para que no se repita
+        }
+        if (authViewModel.isRegisterSuccess) {
+            onNavigateToLogin() // 🚀 Viaja al login una vez guardado en MySQL
         }
     }
 
-    // --- Interfaz con el estilo de la imagen ---
+    // --- Interfaz de Usuario ---
     val scrollState = rememberScrollState()
-
     var expandedGrado by remember { mutableStateOf(false) }
     var expandedSeccion by remember { mutableStateOf(false) }
 
@@ -383,10 +353,19 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Botón de Registro
+                    // 🟣 Botón de Registro conectado al ViewModel
                     Button(
-                        onClick = { performRegister() },
-                        enabled = isFormValid && !isLoading,
+                        onClick = {
+                            authViewModel.performRegister(
+                                nombreCompleto = nombre,
+                                grado = grado,
+                                seccion = seccion,
+                                email = email,
+                                password = password,
+                                password2 = confirmPassword
+                            )
+                        },
+                        enabled = isFormValid && !authViewModel.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -396,7 +375,7 @@ fun RegisterScreen(
                             contentColor = if (isFormValid) Color.White else TextDark
                         )
                     ) {
-                        if (isLoading) {
+                        if (authViewModel.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                         } else {
                             Row(
@@ -410,11 +389,11 @@ fun RegisterScreen(
                         }
                     }
 
-                    // Mensaje de error
-                    if (serverError != null) {
+                    // 🔴 Mensaje de error administrado por el ViewModel
+                    if (authViewModel.errorMessage != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = serverError!!,
+                            text = authViewModel.errorMessage!!,
                             color = Color.Red,
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
