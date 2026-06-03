@@ -16,50 +16,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.*
-import com.neurotutor.app.mobile.ui.models.ForgotPasswordRequest
-import com.neurotutor.app.mobile.ui.network.RetrofitClient
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.neurotutor.app.mobile.ui.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(
+    authViewModel: AuthViewModel = viewModel(), // 🧠 Compartimos el mismo cerebro
     onNavigateToLogin: () -> Unit = {},
     onNavigateToReset: (String) -> Unit = {}  // pasa el email
 ) {
     var email by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
-    fun performForgotPassword() {
-        if (email.isEmpty()) {
-            errorMessage = "Ingresa tu correo electrónico"
-            return
+    // 🔔 EFECTO: Reacciona cuando el ViewModel avisa que el correo se envió con éxito
+    LaunchedEffect(authViewModel.isForgotSuccess, authViewModel.forgotSuccessMessage) {
+        authViewModel.forgotSuccessMessage?.let { msg ->
+            Toast.makeText(context, "📧 $msg", Toast.LENGTH_LONG).show()
+            authViewModel.clearForgotSuccessMessage()
         }
-        isLoading = true
-        errorMessage = null
-
-        val request = ForgotPasswordRequest(email)
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = RetrofitClient.apiService.forgotPassword(request)
-                withContext(Dispatchers.Main) {
-                    isLoading = false
-                    if (response.isSuccessful) {
-                        val message = response.body()?.message ?: "Revisa tu correo"
-                        Toast.makeText(context, "📧 $message", Toast.LENGTH_LONG).show()
-                        onNavigateToReset(email)  // Navegar a reset con el email
-                    } else {
-                        errorMessage = "Error al enviar solicitud"
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    isLoading = false
-                    errorMessage = "Error de conexión: ${e.message}"
-                }
-            }
+        if (authViewModel.isForgotSuccess) {
+            onNavigateToReset(email) // 🚀 Viaja a la pantalla de reset pasando el correo
         }
     }
 
@@ -111,9 +88,10 @@ fun ForgotPasswordScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // 🔵 EL BOTÓN: Ahora delega el trabajo al ViewModel
         Button(
-            onClick = { performForgotPassword() },
-            enabled = !isLoading,
+            onClick = { authViewModel.performForgotPassword(email) },
+            enabled = !authViewModel.isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -122,17 +100,18 @@ fun ForgotPasswordScreen(
                 containerColor = Color(0xFF1E3A8A)
             )
         ) {
-            if (isLoading) {
+            if (authViewModel.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
             } else {
                 Text("Enviar enlace", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
 
-        if (errorMessage != null) {
+        // Mensaje de error controlado por el ViewModel
+        if (authViewModel.errorMessage != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = errorMessage!!,
+                text = authViewModel.errorMessage!!,
                 color = Color.Red,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center

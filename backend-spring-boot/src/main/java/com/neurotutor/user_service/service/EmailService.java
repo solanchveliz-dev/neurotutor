@@ -1,9 +1,10 @@
 package com.neurotutor.user_service.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value; // 🔥 IMPORTANTE
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async; // 🚀 IMPORTANTE: Importación añadida
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,23 +13,31 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    // 🔥 Esto lee automáticamente el correo que configuraste en tu application.properties
     @Value("${spring.mail.username}")
     private String emailRemitente;
 
+    @Async // 🚀 SÚPER PODER: Hace que el envío corra en segundo plano sin congelar la petición de Android
     public void sendResetToken(String to, String token) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject("🔐 NeuroTutor - Recuperación de contraseña");
+        try {
+            System.out.println("⏳ Iniciando envío de correo asíncrono para: " + to + " en segundo plano...");
 
-        // Un mensaje un poco más amigable para el estudiante
-        message.setText("Hola,\n\nTu token de recuperación para NeuroTutor es: " + token +
-                "\n\nEste código es válido por 60 minutos. Si no solicitaste este cambio, puedes ignorar este correo.");
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject("🔐 NeuroTutor - Recuperación de contraseña");
 
-        // 🔥 CORRECCIÓN: Aquí usamos tu Gmail real configurado en las propiedades
-        message.setFrom(emailRemitente);
+            message.setText("Hola,\n\nTu token de recuperación para NeuroTutor es: " + token +
+                    "\n\nEste código es válido por 60 minutos. Si no solicitaste este cambio, puedes ignorar este correo.");
 
-        mailSender.send(message);
-        System.out.println("📧 Correo enviado con éxito a: " + to);
+            message.setFrom(emailRemitente);
+
+            // 📡 Esto es lo que tardaba varios segundos en conectar con Gmail:
+            mailSender.send(message);
+
+            System.out.println("📧 Correo enviado con éxito a: " + to);
+
+        } catch (Exception e) {
+            // Captura cualquier error de Gmail (claves mal puestas o puertos bloqueados) sin tirar la app móvil
+            System.err.println("❌ Error crítico enviando el correo de fondo a " + to + ": " + e.getMessage());
+        }
     }
 }
