@@ -162,7 +162,7 @@ function Register({ initialTab = 'register' }) {
       
       // Redirigir al diagnóstico después de 2 segundos
       setTimeout(() => {
-        window.location.href = '/diagnostic';
+        window.location.href = '/diagnostic-exam';
       }, 2000);
     } else {
       console.error('❌ Error en registro:', result.message);

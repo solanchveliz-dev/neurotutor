@@ -1,30 +1,36 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Configuración base de la API (Spring Boot de Naomi)
+// API pública temporal del backend de Naomi por LocalTunnel
 const api = axios.create({
-  baseURL: 'http://10.200.168.93:8085/',
+  baseURL: "https://neurotutor.loca.lt/api",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-  timeout: 10000, // 10 segundos máximo
+  timeout: 10000,
 });
 
-// Interceptor para manejar errores globalmente
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ Respuesta exitosa:', response.status);
+    console.log("✅ Respuesta exitosa:", response.status);
     return response;
   },
   (error) => {
-    if (error.code === 'ECONNABORTED') {
-      console.error('❌ Tiempo de espera agotado');
+    if (error.code === "ECONNABORTED") {
+      console.error("❌ Tiempo de espera agotado");
     } else if (error.response) {
-      console.error('❌ Error del servidor:', error.response.status, error.response.data);
+      console.error(
+        "❌ Error del servidor:",
+        error.response.status,
+        error.response.data
+      );
     } else if (error.request) {
-      console.error('❌ No hay respuesta del servidor. ¿Spring Boot está corriendo?');
+      console.error(
+        "❌ No hay respuesta del servidor. Verifica que LocalTunnel y Spring Boot estén activos."
+      );
     } else {
-      console.error('❌ Error:', error.message);
+      console.error("❌ Error:", error.message);
     }
+
     return Promise.reject(error);
   }
 );
