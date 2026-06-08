@@ -19,20 +19,16 @@ function DiagnosticResult() {
       message: "¡Buen inicio! Vamos a reforzar juntos estos temas.",
       className: styles.basic,
     },
-
     Intermedio: {
       icon: "🔥",
       emoji: "🚀",
-      message:
-        "¡Muy bien! Tienes una base sólida para seguir aprendiendo.",
+      message: "¡Muy bien! Tienes una base sólida para seguir aprendiendo.",
       className: styles.intermediate,
     },
-
     Avanzado: {
       icon: "⭐",
       emoji: "🏆",
-      message:
-        "¡Excelente! Dominas muy bien los conceptos matemáticos.",
+      message: "¡Excelente! Dominas muy bien los conceptos matemáticos.",
       className: styles.advanced,
     },
   };
@@ -46,10 +42,7 @@ function DiagnosticResult() {
       </div>
 
       <h1>¡Evaluación Completada!</h1>
-
-      <p className={styles.subtitle}>
-        Has terminado tu evaluación inicial
-      </p>
+      <p className={styles.subtitle}>Has terminado tu evaluación inicial</p>
 
       <div className={styles.card}>
         <p className={styles.label}>Tu nivel detectado es</p>
@@ -75,9 +68,7 @@ function DiagnosticResult() {
           />
         </div>
 
-        <div className={styles.messageBox}>
-          {config.message}
-        </div>
+        <div className={styles.messageBox}>{config.message}</div>
       </div>
 
       <button

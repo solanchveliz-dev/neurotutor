@@ -70,7 +70,7 @@ function DiagnosticReview() {
                 <p>
                   <strong>Explicación:</strong>{" "}
                   {question.explanation ??
-                    "Revisa el procedimiento y compara tu respuesta con la alternativa correcta."}
+                    "Compara el enunciado con la alternativa correcta y revisa el procedimiento paso a paso para reforzar este tema."}
                 </p>
               </div>
             </div>
@@ -80,7 +80,7 @@ function DiagnosticReview() {
 
       <button
         className={styles.startButton}
-        onClick={() => navigate("/diagnostic-exam")}
+        onClick={() => navigate("/student-dashboard")}
       >
         Comenzar a Aprender 🚀
       </button>
