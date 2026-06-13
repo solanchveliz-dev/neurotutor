@@ -2,6 +2,8 @@ package com.neurotutor.user_service.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "estudiantes")
@@ -32,6 +34,15 @@ public class Estudiante {
     // 🚀 EP-02 / HU-14: Campo necesario para el Dashboard
     @Column(name = "puntos_totales")
     private int puntosTotales = 0;
+
+    // 🚀 HU-25: Módulos que el estudiante ya completó (para control de puntos)
+    @ManyToMany
+    @JoinTable(
+            name = "estudiante_modulos_completados",
+            joinColumns = @JoinColumn(name = "estudiante_id"),
+            inverseJoinColumns = @JoinColumn(name = "modulo_id")
+    )
+    private List<Modulo> modulosCompletados = new ArrayList<>();
 
     // Campos de seguridad existentes
     private int intentosFallidos = 0;
@@ -64,6 +75,9 @@ public class Estudiante {
 
     public int getPuntosTotales() { return puntosTotales; }
     public void setPuntosTotales(int puntosTotales) { this.puntosTotales = puntosTotales; }
+
+    public List<Modulo> getModulosCompletados() { return modulosCompletados; }
+    public void setModulosCompletados(List<Modulo> modulosCompletados) { this.modulosCompletados = modulosCompletados; }
 
     public int getIntentosFallidos() { return intentosFallidos; }
     public void setIntentosFallidos(int intentosFallidos) { this.intentosFallidos = intentosFallidos; }

@@ -24,17 +24,17 @@ public class DiagnosticService {
     private ModuloRepository moduloRepository;
 
     /**
-     * 🚀 HU-11: Procesa el examen, calcula el nivel y guarda los resultados.
-     * 🚀 HU-10: Marca el examen como completado para evitar repeticiones.
+     *  HU-11: Procesa el examen, calcula el nivel y guarda los resultados.
+     *  HU-10: Marca el examen como completado para evitar repeticiones.
      */
     public DiagnosticResponse calcularYGuardarNivel(DiagnosticRequest request) {
 
-        // 📝 Plantilla oficial sincronizada con DiagnosticScreen.kt en Android
+        //  Plantilla oficial sincronizada con DiagnosticScreen.kt en Android
         String[] plantillaCorrectas = {"C", "C", "C", "B", "C", "B", "C", "B", "C", "D"};
 
         List<String> respuestasAlumno = request.getRespuestas();
 
-        // 🛡️ Seguridad: Validar que la lista no sea nula o vacía
+        // 🛡 Seguridad: Validar que la lista no sea nula o vacía
         if (respuestasAlumno == null || respuestasAlumno.isEmpty()) {
             throw new RuntimeException("El examen no contiene respuestas válidas.");
         }
@@ -51,7 +51,7 @@ public class DiagnosticService {
             }
         }
 
-        // 📊 Asignación de nivel basada en el porcentaje de aciertos (HU-11)
+        //  Asignación de nivel basada en el porcentaje de aciertos (HU-11)
         String nivel;
         String mensaje;
         if (correctas >= 8) {
@@ -65,7 +65,7 @@ public class DiagnosticService {
             mensaje = "¡Buen intento! Vamos a empezar desde las bases. 🌱";
         }
 
-        // 💾 Persistencia en MySQL
+        //  Persistencia en MySQL
         Long idEstudiante = Long.parseLong(request.getStudentId());
         Estudiante estudiante = estudianteRepository.findById(idEstudiante)
                 .orElseThrow(() -> new RuntimeException("Estudiante no encontrado"));
