@@ -1,6 +1,6 @@
 import api from './api';
 
-const API_URL = '/auth';
+const API_URL = '';
 
 /**
  * Registra un nuevo estudiante
@@ -9,7 +9,7 @@ const API_URL = '/auth';
  */
 export const register = async (userData) => {
   try {
-    const response = await api.post(`${API_URL}/register`, userData);
+    const response = await api.post('/api/register', userData);
     return {
       success: true,
       data: response.data,

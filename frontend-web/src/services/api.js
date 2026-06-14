@@ -1,8 +1,7 @@
 import axios from "axios";
 
-// API pública temporal del backend de Naomi por LocalTunnel
 const api = axios.create({
-  baseURL: "https://neurotutor.loca.lt/api",
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -25,7 +24,7 @@ api.interceptors.response.use(
       );
     } else if (error.request) {
       console.error(
-        "❌ No hay respuesta del servidor. Verifica que LocalTunnel y Spring Boot estén activos."
+        "❌ No hay respuesta del servidor. Verifica que el backend Railway esté activo y CORS configurado."
       );
     } else {
       console.error("❌ Error:", error.message);

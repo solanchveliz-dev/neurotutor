@@ -133,13 +133,12 @@ function Register({ initialTab = 'register' }) {
 
     // Datos para enviar al backend
     const dataToSend = {
-      nombre: formData.nombre.trim(),
       email: formData.email.trim().toLowerCase(),
-      password: formData.password,
-      rol: 'ESTUDIANTE',
+      nombreCompleto: formData.nombre.trim(),
       grado: formData.grado,
       seccion: formData.seccion,
-      nivel: 'BASICO' // Nivel inicial
+      password: formData.password,
+      password2: formData.confirmPassword
     };
 
     console.log('📤 Enviando registro a Spring Boot:', dataToSend);
