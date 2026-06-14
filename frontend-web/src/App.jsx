@@ -6,6 +6,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LearningPath from "./pages/LearningPath";
 import ModuleDetail from "./pages/ModuleDetail";
+import PracticeExercises from "./pages/PracticeExercises";
+import FinalExam from "./pages/FinalExam";
 
 function LoginMock() {
   const login = () => {
@@ -54,6 +56,8 @@ function App() {
         <Route path="/diagnostic-review" element={<DiagnosticReview />} />
         <Route path="/learning-path" element={<LearningPath />} />
         <Route path="/module/:moduleId/:levelId" element={<ModuleDetail />} />
+        <Route path="/practice/:moduleId/:levelId" element={<PracticeExercises />} />
+        <Route path="/final-exam/:moduleId/:levelId" element={<FinalExam />} />
 
         <Route
           path="/student-dashboard"

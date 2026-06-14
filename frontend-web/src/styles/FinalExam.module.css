@@ -1,0 +1,175 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  padding: 28px;
+  color: #0f172a;
+}
+
+.card,
+.resultCard {
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+}
+
+.backButton {
+  border: none;
+  background: transparent;
+  color: #7c3aed;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+
+.badge {
+  display: inline-block;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.header h1 {
+  margin-bottom: 8px;
+}
+
+.header p {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  margin: 24px 0 8px;
+  font-weight: 800;
+}
+
+.progressBar {
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 26px;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(135deg, #4f46e5, #9333ea);
+}
+
+.questionBox h2 {
+  font-size: 26px;
+  line-height: 1.4;
+}
+
+.optionsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.optionButton {
+  border: 2px solid #e5e7eb;
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+  text-align: left;
+  cursor: pointer;
+  font-weight: 700;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.optionButton span {
+  width: 34px;
+  height: 34px;
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
+.selected {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.nextButton,
+.resultCard button {
+  width: 100%;
+  margin-top: 24px;
+  border: none;
+  background: #7c3aed;
+  color: white;
+  padding: 16px;
+  border-radius: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.nextButton:disabled {
+  background: #c4b5fd;
+  cursor: not-allowed;
+}
+
+.resultCard {
+  text-align: center;
+  max-width: 560px;
+}
+
+.resultIcon {
+  font-size: 68px;
+  margin-bottom: 16px;
+}
+
+.resultBadge {
+  width: fit-content;
+  margin: 24px auto;
+  color: white;
+  padding: 16px 34px;
+  border-radius: 16px;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.approved {
+  background: #22c55e;
+}
+
+.failed {
+  background: #ef4444;
+}
+
+.message {
+  color: #475569;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .container {
+    padding: 18px;
+  }
+
+  .card,
+  .resultCard {
+    padding: 22px;
+  }
+
+  .optionsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .questionBox h2 {
+    font-size: 22px;
+  }
+}
