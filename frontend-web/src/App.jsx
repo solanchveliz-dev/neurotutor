@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
 import DiagnosticExam from "./pages/DiagnosticExam";
 import DiagnosticResult from "./pages/DiagnosticResult";
 import DiagnosticReview from "./pages/DiagnosticReview";
@@ -8,29 +10,6 @@ import LearningPath from "./pages/LearningPath";
 import ModuleDetail from "./pages/ModuleDetail";
 import PracticeExercises from "./pages/PracticeExercises";
 import FinalExam from "./pages/FinalExam";
-
-function LoginMock() {
-  const login = () => {
-    localStorage.setItem("token", "token-demo");
-    localStorage.setItem(
-      "user",
-      JSON.stringify({
-        name: "Estudiante Demo",
-        grade: "6to grado",
-        section: "A",
-      })
-    );
-    window.location.href = "/student-dashboard";
-  };
-
-  return (
-    <div style={{ padding: "40px" }}>
-      <h1>Login temporal</h1>
-      <p>Este login es solo para probar Epica 2 sin backend.</p>
-      <button onClick={login}>Ingresar como estudiante</button>
-    </div>
-  );
-}
 
 function App() {
   const token = localStorage.getItem("token");
@@ -49,21 +28,63 @@ function App() {
           }
         />
 
-        <Route path="/login" element={<LoginMock />} />
+        <Route path="/login" element={<Register initialTab="login" />} />
+        <Route path="/register" element={<Register initialTab="register" />} />
 
         <Route path="/diagnostic-exam" element={<DiagnosticExam />} />
         <Route path="/diagnostic-result" element={<DiagnosticResult />} />
         <Route path="/diagnostic-review" element={<DiagnosticReview />} />
-        <Route path="/learning-path" element={<LearningPath />} />
-        <Route path="/module/:moduleId/:levelId" element={<ModuleDetail />} />
-        <Route path="/practice/:moduleId/:levelId" element={<PracticeExercises />} />
-        <Route path="/final-exam/:moduleId/:levelId" element={<FinalExam />} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/student-dashboard"
           element={
             <ProtectedRoute>
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/learning-path"
+          element={
+            <ProtectedRoute>
+              <LearningPath />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/module/:moduleId/:levelId"
+          element={
+            <ProtectedRoute>
+              <ModuleDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/practice/:moduleId/:levelId"
+          element={
+            <ProtectedRoute>
+              <PracticeExercises />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/final-exam/:moduleId/:levelId"
+          element={
+            <ProtectedRoute>
+              <FinalExam />
             </ProtectedRoute>
           }
         />
