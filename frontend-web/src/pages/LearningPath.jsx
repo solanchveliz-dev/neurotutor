@@ -10,6 +10,10 @@ function LearningPath() {
 
   const handleOpenLevel = (moduleId, unlocked) => {
     if (!unlocked) return;
+    if (!Number.isFinite(Number(moduleId))) {
+      navigate("/student-dashboard");
+      return;
+    }
     navigate(`/module/${moduleId}`);
   };
 
@@ -82,7 +86,11 @@ function LearningPath() {
                     <strong>
                       {level.unlocked ? level.icon : "🔒"} {level.name}
                     </strong>
-                    <small>{level.status}</small>
+                    <small>
+                      {Number.isFinite(Number(module.id))
+                        ? level.status
+                        : "Disponible desde el panel principal"}
+                    </small>
                   </div>
 
                   <span>{level.progress}%</span>

@@ -19,18 +19,18 @@ export const register = async (userData) => {
     let errorMessage = 'Error al registrar usuario';
     
     if (error.response) {
-      // El servidor respondió con un error
+      // El servidor respondiÃ³ con un error
       if (error.response.status === 400) {
-        errorMessage = error.response.data?.message || 'Datos inválidos';
+        errorMessage = error.response.data?.message || 'Datos invÃ¡lidos';
       } else if (error.response.status === 409) {
-        errorMessage = 'Este correo ya está registrado';
+        errorMessage = 'Este correo ya estÃ¡ registrado';
       } else if (error.response.status === 500) {
         errorMessage = 'Error interno del servidor';
       } else {
         errorMessage = error.response.data?.message || errorMessage;
       }
     } else if (error.request) {
-      errorMessage = 'No se pudo conectar con el servidor. ¿Spring Boot está corriendo?';
+      errorMessage = 'No se pudo conectar con el servidor. Â¿Spring Boot estÃ¡ corriendo?';
     }
     
     return {
@@ -40,9 +40,8 @@ export const register = async (userData) => {
     };
   }
 };
-
 /**
- * Inicia sesión de usuario (para HU-02)
+ * Inicia sesiÃ³n de usuario (para HU-02)
  * @param {Object} credentials - Credenciales del usuario
  * @returns {Promise<Object>} - Respuesta del servidor
  */
@@ -55,11 +54,11 @@ export const login = async (credentials) => {
       status: response.status
     };
   } catch (error) {
-    let errorMessage = 'Error al iniciar sesión';
+    let errorMessage = 'Error al iniciar sesiÃ³n';
     
     if (error.response) {
       if (error.response.status === 401) {
-        errorMessage = 'Usuario o contraseña incorrectos';
+        errorMessage = 'Usuario o contraseÃ±a incorrectos';
       } else if (error.response.status === 423) {
         errorMessage = 'Cuenta bloqueada por 15 minutos';
       } else {
@@ -76,9 +75,25 @@ export const login = async (credentials) => {
     };
   }
 };
+export const forgotPassword = async (email) => {
+  try {
+    const response = await api.post('/api/forgot-password', { email });
+    return {
+      success: true,
+      data: response.data,
+      status: response.status
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || error.response?.data?.error || 'No se pudo solicitar la recuperacion',
+      error: error.response?.data
+    };
+  }
+};
 
 /**
- * Cierra sesión de usuario (para HU-04)
+ * Cierra sesion de usuario.
  * @returns {Promise<Object>} - Respuesta del servidor
  */
 export const logout = async () => {
@@ -91,7 +106,7 @@ export const logout = async () => {
   } catch (error) {
     return {
       success: false,
-      message: 'Error al cerrar sesión'
+      message: 'Error al cerrar sesiÃ³n'
     };
   }
 };

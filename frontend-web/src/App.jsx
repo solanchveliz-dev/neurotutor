@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import DiagnosticExam from "./pages/DiagnosticExam";
 import DiagnosticResult from "./pages/DiagnosticResult";
 import DiagnosticReview from "./pages/DiagnosticReview";
@@ -30,10 +31,32 @@ function App() {
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        <Route path="/diagnostic-exam" element={<DiagnosticExam />} />
-        <Route path="/diagnostic-result" element={<DiagnosticResult />} />
-        <Route path="/diagnostic-review" element={<DiagnosticReview />} />
+        <Route
+          path="/diagnostic-exam"
+          element={
+            <ProtectedRoute>
+              <DiagnosticExam />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/diagnostic-result"
+          element={
+            <ProtectedRoute>
+              <DiagnosticResult />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/diagnostic-review"
+          element={
+            <ProtectedRoute>
+              <DiagnosticReview />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="/dashboard" element={<Navigate to="/student-dashboard" replace />} />
 

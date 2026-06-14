@@ -65,6 +65,7 @@ function FinalExam() {
   const [finished, setFinished] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
   const [alreadyPassed, setAlreadyPassed] = useState(false);
+  const [isUsingFallback, setIsUsingFallback] = useState(true);
 
   const module =
     modulesData.find((item) => String(item.id) === String(moduleId)) ??
@@ -79,12 +80,16 @@ function FinalExam() {
       .then((questions) => {
         if (Array.isArray(questions) && questions.length > 0) {
           setExamQuestions(questions.map(mapExamQuestion));
+          setIsUsingFallback(false);
           setCurrentIndex(0);
           setAnswers({});
           setFinished(false);
         }
       })
-      .catch(() => setExamQuestions(fallbackExamQuestions));
+      .catch(() => {
+        setExamQuestions(fallbackExamQuestions);
+        setIsUsingFallback(true);
+      });
 
     if (studentId) {
       getExamPassed(studentId, moduleId)
@@ -115,7 +120,12 @@ function FinalExam() {
     const score = calculateScore();
     const percentage = Math.round((score / examQuestions.length) * 100);
 
-    if (!studentId) return;
+    if (!studentId || !Number.isFinite(Number(moduleId)) || isUsingFallback) {
+      setSubmitResult({
+        message: "Modo demo: el resultado no se envio al servidor.",
+      });
+      return;
+    }
 
     try {
       const result = await submitExamV2({
