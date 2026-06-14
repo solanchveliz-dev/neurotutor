@@ -115,13 +115,13 @@ function Register({ initialTab = 'register' }) {
 
         const userRol = result.data.rol || result.data.user?.rol;
         if (userRol === 'ESTUDIANTE') {
-          navigate('/dashboard');
+          navigate('/diagnostic-exam');
         } else if (userRol === 'DOCENTE') {
           navigate('/teacher-dashboard');
         } else if (userRol === 'ADMIN') {
           navigate('/admin-dashboard');
         } else {
-          navigate('/dashboard');
+          navigate('/diagnostic-exam');
         }
       } else {
         setServerError(result.message || 'Usuario o contraseña incorrectos');

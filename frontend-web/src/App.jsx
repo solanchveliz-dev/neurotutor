@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
 import DiagnosticExam from "./pages/DiagnosticExam";
 import DiagnosticResult from "./pages/DiagnosticResult";
 import DiagnosticReview from "./pages/DiagnosticReview";
@@ -28,21 +28,14 @@ function App() {
           }
         />
 
-        <Route path="/login" element={<Register initialTab="login" />} />
-        <Route path="/register" element={<Register initialTab="register" />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         <Route path="/diagnostic-exam" element={<DiagnosticExam />} />
         <Route path="/diagnostic-result" element={<DiagnosticResult />} />
         <Route path="/diagnostic-review" element={<DiagnosticReview />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/dashboard" element={<Navigate to="/student-dashboard" replace />} />
 
         <Route
           path="/student-dashboard"

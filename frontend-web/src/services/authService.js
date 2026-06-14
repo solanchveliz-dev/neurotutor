@@ -48,7 +48,7 @@ export const register = async (userData) => {
  */
 export const login = async (credentials) => {
   try {
-    const response = await api.post(`${API_URL}/login`, credentials);
+    const response = await api.post('/api/login', credentials);
     return {
       success: true,
       data: response.data,
