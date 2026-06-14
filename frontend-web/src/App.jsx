@@ -56,7 +56,7 @@ function App() {
         />
 
         <Route
-          path="/module/:moduleId/:levelId"
+          path="/module/:moduleId"
           element={
             <ProtectedRoute>
               <ModuleDetail />
@@ -65,7 +65,7 @@ function App() {
         />
 
         <Route
-          path="/practice/:moduleId/:levelId"
+          path="/practice/:moduleId"
           element={
             <ProtectedRoute>
               <PracticeExercises />
@@ -74,7 +74,7 @@ function App() {
         />
 
         <Route
-          path="/final-exam/:moduleId/:levelId"
+          path="/final-exam/:moduleId"
           element={
             <ProtectedRoute>
               <FinalExam />

@@ -1,45 +1,75 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { modulesData } from "../data/modulesData";
+import { getLearningContent } from "../services/learningService";
 import styles from "../styles/PracticeExercises.module.css";
+
+const fallbackExercises = [
+  {
+    question: "Cual fraccion representa la mitad de una pizza?",
+    options: ["1/4", "1/2", "2/3", "3/4"],
+    correctAnswer: 1,
+    explanation: "La mitad significa dividir el todo en 2 partes iguales y tomar 1 parte.",
+    points: 10,
+  },
+  {
+    question: "Si tienes 3/4 de una barra de chocolate, que indica el numero 4?",
+    options: [
+      "Las partes que tomaste",
+      "El total de partes iguales",
+      "El numero de chocolates",
+      "La respuesta final",
+    ],
+    correctAnswer: 1,
+    explanation: "El denominador indica en cuantas partes iguales se divide el todo.",
+    points: 10,
+  },
+  {
+    question: "Cual es el numerador en la fraccion 5/8?",
+    options: ["8", "5", "13", "3"],
+    correctAnswer: 1,
+    explanation: "El numerador es el numero de arriba. En 5/8, el numerador es 5.",
+    points: 10,
+  },
+];
+
+function mapExercise(exercise) {
+  return {
+    question: exercise.question,
+    options: exercise.options ?? [],
+    correctAnswer: exercise.correctAnswerIndex,
+    explanation: exercise.tutorExplanation,
+    points: exercise.points ?? 10,
+  };
+}
 
 function PracticeExercises() {
   const navigate = useNavigate();
-  const { moduleId, levelId } = useParams();
-
-  const module = modulesData.find((item) => item.id === moduleId);
-  const level = module?.levels.find((item) => item.id === levelId);
-
-  const exercises = [
-    {
-      question: "¿Cuál fracción representa la mitad de una pizza?",
-      options: ["1/4", "1/2", "2/3", "3/4"],
-      correctAnswer: 1,
-      explanation: "La mitad significa dividir el todo en 2 partes iguales y tomar 1 parte.",
-    },
-    {
-      question: "Si tienes 3/4 de una barra de chocolate, ¿qué indica el número 4?",
-      options: [
-        "Las partes que tomaste",
-        "El total de partes iguales",
-        "El número de chocolates",
-        "La respuesta final",
-      ],
-      correctAnswer: 1,
-      explanation: "El denominador indica en cuántas partes iguales se divide el todo.",
-    },
-    {
-      question: "¿Cuál es el numerador en la fracción 5/8?",
-      options: ["8", "5", "13", "3"],
-      correctAnswer: 1,
-      explanation: "El numerador es el número de arriba. En 5/8, el numerador es 5.",
-    },
-  ];
-
+  const { moduleId } = useParams();
+  const [exercises, setExercises] = useState(fallbackExercises);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [points, setPoints] = useState(0);
+
+  const module =
+    modulesData.find((item) => String(item.id) === String(moduleId)) ??
+    modulesData[0];
+  const level =
+    module?.levels.find((item) => item.unlocked) ?? module?.levels[0];
+
+  useEffect(() => {
+    getLearningContent(moduleId)
+      .then((content) => {
+        if (Array.isArray(content.ejercicios) && content.ejercicios.length > 0) {
+          setExercises(content.ejercicios.map(mapExercise));
+          setCurrentIndex(0);
+          setSelectedAnswer(null);
+          setShowFeedback(false);
+        }
+      })
+      .catch(() => setExercises(fallbackExercises));
+  }, [moduleId]);
 
   const currentExercise = exercises[currentIndex];
   const isCorrect = selectedAnswer === currentExercise.correctAnswer;
@@ -52,7 +82,7 @@ function PracticeExercises() {
     setShowFeedback(true);
 
     if (index === currentExercise.correctAnswer) {
-      setPoints((prev) => prev + 10);
+      setPoints((prev) => prev + currentExercise.points);
     }
   };
 
@@ -62,7 +92,7 @@ function PracticeExercises() {
       setSelectedAnswer(null);
       setShowFeedback(false);
     } else {
-      navigate(`/final-exam/${moduleId}/${levelId}`);
+      navigate(`/final-exam/${moduleId}`);
     }
   };
 
@@ -72,7 +102,7 @@ function PracticeExercises() {
         <div className={styles.card}>
           <h1>Ejercicios no encontrados</h1>
           <button onClick={() => navigate("/learning-path")}>
-            Volver a módulos
+            Volver a modulos
           </button>
         </div>
       </div>
@@ -84,17 +114,17 @@ function PracticeExercises() {
       <div className={styles.card}>
         <button
           className={styles.backButton}
-          onClick={() => navigate(`/module/${moduleId}/${levelId}`)}
+          onClick={() => navigate(`/module/${moduleId}`)}
         >
-          ← Volver al módulo
+          Volver al modulo
         </button>
 
         <div className={styles.header}>
           <div>
             <span className={styles.badge}>
-              {module.title} · Nivel {level.name}
+              {module.title} - Nivel {level.name}
             </span>
-            <h1>Ejercicios prácticos</h1>
+            <h1>Ejercicios practicos</h1>
             <p>Resuelve los ejercicios para reforzar tu aprendizaje.</p>
           </div>
 
@@ -157,18 +187,21 @@ function PracticeExercises() {
               isCorrect ? styles.feedbackCorrect : styles.feedbackIncorrect
             }`}
           >
-            <h3>{isCorrect ? "¡Correcto! ✅" : "Respuesta incorrecta ❌"}</h3>
-            <p>{currentExercise.explanation}</p>
+            <h3>{isCorrect ? "Correcto" : "Respuesta incorrecta"}</h3>
+            <p>
+              {currentExercise.explanation ??
+                "Revisa la alternativa correcta y vuelve a intentarlo."}
+            </p>
 
             {!isCorrect && (
               <div className={styles.aiTutor}>
-                <div className={styles.tutorAvatar}>🤖</div>
+                <div className={styles.tutorAvatar}>NT</div>
                 <div>
                   <strong>Tutor IA</strong>
-                  <p>¿Quieres que practiquemos juntos?</p>
+                  <p>Quieres que practiquemos juntos?</p>
 
                   <div className={styles.aiButtons}>
-                    <button>Explícame, no entendí</button>
+                    <button>Explicame, no entendi</button>
                     <button>Dame una pista</button>
                     <button>Ponme un ejemplo diferente</button>
                   </div>

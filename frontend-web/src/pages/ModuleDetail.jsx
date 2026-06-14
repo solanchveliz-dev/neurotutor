@@ -1,19 +1,41 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { modulesData } from "../data/modulesData";
+import { getLearningContent } from "../services/learningService";
 import styles from "../styles/ModuleDetail.module.css";
 
 function ModuleDetail() {
   const navigate = useNavigate();
-  const { moduleId, levelId } = useParams();
+  const { moduleId } = useParams();
+  const [content, setContent] = useState(null);
 
-  const module = modulesData.find((item) => item.id === moduleId);
-  const level = module?.levels.find((item) => item.id === levelId);
+  const fallbackModule =
+    modulesData.find((item) => String(item.id) === String(moduleId)) ??
+    modulesData[0];
+  const fallbackLevel =
+    fallbackModule?.levels.find((item) => item.unlocked) ??
+    fallbackModule?.levels[0];
+
+  useEffect(() => {
+    getLearningContent(moduleId)
+      .then(setContent)
+      .catch(() => setContent(null));
+  }, [moduleId]);
+
+  const module = fallbackModule
+    ? {
+        ...fallbackModule,
+        id: moduleId,
+        title: content?.titulo ?? fallbackModule.title,
+      }
+    : null;
+  const level = fallbackLevel;
 
   if (!module || !level) {
     return (
       <div className={styles.container}>
         <div className={styles.card}>
-          <h1>Módulo no encontrado</h1>
+          <h1>Modulo no encontrado</h1>
           <button onClick={() => navigate("/learning-path")}>
             Volver a la ruta
           </button>
@@ -24,8 +46,11 @@ function ModuleDetail() {
 
   return (
     <div className={styles.container}>
-      <button className={styles.backButton} onClick={() => navigate("/learning-path")}>
-        ← Volver a la ruta
+      <button
+        className={styles.backButton}
+        onClick={() => navigate("/student-dashboard")}
+      >
+        Volver al panel
       </button>
 
       <section className={styles.card}>
@@ -56,10 +81,12 @@ function ModuleDetail() {
 
         <div className={styles.contentGrid}>
           <div className={styles.section}>
-            <h2>Teoría</h2>
-            {level.theory.map((item, index) => (
-              <p key={index}>{item}</p>
-            ))}
+            <h2>Teoria</h2>
+            {content?.teoriaHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: content.teoriaHtml }} />
+            ) : (
+              level.theory.map((item, index) => <p key={index}>{item}</p>)
+            )}
           </div>
 
           <div className={styles.section}>
@@ -73,13 +100,13 @@ function ModuleDetail() {
         </div>
 
         <div className={styles.actions}>
-          <button onClick={() => navigate(`/practice/${module.id}/${level.id}`)}>
+          <button onClick={() => navigate(`/practice/${module.id}`)}>
             Comenzar ejercicios
           </button>
 
           <button
             className={styles.secondaryButton}
-            onClick={() => navigate(`/final-exam/${module.id}/${level.id}`)}
+            onClick={() => navigate(`/final-exam/${module.id}`)}
           >
             Ir al examen final
           </button>

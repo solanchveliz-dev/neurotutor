@@ -8,9 +8,9 @@ function LearningPath() {
   const studentLevel = "Básico";
   const totalProgress = 35;
 
-  const handleOpenLevel = (moduleId, levelId, unlocked) => {
+  const handleOpenLevel = (moduleId, unlocked) => {
     if (!unlocked) return;
-    navigate(`/module/${moduleId}/${levelId}`);
+    navigate(`/module/${moduleId}`);
   };
 
   return (
@@ -74,7 +74,7 @@ function LearningPath() {
                     !level.unlocked ? styles.lockedLevel : ""
                   }`}
                   onClick={() =>
-                    handleOpenLevel(module.id, level.id, level.unlocked)
+                    handleOpenLevel(module.id, level.unlocked)
                   }
                   disabled={!level.unlocked}
                 >

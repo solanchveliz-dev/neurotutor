@@ -113,13 +113,7 @@ function StudentDashboard() {
   const handleOpenModule = (module) => {
     if (!module.unlocked) return;
 
-    if (module.id === 1) {
-      navigate("/module/fracciones/fracciones-basico");
-    } else if (module.id === 2) {
-      navigate("/module/decimales/decimales-basico");
-    } else {
-      navigate("/learning-path");
-    }
+    navigate(`/module/${module.id}`);
   };
 
   return (
