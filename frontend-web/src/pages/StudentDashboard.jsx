@@ -113,7 +113,7 @@ function StudentDashboard() {
   const handleOpenModule = (module) => {
     if (!module.unlocked) return;
 
-    navigate(`/module/${module.id}`);
+    navigate(`/module/${module.id}`, { state: { module } });
   };
 
   return (

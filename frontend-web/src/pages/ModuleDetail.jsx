@@ -1,32 +1,49 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { modulesData } from "../data/modulesData";
 import { getLearningContent } from "../services/learningService";
 import styles from "../styles/ModuleDetail.module.css";
 
 function ModuleDetail() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { moduleId } = useParams();
   const [content, setContent] = useState(null);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const dashboardModule = location.state?.module;
+  const numericFallbackMap = {
+    1: "fracciones",
+    2: "decimales",
+    3: "porcentajes",
+  };
+  const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
 
   const fallbackModule =
-    modulesData.find((item) => String(item.id) === String(moduleId)) ??
+    modulesData.find((item) => String(item.id) === String(fallbackId)) ??
     modulesData[0];
   const fallbackLevel =
     fallbackModule?.levels.find((item) => item.unlocked) ??
     fallbackModule?.levels[0];
 
   useEffect(() => {
+    setIsUsingFallback(false);
+
     getLearningContent(moduleId)
-      .then(setContent)
-      .catch(() => setContent(null));
+      .then((data) => {
+        setContent(data);
+        setIsUsingFallback(false);
+      })
+      .catch(() => {
+        setContent(null);
+        setIsUsingFallback(true);
+      });
   }, [moduleId]);
 
   const module = fallbackModule
     ? {
         ...fallbackModule,
         id: moduleId,
-        title: content?.titulo ?? fallbackModule.title,
+        title: content?.titulo ?? dashboardModule?.title ?? fallbackModule.title,
       }
     : null;
   const level = fallbackLevel;
@@ -82,6 +99,9 @@ function ModuleDetail() {
         <div className={styles.contentGrid}>
           <div className={styles.section}>
             <h2>Teoria</h2>
+            {isUsingFallback && (
+              <p>Contenido temporal disponible mientras se sincroniza con el servidor.</p>
+            )}
             {content?.teoriaHtml ? (
               <div dangerouslySetInnerHTML={{ __html: content.teoriaHtml }} />
             ) : (
