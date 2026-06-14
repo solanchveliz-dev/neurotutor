@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styles from '../styles/Register.module.css';
 import { register, login } from '../services/authService';
+import { saveAuthData } from '../utils/auth';
 
 function Register({ initialTab = 'register' }) {
   const navigate = useNavigate();
@@ -110,16 +111,10 @@ function Register({ initialTab = 'register' }) {
       });
 
       if (result.success) {
-        localStorage.setItem('token', result.data.token);
-        localStorage.setItem('user', JSON.stringify(result.data.user || result.data));
+        saveAuthData(result.data);
 
-        const userRol = result.data.rol || result.data.user?.rol;
-        if (userRol === 'ESTUDIANTE') {
-          navigate('/diagnostic-exam');
-        } else if (userRol === 'DOCENTE') {
-          navigate('/teacher-dashboard');
-        } else if (userRol === 'ADMIN') {
-          navigate('/admin-dashboard');
+        if (result.data.examenCompletado === true) {
+          navigate('/student-dashboard');
         } else {
           navigate('/diagnostic-exam');
         }
@@ -146,23 +141,10 @@ function Register({ initialTab = 'register' }) {
     const result = await register(dataToSend);
 
     if (result.success) {
-      console.log('✅ Registro exitoso:', result.data);
-      setSuccessMessage('✅ ¡Registro exitoso! Redirigiendo al examen diagnóstico...');
-      
-      // Limpiar formulario
-      setFormData({
-        nombre: '',
-        email: '',
-        grado: '',
-        seccion: '',
-        password: '',
-        confirmPassword: ''
-      });
-      
-      // Redirigir al diagnóstico después de 2 segundos
-      setTimeout(() => {
-        window.location.href = '/diagnostic-exam';
-      }, 2000);
+      console.log('Registro exitoso:', result.data);
+      saveAuthData(result.data);
+      setSuccessMessage('Registro exitoso. Redirigiendo al examen diagnostico...');
+      navigate('/diagnostic-exam');
     } else {
       console.error('❌ Error en registro:', result.message);
       setServerError(result.message);

@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getStudentDashboard } from "../services/dashboardService";
+import { clearAuthData, getStudentId } from "../utils/auth";
 import styles from "../styles/StudentDashboard.module.css";
 
 function StudentDashboard() {
@@ -8,7 +10,7 @@ function StudentDashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [password, setPassword] = useState("");
 
-  const student = {
+  const fallbackStudent = {
     name: "Estudiante Demo",
     grade: "6to grado",
     section: "A",
@@ -16,7 +18,7 @@ function StudentDashboard() {
     points: 320,
   };
 
-  const modules = [
+  const fallbackModules = [
     {
       id: 1,
       title: "Problemas de cantidad",
@@ -55,17 +57,55 @@ function StudentDashboard() {
     },
   ];
 
+  const [student, setStudent] = useState(fallbackStudent);
+  const [modules, setModules] = useState(fallbackModules);
+
+  useEffect(() => {
+    const studentId = getStudentId();
+
+    if (!studentId) return;
+
+    getStudentDashboard(studentId)
+      .then((profile) => {
+        const [grade = "", section = ""] = (profile.gradoSeccion || "").split(" ");
+
+        setStudent({
+          name: profile.nombreCompleto || fallbackStudent.name,
+          grade: grade || fallbackStudent.grade,
+          section: section || fallbackStudent.section,
+          level: profile.nivelActual || fallbackStudent.level,
+          points: profile.puntosTotales ?? fallbackStudent.points,
+        });
+
+        if (Array.isArray(profile.modulos) && profile.modulos.length > 0) {
+          setModules(
+            profile.modulos.map((module, index) => ({
+              id: module.id,
+              title: module.titulo,
+              description: "Modulo asignado segun tu nivel diagnostico.",
+              progress: module.ejerciciosCompletados ?? 0,
+              total: module.ejerciciosTotales ?? 0,
+              unlocked: module.estado !== "BLOQUEADO",
+              active: module.estado === "EN_CURSO" || index === 0,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        setStudent(fallbackStudent);
+        setModules(fallbackModules);
+      });
+  }, []);
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthData();
     navigate("/login", { replace: true });
   };
 
   const handleDeleteAccount = () => {
     if (!password.trim()) return;
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthData();
     setShowDeleteModal(false);
     navigate("/login", { replace: true });
   };

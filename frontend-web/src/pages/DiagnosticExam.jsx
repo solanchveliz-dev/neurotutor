@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { diagnosticQuestions } from "../data/diagnosticQuestions";
+import { submitDiagnostic } from "../services/diagnosticService";
+import { getStudentId } from "../utils/auth";
 import styles from "../styles/DiagnosticExam.module.css";
 
 function DiagnosticExam() {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const currentQuestion = diagnosticQuestions[currentIndex];
   const selectedAnswer = answers[currentQuestion.id];
@@ -36,7 +40,7 @@ function DiagnosticExam() {
     return "Avanzado";
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (selectedAnswer === undefined) return;
 
     if (currentIndex < diagnosticQuestions.length - 1) {
@@ -44,17 +48,42 @@ function DiagnosticExam() {
       return;
     }
 
-    const score = calculateScore(answers);
-    const level = getLevel(score);
+    const studentId = getStudentId();
 
-    navigate("/diagnostic-result", {
-      state: {
-        score,
-        total: diagnosticQuestions.length,
-        level,
-        answers,
-      },
+    if (!studentId) {
+      setError("No se encontro el ID del estudiante. Inicia sesion nuevamente.");
+      return;
+    }
+
+    const labels = ["A", "B", "C", "D"];
+    const respuestas = diagnosticQuestions.map((question) => {
+      const answerIndex = answers[question.id];
+      return labels[answerIndex];
     });
+
+    try {
+      setIsSubmitting(true);
+      setError("");
+
+      const diagnosticResult = await submitDiagnostic(studentId, respuestas);
+      localStorage.setItem("diagnosticResult", JSON.stringify(diagnosticResult));
+
+      const score = calculateScore(answers);
+      const level = getLevel(score);
+
+      navigate("/diagnostic-result", {
+        state: {
+          score,
+          total: diagnosticQuestions.length,
+          level,
+          answers,
+        },
+      });
+    } catch {
+      setError("No se pudo guardar el diagnostico. Intentalo nuevamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -81,6 +110,8 @@ function DiagnosticExam() {
             continuar.
           </p>
         </div>
+
+        {error && <p className={styles.questionText}>{error}</p>}
 
         <p className={styles.questionText}>{currentQuestion.textBeforeImage}</p>
 
@@ -112,7 +143,7 @@ function DiagnosticExam() {
 
         <button
           className={styles.primaryButton}
-          disabled={selectedAnswer === undefined}
+          disabled={selectedAnswer === undefined || isSubmitting}
           onClick={handleNext}
         >
           {currentIndex === diagnosticQuestions.length - 1

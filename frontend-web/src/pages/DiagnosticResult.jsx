@@ -1,39 +1,53 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import styles from "../styles/DiagnosticResult.module.css";
 
+function getStoredDiagnosticResult() {
+  try {
+    const result = localStorage.getItem("diagnosticResult");
+    return result ? JSON.parse(result) : null;
+  } catch {
+    return null;
+  }
+}
+
 function DiagnosticResult() {
   const navigate = useNavigate();
   const location = useLocation();
+  const storedResult = getStoredDiagnosticResult();
 
   const score = location.state?.score ?? 0;
   const total = location.state?.total ?? 10;
-  const level = location.state?.level ?? "Básico";
-  const answers = location.state?.answers ?? {};
-
   const percentage = Math.round((score / total) * 100);
 
+  const levelMap = {
+    BASICO: "Basico",
+    INTERMEDIO: "Intermedio",
+    AVANZADO: "Avanzado",
+  };
+
+  const level = levelMap[storedResult?.nivel] ?? location.state?.level ?? "Basico";
+  const message =
+    storedResult?.mensaje ?? "Diagnostico completado correctamente.";
+
   const levelConfig = {
-    Básico: {
-      icon: "🌱",
-      emoji: "🎯",
-      message: "¡Buen inicio! Vamos a reforzar juntos estos temas.",
+    Basico: {
+      icon: "NT",
+      emoji: "Nivel",
       className: styles.basic,
     },
     Intermedio: {
-      icon: "🔥",
-      emoji: "🚀",
-      message: "¡Muy bien! Tienes una base sólida para seguir aprendiendo.",
+      icon: "NT",
+      emoji: "Nivel",
       className: styles.intermediate,
     },
     Avanzado: {
-      icon: "⭐",
-      emoji: "🏆",
-      message: "¡Excelente! Dominas muy bien los conceptos matemáticos.",
+      icon: "NT",
+      emoji: "Nivel",
       className: styles.advanced,
     },
   };
 
-  const config = levelConfig[level] || levelConfig.Básico;
+  const config = levelConfig[level] || levelConfig.Basico;
 
   return (
     <div className={styles.container}>
@@ -41,8 +55,8 @@ function DiagnosticResult() {
         {config.icon}
       </div>
 
-      <h1>¡Evaluación Completada!</h1>
-      <p className={styles.subtitle}>Has terminado tu evaluación inicial</p>
+      <h1>Evaluacion completada</h1>
+      <p className={styles.subtitle}>Has terminado tu evaluacion inicial</p>
 
       <div className={styles.card}>
         <p className={styles.label}>Tu nivel detectado es</p>
@@ -68,23 +82,14 @@ function DiagnosticResult() {
           />
         </div>
 
-        <div className={styles.messageBox}>{config.message}</div>
+        <div className={styles.messageBox}>{message}</div>
       </div>
 
       <button
         className={styles.startButton}
-        onClick={() =>
-          navigate("/diagnostic-review", {
-            state: {
-              score,
-              total,
-              level,
-              answers,
-            },
-          })
-        }
+        onClick={() => navigate("/student-dashboard")}
       >
-        Ver mis resultados 📋
+        Continuar
       </button>
     </div>
   );

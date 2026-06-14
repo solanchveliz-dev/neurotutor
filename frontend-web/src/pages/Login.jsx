@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styles from '../styles/Login.module.css';
 import { login } from '../services/authService';
+import { saveAuthData } from '../utils/auth';
 
 function Login() {
   const navigate = useNavigate();
@@ -54,19 +55,10 @@ function Login() {
     });
 
     if (result.success) {
-      // Guardar token y datos del usuario
-      localStorage.setItem('token', result.data.token);
-      localStorage.setItem('user', JSON.stringify(result.data.user || result.data));
-      
-      // Redirigir según el rol que devuelve el backend
-      const userRol = result.data.rol || result.data.user?.rol;
-      
-      if (userRol === 'ESTUDIANTE') {
-        navigate('/diagnostic-exam');
-      } else if (userRol === 'DOCENTE') {
-        navigate('/teacher-dashboard');
-      } else if (userRol === 'ADMIN') {
-        navigate('/admin-dashboard');
+      saveAuthData(result.data);
+
+      if (result.data.examenCompletado === true) {
+        navigate('/student-dashboard');
       } else {
         navigate('/diagnostic-exam');
       }
