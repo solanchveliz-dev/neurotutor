@@ -37,7 +37,7 @@ function NeoCard({
         </p>
 
         {onAction && (
-          <PrimaryButton type="button" tone="orange" className="mt-5 w-full" onClick={onAction}>
+          <PrimaryButton type="button" tone="blue" className="mt-5 w-full" onClick={onAction}>
             {actionLabel}
           </PrimaryButton>
         )}

@@ -25,7 +25,7 @@ function AppTopbar({
   return (
     <header
       className={cn(
-        "flex flex-col gap-4 rounded-nt-card border border-white/80 bg-white/90 p-4 shadow-nt-card backdrop-blur md:flex-row md:items-center md:justify-between",
+        "flex w-full flex-col gap-4 rounded-nt-card border border-white/80 bg-white/90 p-4 shadow-nt-card backdrop-blur md:flex-row md:items-center md:justify-between",
         className
       )}
     >
@@ -40,8 +40,8 @@ function AppTopbar({
         <p className="text-sm font-semibold text-nt-text-secondary">{subtitle}</p>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3 md:max-w-xl md:flex-row md:items-center md:justify-end">
-        <label className="relative min-w-0 flex-1 md:max-w-xs">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 md:flex-row md:items-center md:justify-end">
+        <label className="relative min-w-0 flex-1 lg:max-w-md">
           <Search
             className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-nt-text-secondary"
             aria-hidden="true"
