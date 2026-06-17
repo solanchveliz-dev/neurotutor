@@ -9,6 +9,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LearningPath from "./pages/LearningPath";
 import ModuleDetail from "./pages/ModuleDetail";
+import LevelActivities from "./pages/LevelActivities";
+import Theory from "./pages/Theory";
 import PracticeExercises from "./pages/PracticeExercises";
 import FinalExam from "./pages/FinalExam";
 
@@ -83,6 +85,24 @@ function App() {
           element={
             <ProtectedRoute>
               <ModuleDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/module/:moduleId/level/:levelId"
+          element={
+            <ProtectedRoute>
+              <LevelActivities />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/module/:moduleId/level/:levelId/theory"
+          element={
+            <ProtectedRoute>
+              <Theory />
             </ProtectedRoute>
           }
         />

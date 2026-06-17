@@ -5,6 +5,13 @@ export const getLearningContent = async (moduloId) => {
   return response.data;
 };
 
+export const getTopicRuta = async (moduloId, studentId) => {
+  const response = await api.get(`/api/learning/topic-ruta/${moduloId}`, {
+    params: { studentId },
+  });
+  return response.data;
+};
+
 export const getFinalExam = async (moduloId) => {
   const response = await api.get(`/api/learning/exam/${moduloId}`);
   return response.data;

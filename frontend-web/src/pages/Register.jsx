@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import styles from '../styles/Register.module.css';
+import { GraduationCap, ShieldCheck, Sparkles, UserCog } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { register, login } from '../services/authService';
 import { saveAuthData } from '../utils/auth';
 
@@ -25,6 +28,26 @@ function Register({ initialTab = 'register' }) {
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  const roleOptions = [
+    { id: 'ESTUDIANTE', label: 'Estudiante', icon: GraduationCap },
+    { id: 'DOCENTE', label: 'Docente', icon: ShieldCheck },
+    { id: 'ADMIN', label: 'Administrador', icon: UserCog }
+  ];
+
+  const inputClass = (hasError) =>
+    `h-12 w-full rounded-[18px] border bg-white px-4 text-sm font-semibold text-nt-text-primary outline-none transition placeholder:text-nt-text-secondary/70 focus:ring-4 ${
+      hasError
+        ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
+        : 'border-nt-border focus:border-nt-blue focus:ring-nt-blue/15'
+    }`;
+
+  const selectClass = (hasError) =>
+    `h-12 w-full rounded-[18px] border bg-white px-4 text-sm font-semibold text-nt-text-primary outline-none transition focus:ring-4 ${
+      hasError
+        ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
+        : 'border-nt-border focus:border-nt-blue focus:ring-nt-blue/15'
+    }`;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -136,17 +159,17 @@ function Register({ initialTab = 'register' }) {
       password2: formData.confirmPassword
     };
 
-    console.log('📤 Enviando registro a Spring Boot:', dataToSend);
+    console.log('Enviando registro a Spring Boot:', dataToSend);
 
     const result = await register(dataToSend);
 
     if (result.success) {
       console.log('Registro exitoso:', result.data);
       saveAuthData(result.data);
-      setSuccessMessage('Registro exitoso. Redirigiendo al examen diagnostico...');
+      setSuccessMessage('Registro exitoso. Redirigiendo al examen diagnóstico...');
       navigate('/diagnostic-exam');
     } else {
-      console.error('❌ Error en registro:', result.message);
+      console.error('Error en registro:', result.message);
       setServerError(result.message);
     }
     
@@ -178,217 +201,279 @@ function Register({ initialTab = 'register' }) {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <h1 className={styles.title}>{activeTab === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</h1>
-        <p className={styles.subtitle}>{activeTab === 'login' ? 'Ingresa con tu correo y contraseña' : 'Regístrate para comenzar tu aprendizaje'}</p>
+    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#dff4ff_34%,#bfe7ff_100%)] px-4 py-8 text-nt-text-primary">
+      <div className="pointer-events-none absolute right-8 top-8 hidden h-28 w-28 rounded-full bg-nt-green/25 blur-3xl md:block" />
+      <div className="pointer-events-none absolute bottom-8 left-10 hidden h-36 w-36 rounded-full bg-nt-purple-light/30 blur-3xl md:block" />
 
-        <div className={styles.toggleWrapper}>
-          <button
-            type="button"
-            className={`${styles.toggleButton} ${activeTab === 'login' ? styles.activeToggle : ''}`}
-            onClick={() => navigate('/login')}
-          >
-            Iniciar Sesión
-          </button>
-          <button
-            type="button"
-            className={`${styles.toggleButton} ${activeTab === 'register' ? styles.activeToggle : ''}`}
-            onClick={() => navigate('/register')}
-          >
-            Registrarse
-          </button>
-        </div>
+      <section className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
+        <Card className="w-full max-w-xl rounded-[32px] border border-white/80 bg-white/88 p-0 shadow-[0_24px_70px_rgba(37,99,235,0.18)] backdrop-blur-xl">
+          <CardHeader className="px-6 pb-4 pt-7 text-center sm:px-8">
+            <div className="mx-auto mb-4 grid size-16 place-items-center rounded-[24px] bg-gradient-to-br from-nt-blue to-nt-purple text-white shadow-[0_16px_34px_rgba(37,99,235,0.28)]">
+              <Sparkles className="size-8" aria-hidden="true" />
+            </div>
+            <Badge className="mx-auto mb-3 h-6 rounded-full bg-nt-purple/10 px-3 text-[11px] font-black uppercase tracking-wide text-nt-purple hover:bg-nt-purple/10">
+              NeuroTutor
+            </Badge>
+            <CardTitle className="text-3xl font-black tracking-normal text-nt-text-primary">
+              {activeTab === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+            </CardTitle>
+            <CardDescription className="mt-2 text-sm font-semibold text-nt-text-secondary">
+              {activeTab === 'login'
+                ? 'Ingresa con tu correo y contraseña.'
+                : 'Regístrate para comenzar tu aprendizaje personalizado.'}
+            </CardDescription>
+          </CardHeader>
 
-        {/* Mensaje de éxito */}
-        {successMessage && (
-          <div className={styles.successMessage}>{successMessage}</div>
-        )}
-
-        {/* Mensaje de error del servidor */}
-        {serverError && (
-          <div className={styles.errorMessage}>{serverError}</div>
-        )}
-
-        {activeTab === 'login' ? (
-          <form onSubmit={handleSubmit}>
-            <div className={styles.rolesContainer}>
+          <CardContent className="px-6 pb-7 sm:px-8">
+            <div className="mb-5 grid grid-cols-2 gap-2 rounded-[22px] bg-nt-sky/70 p-1.5">
               <button
                 type="button"
-                className={`${styles.roleButton} ${role === 'ESTUDIANTE' ? styles.activeRole : ''}`}
-                onClick={() => setRole('ESTUDIANTE')}
+                className={`h-11 rounded-[18px] text-sm font-black transition ${
+                  activeTab === 'login'
+                    ? 'bg-white text-nt-blue shadow-[0_10px_24px_rgba(37,99,235,0.16)]'
+                    : 'text-nt-text-secondary hover:bg-white/70 hover:text-nt-blue'
+                }`}
+                onClick={() => navigate('/login')}
               >
-                👨‍🎓 Estudiante
+                Iniciar sesión
               </button>
               <button
                 type="button"
-                className={`${styles.roleButton} ${role === 'DOCENTE' ? styles.activeRole : ''}`}
-                onClick={() => setRole('DOCENTE')}
+                className={`h-11 rounded-[18px] text-sm font-black transition ${
+                  activeTab === 'register'
+                    ? 'bg-white text-nt-purple shadow-[0_10px_24px_rgba(124,58,237,0.16)]'
+                    : 'text-nt-text-secondary hover:bg-white/70 hover:text-nt-purple'
+                }`}
+                onClick={() => navigate('/register')}
               >
-                👩‍🏫 Docente
-              </button>
-              <button
-                type="button"
-                className={`${styles.roleButton} ${role === 'ADMIN' ? styles.activeRole : ''}`}
-                onClick={() => setRole('ADMIN')}
-              >
-                👑 Administrador
+                Registrarse
               </button>
             </div>
 
-            <div className={styles.field}>
-              <label>Correo electrónico</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="Código de estudiante o email"
-                value={formData.email}
-                onChange={handleChange}
-                className={errors.email ? styles.errorInput : ''}
-              />
-              {errors.email && <span className={styles.errorText}>{errors.email}</span>}
-            </div>
-
-            <div className={styles.field}>
-              <label>Contraseña</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Contraseña"
-                value={formData.password}
-                onChange={handleChange}
-                className={errors.password ? styles.errorInput : ''}
-              />
-              {errors.password && <span className={styles.errorText}>{errors.password}</span>}
-            </div>
-
-            <div className={styles.forgotLink}>
-              <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
-            </div>
-
-            <button
-              type="submit"
-              disabled={!isFormValid() || isLoading}
-              className={styles.button}
-            >
-              {isLoading ? 'Ingresando...' : 'INGRESAR'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            {/* Campo: Nombre */}
-            <div className={styles.field}>
-              <label>Nombre completo</label>
-              <input
-                type="text"
-                name="nombre"
-                placeholder="Ej: María González"
-                value={formData.nombre}
-                onChange={handleChange}
-                className={errors.nombre ? styles.errorInput : ''}
-              />
-              {errors.nombre && <span className={styles.errorText}>{errors.nombre}</span>}
-            </div>
-
-            {/* Campo: Email */}
-            <div className={styles.field}>
-              <label>Correo electrónico</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="usuario@ejemplo.com"
-                value={formData.email}
-                onChange={handleChange}
-                className={errors.email ? styles.errorInput : ''}
-              />
-              {errors.email && <span className={styles.errorText}>{errors.email}</span>}
-            </div>
-
-            {/* Fila: Grado y Sección */}
-            <div className={styles.row}>
-              <div className={styles.field}>
-                <label>Grado</label>
-                <select
-                  name="grado"
-                  value={formData.grado}
-                  onChange={handleChange}
-                  className={errors.grado ? styles.errorInput : ''}
-                >
-                  <option value="">Selecciona</option>
-                  <option value="4to">4to grado</option>
-                  <option value="5to">5to grado</option>
-                  <option value="6to">6to grado</option>
-                  <option value="7mo">7mo grado</option>
-                </select>
-                {errors.grado && <span className={styles.errorText}>{errors.grado}</span>}
+            {successMessage && (
+              <div className="mb-4 rounded-[18px] border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-bold text-green-700">
+                {successMessage}
               </div>
+            )}
 
-              <div className={styles.field}>
-                <label>Sección</label>
-                <select
-                  name="seccion"
-                  value={formData.seccion}
-                  onChange={handleChange}
-                  className={errors.seccion ? styles.errorInput : ''}
-                >
-                  <option value="">Selecciona</option>
-                  <option value="A">A</option>
-                  <option value="B">B</option>
-                  <option value="C">C</option>
-                  <option value="D">D</option>
-                </select>
-                {errors.seccion && <span className={styles.errorText}>{errors.seccion}</span>}
+            {serverError && (
+              <div className="mb-4 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-bold text-red-600">
+                {serverError}
               </div>
-            </div>
+            )}
 
-            {/* Campo: Contraseña */}
-            <div className={styles.field}>
-              <label>Contraseña</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Mínimo 8 caracteres"
-                value={formData.password}
-                onChange={handleChange}
-                className={errors.password ? styles.errorInput : ''}
-              />
-              {errors.password && <span className={styles.errorText}>{errors.password}</span>}
-            </div>
+            {activeTab === 'login' ? (
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                <div className="grid grid-cols-3 gap-2 rounded-[22px] bg-nt-sky/70 p-1.5">
+                  {roleOptions.map(({ id, label, icon: Icon }) => {
+                    const isActive = role === id;
 
-            {/* Campo: Confirmar Contraseña */}
-            <div className={styles.field}>
-              <label>Confirmar contraseña</label>
-              <input
-                type="password"
-                name="confirmPassword"
-                placeholder="Repite tu contraseña"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={errors.confirmPassword ? styles.errorInput : ''}
-              />
-              {errors.confirmPassword && <span className={styles.errorText}>{errors.confirmPassword}</span>}
-            </div>
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-[18px] px-2 text-[11px] font-black transition ${
+                          isActive
+                            ? 'bg-white text-nt-blue shadow-[0_10px_24px_rgba(37,99,235,0.16)]'
+                            : 'text-nt-text-secondary hover:bg-white/70 hover:text-nt-blue'
+                        }`}
+                        onClick={() => setRole(id)}
+                        aria-pressed={isActive}
+                      >
+                        <Icon className="size-4" aria-hidden="true" />
+                        <span className="leading-tight">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-            {/* Botón de registro */}
-            <button 
-              type="submit" 
-              disabled={!isFormValid() || isLoading}
-              className={styles.button}
-            >
-              {isLoading ? 'Registrando...' : 'REGISTRARSE'}
-            </button>
-          </form>
-        )}
+                <div className="space-y-2">
+                  <label htmlFor="register-login-email" className="text-sm font-black text-nt-text-primary">
+                    Correo electrónico
+                  </label>
+                  <input
+                    id="register-login-email"
+                    type="email"
+                    name="email"
+                    placeholder="Código de estudiante o email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={inputClass(errors.email)}
+                  />
+                  {errors.email && <span className="text-xs font-bold text-red-500">{errors.email}</span>}
+                </div>
 
-        <p className={styles.loginLink}>
-          {activeTab === 'login' ? (
-            <>¿No tienes cuenta? <Link to="/register">Crea una nueva</Link></>
-          ) : (
-            <>¿Ya tienes cuenta? <Link to="/login">Inicia sesión aquí</Link></>
-          )}
-        </p>
-      </div>
-    </div>
+                <div className="space-y-2">
+                  <label htmlFor="register-login-password" className="text-sm font-black text-nt-text-primary">
+                    Contraseña
+                  </label>
+                  <input
+                    id="register-login-password"
+                    type="password"
+                    name="password"
+                    placeholder="Contraseña"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={inputClass(errors.password)}
+                  />
+                  {errors.password && <span className="text-xs font-bold text-red-500">{errors.password}</span>}
+                </div>
+
+                <div className="flex justify-end">
+                  <Link to="/forgot-password" className="text-sm font-black text-nt-blue hover:text-nt-purple">
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={!isFormValid() || isLoading}
+                  className="h-12 w-full rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple text-sm font-black uppercase tracking-wide text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] hover:from-nt-blue/90 hover:to-nt-purple/90"
+                >
+                  {isLoading ? 'Ingresando...' : 'Ingresar'}
+                </Button>
+              </form>
+            ) : (
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <label htmlFor="register-name" className="text-sm font-black text-nt-text-primary">
+                    Nombre completo
+                  </label>
+                  <input
+                    id="register-name"
+                    type="text"
+                    name="nombre"
+                    placeholder="Ej: María González"
+                    value={formData.nombre}
+                    onChange={handleChange}
+                    className={inputClass(errors.nombre)}
+                  />
+                  {errors.nombre && <span className="text-xs font-bold text-red-500">{errors.nombre}</span>}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="register-email" className="text-sm font-black text-nt-text-primary">
+                    Correo electrónico
+                  </label>
+                  <input
+                    id="register-email"
+                    type="email"
+                    name="email"
+                    placeholder="usuario@ejemplo.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={inputClass(errors.email)}
+                  />
+                  {errors.email && <span className="text-xs font-bold text-red-500">{errors.email}</span>}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label htmlFor="register-grade" className="text-sm font-black text-nt-text-primary">
+                      Grado
+                    </label>
+                    <select
+                      id="register-grade"
+                      name="grado"
+                      value={formData.grado}
+                      onChange={handleChange}
+                      className={selectClass(errors.grado)}
+                    >
+                      <option value="">Selecciona</option>
+                      <option value="4to">4to grado</option>
+                      <option value="5to">5to grado</option>
+                      <option value="6to">6to grado</option>
+                      <option value="7mo">7mo grado</option>
+                    </select>
+                    {errors.grado && <span className="text-xs font-bold text-red-500">{errors.grado}</span>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="register-section" className="text-sm font-black text-nt-text-primary">
+                      Sección
+                    </label>
+                    <select
+                      id="register-section"
+                      name="seccion"
+                      value={formData.seccion}
+                      onChange={handleChange}
+                      className={selectClass(errors.seccion)}
+                    >
+                      <option value="">Selecciona</option>
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                      <option value="D">D</option>
+                    </select>
+                    {errors.seccion && <span className="text-xs font-bold text-red-500">{errors.seccion}</span>}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label htmlFor="register-password" className="text-sm font-black text-nt-text-primary">
+                      Contraseña
+                    </label>
+                    <input
+                      id="register-password"
+                      type="password"
+                      name="password"
+                      placeholder="Mínimo 8 caracteres"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={inputClass(errors.password)}
+                    />
+                    {errors.password && <span className="text-xs font-bold text-red-500">{errors.password}</span>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="register-confirm-password" className="text-sm font-black text-nt-text-primary">
+                      Confirmar contraseña
+                    </label>
+                    <input
+                      id="register-confirm-password"
+                      type="password"
+                      name="confirmPassword"
+                      placeholder="Repite tu contraseña"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={inputClass(errors.confirmPassword)}
+                    />
+                    {errors.confirmPassword && <span className="text-xs font-bold text-red-500">{errors.confirmPassword}</span>}
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={!isFormValid() || isLoading}
+                  className="h-12 w-full rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple text-sm font-black uppercase tracking-wide text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] hover:from-nt-blue/90 hover:to-nt-purple/90"
+                >
+                  {isLoading ? 'Registrando...' : 'Registrarse'}
+                </Button>
+              </form>
+            )}
+
+            <p className="mt-5 text-center text-sm font-semibold text-nt-text-secondary">
+              {activeTab === 'login' ? (
+                <>
+                  ¿No tienes cuenta?{' '}
+                  <Link to="/register" className="font-black text-nt-purple hover:text-nt-blue">
+                    Crea una nueva
+                  </Link>
+                </>
+              ) : (
+                <>
+                  ¿Ya tienes cuenta?{' '}
+                  <Link to="/login" className="font-black text-nt-purple hover:text-nt-blue">
+                    Inicia sesión aquí
+                  </Link>
+                </>
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+    </main>
   );
 }
 

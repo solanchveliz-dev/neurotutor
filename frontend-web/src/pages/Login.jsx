@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import styles from '../styles/Login.module.css';
+import { GraduationCap, ShieldCheck, Sparkles, UserCog } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { login } from '../services/authService';
 import { saveAuthData } from '../utils/auth';
 
@@ -20,6 +23,12 @@ function Login() {
     DOCENTE: { border: '#F59E0B', button: '#F59E0B' },
     ADMIN: { border: '#7C3AED', button: '#7C3AED' }
   };
+
+  const roleOptions = [
+    { id: 'ESTUDIANTE', label: 'Estudiante', icon: GraduationCap },
+    { id: 'DOCENTE', label: 'Docente', icon: ShieldCheck },
+    { id: 'ADMIN', label: 'Administrador', icon: UserCog }
+  ];
 
   const handleRolChange = (selectedRol) => {
     setRol(selectedRol);
@@ -70,82 +79,118 @@ function Login() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card} style={{ borderColor: colors[rol].border }}>
-        <h1 className={styles.title}>NeuroTutor</h1>
-        
-        {/* Selector de roles */}
-        <div className={styles.rolesContainer}>
-          <button
-            className={`${styles.rolButton} ${rol === 'ESTUDIANTE' ? styles.activeEstudiante : ''}`}
-            onClick={() => handleRolChange('ESTUDIANTE')}
-          >
-            👨‍🎓 Estudiante
-          </button>
-          <button
-            className={`${styles.rolButton} ${rol === 'DOCENTE' ? styles.activeDocente : ''}`}
-            onClick={() => handleRolChange('DOCENTE')}
-          >
-            👩‍🏫 Docente
-          </button>
-          <button
-            className={`${styles.rolButton} ${rol === 'ADMIN' ? styles.activeAdmin : ''}`}
-            onClick={() => handleRolChange('ADMIN')}
-          >
-            👑 Administrador
-          </button>
-        </div>
+    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#dff4ff_34%,#bfe7ff_100%)] px-4 py-8 text-nt-text-primary">
+      <div className="pointer-events-none absolute left-8 top-10 hidden h-28 w-28 rounded-full bg-nt-yellow/35 blur-3xl md:block" />
+      <div className="pointer-events-none absolute bottom-8 right-10 hidden h-36 w-36 rounded-full bg-nt-purple-light/30 blur-3xl md:block" />
 
-        {error && (
-          <div className={styles.errorMessage}>{error}</div>
-        )}
+      <section className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
+        <Card className="w-full max-w-md rounded-[32px] border border-white/80 bg-white/88 p-0 shadow-[0_24px_70px_rgba(37,99,235,0.18)] backdrop-blur-xl">
+          <CardHeader className="px-6 pb-4 pt-7 text-center sm:px-8">
+            <div className="mx-auto mb-4 grid size-16 place-items-center rounded-[24px] bg-gradient-to-br from-nt-blue to-nt-purple text-white shadow-[0_16px_34px_rgba(37,99,235,0.28)]">
+              <Sparkles className="size-8" aria-hidden="true" />
+            </div>
+            <Badge className="mx-auto mb-3 h-6 rounded-full bg-nt-blue/10 px-3 text-[11px] font-black uppercase tracking-wide text-nt-blue hover:bg-nt-blue/10">
+              NeuroTutor
+            </Badge>
+            <CardTitle className="text-3xl font-black tracking-normal text-nt-text-primary">
+              Iniciar sesión
+            </CardTitle>
+            <CardDescription className="mt-2 text-sm font-semibold text-nt-text-secondary">
+              Entra a tu aventura matemática y continúa aprendiendo.
+            </CardDescription>
+          </CardHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className={styles.field}>
-            <input
-              type="text"
-              name="email"
-              placeholder={getPlaceholder()}
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <CardContent className="px-6 pb-7 sm:px-8">
+            <div className="mb-5 grid grid-cols-3 gap-2 rounded-[22px] bg-nt-sky/70 p-1.5">
+              {roleOptions.map(({ id, label, icon: Icon }) => {
+                const isActive = rol === id;
 
-          <div className={styles.field}>
-            <input
-              type="password"
-              name="password"
-              placeholder="Contraseña"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-[18px] px-2 text-[11px] font-black transition ${
+                      isActive
+                        ? 'bg-white text-nt-blue shadow-[0_10px_24px_rgba(37,99,235,0.16)]'
+                        : 'text-nt-text-secondary hover:bg-white/70 hover:text-nt-blue'
+                    }`}
+                    onClick={() => handleRolChange(id)}
+                    aria-pressed={isActive}
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                    <span className="leading-tight">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Enlace de recuperación (HU-03 - ya avanzada por Naomi) */}
-          <div className={styles.forgotLink}>
-            <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
-          </div>
+            {error && (
+              <div className="mb-4 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-bold text-red-600">
+                {error}
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={styles.button}
-            style={{ backgroundColor: colors[rol].button }}
-          >
-            {isLoading ? 'Ingresando...' : 'INGRESAR'}
-          </button>
-        </form>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <label htmlFor="login-email" className="text-sm font-black text-nt-text-primary">
+                  Usuario o correo
+                </label>
+                <input
+                  id="login-email"
+                  type="text"
+                  name="email"
+                  placeholder={getPlaceholder()}
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="h-12 w-full rounded-[18px] border border-nt-border bg-white px-4 text-sm font-semibold text-nt-text-primary outline-none transition placeholder:text-nt-text-secondary/70 focus:border-nt-blue focus:ring-4 focus:ring-nt-blue/15"
+                />
+              </div>
 
-        {/* Solo Estudiantes ven el enlace para registrarse */}
-        {rol === 'ESTUDIANTE' && (
-          <p className={styles.registerLink}>
-            ¿No tienes cuenta? <Link to="/register">Crea una nueva</Link>
-          </p>
-        )}
-      </div>
-    </div>
+              <div className="space-y-2">
+                <label htmlFor="login-password" className="text-sm font-black text-nt-text-primary">
+                  Contraseña
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  name="password"
+                  placeholder="Contraseña"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="h-12 w-full rounded-[18px] border border-nt-border bg-white px-4 text-sm font-semibold text-nt-text-primary outline-none transition placeholder:text-nt-text-secondary/70 focus:border-nt-blue focus:ring-4 focus:ring-nt-blue/15"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Link to="/forgot-password" className="text-sm font-black text-nt-blue hover:text-nt-purple">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="h-12 w-full rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple text-sm font-black uppercase tracking-wide text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] hover:from-nt-blue/90 hover:to-nt-purple/90"
+                style={{ '--role-color': colors[rol].button }}
+              >
+                {isLoading ? 'Ingresando...' : 'Ingresar'}
+              </Button>
+            </form>
+
+            {rol === 'ESTUDIANTE' && (
+              <p className="mt-5 text-center text-sm font-semibold text-nt-text-secondary">
+                ¿No tienes cuenta?{' '}
+                <Link to="/register" className="font-black text-nt-purple hover:text-nt-blue">
+                  Crea una nueva
+                </Link>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+    </main>
   );
 }
 
