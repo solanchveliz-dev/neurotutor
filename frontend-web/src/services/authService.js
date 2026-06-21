@@ -92,6 +92,23 @@ export const forgotPassword = async (email) => {
   }
 };
 
+export const resetPassword = async (payload) => {
+  try {
+    const response = await api.post('/api/reset-password', payload);
+    return {
+      success: true,
+      data: response.data,
+      status: response.status
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.message || error.response?.data?.error || 'No se pudo restablecer la contraseña',
+      error: error.response?.data
+    };
+  }
+};
+
 /**
  * Cierra sesion de usuario.
  * @returns {Promise<Object>} - Respuesta del servidor

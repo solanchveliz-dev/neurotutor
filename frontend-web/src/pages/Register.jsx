@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { GraduationCap, ShieldCheck, Sparkles, UserCog } from 'lucide-react';
+import { GraduationCap, ShieldCheck, UserCog } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -201,18 +201,24 @@ function Register({ initialTab = 'register' }) {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#dff4ff_34%,#bfe7ff_100%)] px-4 py-8 text-nt-text-primary">
+    <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_neo3.png')] bg-cover bg-center px-4 py-8 text-nt-text-primary">
+      <div className="absolute inset-0 bg-white/10" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24)_0,rgba(37,99,235,0.08)_42%,rgba(30,58,138,0.14)_100%)]" />
       <div className="pointer-events-none absolute right-8 top-8 hidden h-28 w-28 rounded-full bg-nt-green/25 blur-3xl md:block" />
       <div className="pointer-events-none absolute bottom-8 left-10 hidden h-36 w-36 rounded-full bg-nt-purple-light/30 blur-3xl md:block" />
 
       <section className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
-        <Card className="w-full max-w-xl rounded-[32px] border border-white/80 bg-white/88 p-0 shadow-[0_24px_70px_rgba(37,99,235,0.18)] backdrop-blur-xl">
-          <CardHeader className="px-6 pb-4 pt-7 text-center sm:px-8">
-            <div className="mx-auto mb-4 grid size-16 place-items-center rounded-[24px] bg-gradient-to-br from-nt-blue to-nt-purple text-white shadow-[0_16px_34px_rgba(37,99,235,0.28)]">
-              <Sparkles className="size-8" aria-hidden="true" />
-            </div>
-            <Badge className="mx-auto mb-3 h-6 rounded-full bg-nt-purple/10 px-3 text-[11px] font-black uppercase tracking-wide text-nt-purple hover:bg-nt-purple/10">
-              NeuroTutor
+        <Card className="w-full max-w-xl rounded-[36px] border border-white/80 bg-white/74 p-0 shadow-[0_28px_90px_rgba(30,58,138,0.24)] backdrop-blur-2xl">
+          <CardHeader className="px-6 pb-4 pt-6 text-center sm:px-8">
+            <img
+              src="/assets/neo_register.png"
+              alt="NEO"
+              className="mx-auto mb-2 block w-32 object-contain drop-shadow-[0_22px_28px_rgba(30,58,138,0.22)] sm:w-40 lg:w-44"
+            />
+            <Badge className="mx-auto mb-3 h-7 rounded-full bg-white/70 px-4 text-sm font-black uppercase tracking-wide shadow-sm ring-1 ring-nt-blue/10 hover:bg-white/70">
+              <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                NEUROTUTOR
+              </span>
             </Badge>
             <CardTitle className="text-3xl font-black tracking-normal text-nt-text-primary">
               {activeTab === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
@@ -225,7 +231,7 @@ function Register({ initialTab = 'register' }) {
           </CardHeader>
 
           <CardContent className="px-6 pb-7 sm:px-8">
-            <div className="mb-5 grid grid-cols-2 gap-2 rounded-[22px] bg-nt-sky/70 p-1.5">
+            <div className="hidden">
               <button
                 type="button"
                 className={`h-11 rounded-[18px] text-sm font-black transition ${
