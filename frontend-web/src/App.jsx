@@ -14,6 +14,9 @@ import LevelActivities from "./pages/LevelActivities";
 import Theory from "./pages/Theory";
 import PracticeExercises from "./pages/PracticeExercises";
 import FinalExam from "./pages/FinalExam";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminStudents from "./pages/admin/AdminStudents";
+import AdminStudentDetail from "./pages/admin/AdminStudentDetail";
 
 function App() {
   const token = localStorage.getItem("token");
@@ -36,6 +39,10 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/students" element={<AdminStudents />} />
+        <Route path="/admin/students/:id" element={<AdminStudentDetail />} />
 
         <Route
           path="/diagnostic-exam"
