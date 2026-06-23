@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bot, CheckCircle2, Lightbulb, Star, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bot, CheckCircle2, Lightbulb, Star, X, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { modulesData } from "../data/modulesData";
+import { askNeoTutor } from "../services/aiService";
 import { getLearningContent } from "../services/learningService";
+import { getStudentId } from "../utils/auth";
 
 const fallbackExercises = [
   {
@@ -55,6 +57,11 @@ function PracticeExercises() {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [points, setPoints] = useState(0);
+  const [isTutorOpen, setIsTutorOpen] = useState(false);
+  const [tutorQuestion, setTutorQuestion] = useState("");
+  const [tutorAnswer, setTutorAnswer] = useState("");
+  const [tutorError, setTutorError] = useState("");
+  const [isTutorLoading, setIsTutorLoading] = useState(false);
 
   const module =
     modulesData.find((item) => String(item.id) === String(moduleId)) ??
@@ -78,6 +85,74 @@ function PracticeExercises() {
   const currentExercise = exercises[currentIndex];
   const isCorrect = selectedAnswer === currentExercise.correctAnswer;
   const progress = ((currentIndex + 1) / exercises.length) * 100;
+
+  const buildTutorContext = () => {
+    const selectedOption =
+      Number.isInteger(selectedAnswer) && currentExercise.options[selectedAnswer]
+        ? currentExercise.options[selectedAnswer]
+        : "Sin respuesta seleccionada";
+
+    return [
+      `Módulo: ${module.title}`,
+      `Nivel: ${level.name}`,
+      `Ejercicio: ${currentExercise.question}`,
+      `Respuesta seleccionada: ${selectedOption}`,
+      currentExercise.explanation ? `Explicación base: ${currentExercise.explanation}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  };
+
+  const openTutorPanel = (question = "") => {
+    setTutorQuestion(question);
+    setTutorAnswer("");
+    setTutorError("");
+    setIsTutorOpen(true);
+  };
+
+  const handleAskTutor = async (event) => {
+    event.preventDefault();
+
+    const studentId = getStudentId();
+    const numericStudentId = Number(studentId);
+    const numericModuleId = Number(moduleId);
+
+    if (!Number.isFinite(numericStudentId)) {
+      setTutorError("No se encontró el ID del estudiante. Inicia sesión nuevamente.");
+      return;
+    }
+
+    if (!Number.isFinite(numericModuleId)) {
+      setTutorError("No se pudo identificar el módulo actual.");
+      return;
+    }
+
+    if (!tutorQuestion.trim()) {
+      setTutorError("Escribe una pregunta para Neo.");
+      return;
+    }
+
+    setIsTutorLoading(true);
+    setTutorError("");
+    setTutorAnswer("");
+
+    try {
+      const response = await askNeoTutor({
+        studentId: numericStudentId,
+        moduleId: numericModuleId,
+        question: tutorQuestion.trim(),
+        context: buildTutorContext(),
+      });
+      setTutorAnswer(response.answer || "Neo no devolvió una respuesta. Intenta nuevamente.");
+    } catch (error) {
+      setTutorError(
+        error?.response?.data?.error ||
+          "No pudimos conectar con Neo IA en este momento. Intenta nuevamente."
+      );
+    } finally {
+      setIsTutorLoading(false);
+    }
+  };
 
   const handleAnswer = (index) => {
     if (showFeedback) return;
@@ -152,13 +227,24 @@ function PracticeExercises() {
                 </p>
               </div>
 
-              <div className="flex w-fit items-center gap-3 rounded-[24px] border border-nt-purple-light/40 bg-nt-purple/8 px-5 py-4 text-nt-purple shadow-sm">
-                <Star className="size-6 fill-nt-yellow text-nt-yellow" aria-hidden="true" />
-                <div>
-                  <span className="block text-xs font-black uppercase tracking-wide text-nt-text-secondary">
-                    Puntos
-                  </span>
-                  <strong className="text-3xl font-black leading-none">{points}</strong>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button
+                  type="button"
+                  className="h-12 rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple px-5 text-sm font-black text-white shadow-[0_16px_30px_rgba(37,99,235,0.22)] hover:from-nt-blue/90 hover:to-nt-purple/90"
+                  onClick={() => openTutorPanel("No entiendo este ejercicio. ¿Me lo explicas paso a paso?")}
+                >
+                  <Bot className="size-5" aria-hidden="true" />
+                  Preguntar a Neo IA
+                </Button>
+
+                <div className="flex w-fit items-center gap-3 rounded-[24px] border border-nt-purple-light/40 bg-nt-purple/8 px-5 py-4 text-nt-purple shadow-sm">
+                  <Star className="size-6 fill-nt-yellow text-nt-yellow" aria-hidden="true" />
+                  <div>
+                    <span className="block text-xs font-black uppercase tracking-wide text-nt-text-secondary">
+                      Puntos
+                    </span>
+                    <strong className="text-3xl font-black leading-none">{points}</strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -272,13 +358,25 @@ function PracticeExercises() {
                         </p>
 
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <button className="rounded-full bg-nt-purple/10 px-3 py-2 text-xs font-black text-nt-purple">
+                          <button
+                            type="button"
+                            className="rounded-full bg-nt-purple/10 px-3 py-2 text-xs font-black text-nt-purple"
+                            onClick={() => openTutorPanel("Explícame este ejercicio porque no entendí mi error.")}
+                          >
                             Explícame, no entendí
                           </button>
-                          <button className="rounded-full bg-nt-blue/10 px-3 py-2 text-xs font-black text-nt-blue">
+                          <button
+                            type="button"
+                            className="rounded-full bg-nt-blue/10 px-3 py-2 text-xs font-black text-nt-blue"
+                            onClick={() => openTutorPanel("Dame una pista sin decirme directamente la respuesta.")}
+                          >
                             Dame una pista
                           </button>
-                          <button className="rounded-full bg-nt-green/12 px-3 py-2 text-xs font-black text-green-700">
+                          <button
+                            type="button"
+                            className="rounded-full bg-nt-green/12 px-3 py-2 text-xs font-black text-green-700"
+                            onClick={() => openTutorPanel("Ponme un ejemplo diferente y resuélvelo paso a paso.")}
+                          >
                             Ponme un ejemplo diferente
                           </button>
                         </div>
@@ -304,6 +402,75 @@ function PracticeExercises() {
           </CardContent>
         </Card>
       </section>
+
+      {isTutorOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 px-4 py-4 backdrop-blur-sm sm:items-center">
+          <Card className="w-full max-w-2xl rounded-[28px] border border-white/80 bg-white p-0 shadow-[0_28px_80px_rgba(30,58,138,0.28)]">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-nt-blue to-nt-purple text-white shadow-lg shadow-nt-purple/20">
+                    <Bot className="size-6" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-nt-text-primary">Preguntar a Neo IA</h2>
+                    <p className="mt-1 text-sm font-semibold text-nt-text-secondary">
+                      Neo te guiará paso a paso sin darte solo la respuesta.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="grid size-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+                  onClick={() => setIsTutorOpen(false)}
+                  aria-label="Cerrar tutor IA"
+                >
+                  <X className="size-5" aria-hidden="true" />
+                </button>
+              </div>
+
+              <form className="mt-5 space-y-4" onSubmit={handleAskTutor}>
+                <label className="block">
+                  <span className="text-sm font-black text-nt-text-primary">Tu pregunta</span>
+                  <textarea
+                    value={tutorQuestion}
+                    onChange={(event) => setTutorQuestion(event.target.value)}
+                    rows={4}
+                    className="mt-2 w-full resize-none rounded-[20px] border-2 border-nt-border bg-nt-sky/20 p-4 text-sm font-semibold leading-6 text-nt-text-primary outline-none transition focus:border-nt-purple focus:bg-white"
+                    placeholder="Ejemplo: No entiendo por qué esta alternativa es correcta..."
+                  />
+                </label>
+
+                <Button
+                  type="submit"
+                  disabled={isTutorLoading}
+                  className="h-12 w-full rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple text-sm font-black text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] hover:from-nt-blue/90 hover:to-nt-purple/90 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isTutorLoading ? "Neo está pensando..." : "Enviar pregunta"}
+                </Button>
+              </form>
+
+              {tutorError && (
+                <div className="mt-4 rounded-[20px] border border-nt-red/30 bg-red-50 p-4 text-sm font-bold leading-6 text-red-700">
+                  {tutorError}
+                </div>
+              )}
+
+              {tutorAnswer && (
+                <div className="mt-4 rounded-[20px] border border-nt-purple-light/40 bg-nt-purple/8 p-4">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-black text-nt-purple">
+                    <Lightbulb className="size-4" aria-hidden="true" />
+                    Respuesta de Neo
+                  </div>
+                  <p className="whitespace-pre-line text-sm font-semibold leading-7 text-nt-text-primary">
+                    {tutorAnswer}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </main>
   );
 }
