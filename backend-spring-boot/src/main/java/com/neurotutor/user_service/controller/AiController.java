@@ -30,7 +30,7 @@ public class AiController {
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(new AiErrorResponse(exception.getMessage()));
         } catch (IllegalStateException exception) {
-            HttpStatus status = exception.getMessage() != null && exception.getMessage().contains("GEMINI_API_KEY")
+            HttpStatus status = exception.getMessage() != null && exception.getMessage().contains("GROQ_API_KEY")
                     ? HttpStatus.SERVICE_UNAVAILABLE
                     : HttpStatus.BAD_GATEWAY;
             return ResponseEntity.status(status).body(new AiErrorResponse(exception.getMessage()));
