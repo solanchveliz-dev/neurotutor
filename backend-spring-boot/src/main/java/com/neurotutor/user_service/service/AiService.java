@@ -2,8 +2,11 @@ package com.neurotutor.user_service.service;
 
 import com.neurotutor.user_service.dto.AiTutorRequest;
 import com.neurotutor.user_service.dto.AiTutorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
@@ -11,9 +14,12 @@ import java.util.Map;
 
 @Service
 public class AiService {
-    private static final String GEMINI_MODEL = "gemini-2.5-flash";
+    private static final Logger logger = LoggerFactory.getLogger(AiService.class);
+    private static final String GEMINI_MODEL = "gemini-1.5-flash";
     private static final String GEMINI_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
+    private static final String GEMINI_UNAVAILABLE_MESSAGE =
+            "Neo IA está temporalmente no disponible. Intenta nuevamente en unos minutos.";
 
     private static final String SYSTEM_PROMPT = """
             Eres Neo, el Tutor IA de NeuroTutor para estudiantes de matemáticas.
@@ -69,7 +75,16 @@ public class AiService {
 
             return new AiTutorResponse(answer.trim());
         } catch (RestClientResponseException exception) {
-            throw new IllegalStateException("Gemini API respondió con error: " + exception.getStatusCode().value(), exception);
+            logger.warn(
+                    "Gemini API error. model={}, status={}, body={}",
+                    GEMINI_MODEL,
+                    exception.getStatusCode().value(),
+                    sanitizeGeminiErrorBody(exception.getResponseBodyAsString())
+            );
+            throw new IllegalStateException(GEMINI_UNAVAILABLE_MESSAGE, exception);
+        } catch (RestClientException exception) {
+            logger.warn("Gemini API request failed. model={}, message={}", GEMINI_MODEL, exception.getMessage());
+            throw new IllegalStateException(GEMINI_UNAVAILABLE_MESSAGE, exception);
         }
     }
 
@@ -113,6 +128,23 @@ public class AiService {
         }
 
         return normalized.substring(0, maxLength);
+    }
+
+    private String sanitizeGeminiErrorBody(String body) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+
+        String sanitized = body
+                .replaceAll("(?i)(key=)[^\\s&\\\"]+", "$1[REDACTED]")
+                .replaceAll("(?i)(api[_-]?key\\\"?\\s*[:=]\\s*\\\"?)[^\\s,\\\"]+", "$1[REDACTED]");
+
+        int maxLength = 800;
+        if (sanitized.length() <= maxLength) {
+            return sanitized;
+        }
+
+        return sanitized.substring(0, maxLength) + "...";
     }
 
     private String extractAnswer(Map<?, ?> response) {
