@@ -15,7 +15,7 @@ import java.util.Map;
 @Service
 public class AiService {
     private static final Logger logger = LoggerFactory.getLogger(AiService.class);
-    private static final String GEMINI_MODEL = "gemini-1.5-flash";
+    private static final String GEMINI_MODEL = "gemini-2.0-flash";
     private static final String GEMINI_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
     private static final String GEMINI_UNAVAILABLE_MESSAGE =
