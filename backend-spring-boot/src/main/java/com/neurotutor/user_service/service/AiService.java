@@ -15,10 +15,9 @@ import java.util.Map;
 @Service
 public class AiService {
     private static final Logger logger = LoggerFactory.getLogger(AiService.class);
-    private static final String GEMINI_MODEL = "gemini-2.0-flash";
-    private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
-    private static final String GEMINI_UNAVAILABLE_MESSAGE =
+    private static final String GROQ_MODEL = "llama-3.1-8b-instant";
+    private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+    private static final String GROQ_UNAVAILABLE_MESSAGE =
             "Neo IA está temporalmente no disponible. Intenta nuevamente en unos minutos.";
 
     private static final String SYSTEM_PROMPT = """
@@ -42,49 +41,46 @@ public class AiService {
     public AiTutorResponse askTutor(AiTutorRequest request) {
         validateRequest(request);
 
-        String apiKey = System.getenv("GEMINI_API_KEY");
+        String apiKey = System.getenv("GROQ_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException("GEMINI_API_KEY no está configurada en el backend.");
+            throw new IllegalStateException("GROQ_API_KEY no está configurada en el backend.");
         }
 
         Map<String, Object> body = Map.of(
-                "systemInstruction", Map.of(
-                        "parts", List.of(Map.of("text", SYSTEM_PROMPT))
+                "model", GROQ_MODEL,
+                "messages", List.of(
+                        Map.of("role", "system", "content", SYSTEM_PROMPT),
+                        Map.of("role", "user", "content", buildUserPrompt(request))
                 ),
-                "contents", List.of(Map.of(
-                        "role", "user",
-                        "parts", List.of(Map.of("text", buildUserPrompt(request)))
-                )),
-                "generationConfig", Map.of(
-                        "temperature", 0.4,
-                        "maxOutputTokens", 512
-                )
+                "temperature", 0.4,
+                "max_tokens", 512
         );
 
         try {
             Map<?, ?> response = restClient.post()
-                    .uri(GEMINI_URL + "?key={apiKey}", apiKey)
+                    .uri(GROQ_URL)
+                    .header("Authorization", "Bearer " + apiKey)
                     .body(body)
                     .retrieve()
                     .body(Map.class);
 
             String answer = extractAnswer(response);
             if (answer == null || answer.isBlank()) {
-                throw new IllegalStateException("Gemini no devolvió una respuesta válida.");
+                throw new IllegalStateException("Groq no devolvió una respuesta válida.");
             }
 
             return new AiTutorResponse(answer.trim());
         } catch (RestClientResponseException exception) {
             logger.warn(
-                    "Gemini API error. model={}, status={}, body={}",
-                    GEMINI_MODEL,
+                    "Groq API error. model={}, status={}, body={}",
+                    GROQ_MODEL,
                     exception.getStatusCode().value(),
-                    sanitizeGeminiErrorBody(exception.getResponseBodyAsString())
+                    sanitizeGroqErrorBody(exception.getResponseBodyAsString())
             );
-            throw new IllegalStateException(GEMINI_UNAVAILABLE_MESSAGE, exception);
+            throw new IllegalStateException(GROQ_UNAVAILABLE_MESSAGE, exception);
         } catch (RestClientException exception) {
-            logger.warn("Gemini API request failed. model={}, message={}", GEMINI_MODEL, exception.getMessage());
-            throw new IllegalStateException(GEMINI_UNAVAILABLE_MESSAGE, exception);
+            logger.warn("Groq API request failed. model={}, message={}", GROQ_MODEL, exception.getMessage());
+            throw new IllegalStateException(GROQ_UNAVAILABLE_MESSAGE, exception);
         }
     }
 
@@ -130,14 +126,15 @@ public class AiService {
         return normalized.substring(0, maxLength);
     }
 
-    private String sanitizeGeminiErrorBody(String body) {
+    private String sanitizeGroqErrorBody(String body) {
         if (body == null || body.isBlank()) {
             return "";
         }
 
         String sanitized = body
-                .replaceAll("(?i)(key=)[^\\s&\\\"]+", "$1[REDACTED]")
-                .replaceAll("(?i)(api[_-]?key\\\"?\\s*[:=]\\s*\\\"?)[^\\s,\\\"]+", "$1[REDACTED]");
+                .replaceAll("(?i)(bearer\\s+)[^\\s,\\\"]+", "$1[REDACTED]")
+                .replaceAll("(?i)(api[_-]?key\\\"?\\s*[:=]\\s*\\\"?)[^\\s,\\\"]+", "$1[REDACTED]")
+                .replaceAll("(?i)(authorization\\\"?\\s*[:=]\\s*\\\"?)[^\\s,\\\"]+", "$1[REDACTED]");
 
         int maxLength = 800;
         if (sanitized.length() <= maxLength) {
@@ -152,39 +149,26 @@ public class AiService {
             return null;
         }
 
-        Object candidatesValue = response.get("candidates");
-        if (!(candidatesValue instanceof List<?> candidates) || candidates.isEmpty()) {
+        Object choicesValue = response.get("choices");
+        if (!(choicesValue instanceof List<?> choices) || choices.isEmpty()) {
             return null;
         }
 
-        Object firstCandidateValue = candidates.get(0);
-        if (!(firstCandidateValue instanceof Map<?, ?> firstCandidate)) {
+        Object firstChoiceValue = choices.get(0);
+        if (!(firstChoiceValue instanceof Map<?, ?> firstChoice)) {
             return null;
         }
 
-        Object contentValue = firstCandidate.get("content");
-        if (!(contentValue instanceof Map<?, ?> content)) {
+        Object messageValue = firstChoice.get("message");
+        if (!(messageValue instanceof Map<?, ?> message)) {
             return null;
         }
 
-        Object partsValue = content.get("parts");
-        if (!(partsValue instanceof List<?> parts) || parts.isEmpty()) {
-            return null;
+        Object contentValue = message.get("content");
+        if (contentValue instanceof String content && !content.isBlank()) {
+            return content;
         }
 
-        StringBuilder answer = new StringBuilder();
-        for (Object partValue : parts) {
-            if (partValue instanceof Map<?, ?> part) {
-                Object textValue = part.get("text");
-                if (textValue instanceof String text && !text.isBlank()) {
-                    if (!answer.isEmpty()) {
-                        answer.append("\n");
-                    }
-                    answer.append(text);
-                }
-            }
-        }
-
-        return answer.toString();
+        return null;
     }
 }
