@@ -1,10 +1,13 @@
 import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Search } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import NeoCard from "../components/student/NeoCard";
 import ProgressCard from "../components/student/ProgressCard";
 import { modulesData } from "../data/modulesData";
+import { getModuleProgress } from "../services/progressService";
+import { getStudentId } from "../utils/auth";
 
 const numericFallbackMap = {
   1: "fracciones",
@@ -16,6 +19,8 @@ function LevelActivities() {
   const navigate = useNavigate();
   const location = useLocation();
   const { moduleId, levelId } = useParams();
+  const [moduleProgress, setModuleProgress] = useState(null);
+  const [progressError, setProgressError] = useState("");
 
   const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
   const fallbackModule =
@@ -40,17 +45,30 @@ function LevelActivities() {
     status: fallbackLevel?.status ?? "Disponible",
   };
 
+  useEffect(() => {
+    const studentId = getStudentId();
+    const progressModuloId = levelId ?? moduleId;
+
+    if (!studentId || !progressModuloId) return;
+
+    setProgressError("");
+    getModuleProgress(studentId, progressModuloId)
+      .then(setModuleProgress)
+      .catch(() => setProgressError("No se pudo cargar el progreso real. Intenta nuevamente."));
+  }, [moduleId, levelId]);
+
   const completion = {
-    theoryCompleted: false,
-    practiceCompleted: false,
+    theoryCompleted: moduleProgress?.theory_completed ?? false,
+    practiceCompleted: moduleProgress?.practice_completed ?? false,
   };
   const isExamUnlocked = completion.theoryCompleted && completion.practiceCompleted;
+  const progressPercentage = moduleProgress?.progress_percentage ?? level.progress ?? 0;
 
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Modulos", active: true, onClick: () => navigate(`/module/${moduleId}`, { state: { module } }) },
     { label: "Mis logros", onClick: () => navigate("/learning-path") },
-    { label: "Perfil", onClick: () => navigate("/student-dashboard") },
+    { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 
   const activities = [
@@ -124,8 +142,8 @@ function LevelActivities() {
         <div className="space-y-5">
           <ProgressCard
             title="Progreso del nivel"
-            subtitle={level.status}
-            value={level.progress || 0}
+            subtitle={progressError || level.status}
+            value={progressPercentage}
             totalLabel={level.name}
             tone="green"
           />
@@ -142,7 +160,7 @@ function LevelActivities() {
               </div>
               <div className="flex items-center gap-2 rounded-[18px] bg-slate-100 p-3 text-slate-500">
                 <Lock className="size-4" />
-                Examen bloqueado
+                {isExamUnlocked ? "Examen disponible" : "Examen bloqueado"}
               </div>
             </div>
           </div>
@@ -173,7 +191,7 @@ function LevelActivities() {
           </div>
           <div className="rounded-[28px] bg-nt-sky/80 px-5 py-4 text-center">
             <p className="text-sm font-black text-nt-text-secondary">Avance</p>
-            <p className="text-4xl font-black text-nt-blue">{level.progress || 0}%</p>
+            <p className="text-4xl font-black text-nt-blue">{progressPercentage}%</p>
           </div>
         </div>
       </section>

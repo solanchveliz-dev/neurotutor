@@ -173,7 +173,7 @@ function ModuleDetail() {
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Modulos", active: true, onClick: () => navigate("/learning-path") },
     { label: "Mis logros", onClick: () => navigate("/learning-path") },
-    { label: "Perfil", onClick: () => navigate("/student-dashboard") },
+    { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 
   const moduleAsset = moduleAssets[fallbackId] ?? moduleAssets[fallbackModule?.id];

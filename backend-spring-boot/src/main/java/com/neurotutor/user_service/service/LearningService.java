@@ -23,6 +23,9 @@ public class LearningService {
     @Autowired
     private ModuloRepository moduloRepository;
 
+    @Autowired
+    private ProgressService progressService;
+
     /**
      * 🚀 HU-20: Obtiene la ruta completa de niveles (🌱, 🔥, 🚀) para un tema.
      * Implementa las reglas de bloqueo según el nivel del estudiante.
@@ -133,6 +136,7 @@ public class LearningService {
         boolean passed = score >= 70;
 
         if (!passed) {
+            progressService.updateExamProgress(studentId, moduloId, score, false, 0);
             return new SubmitExamResponse(false, "No alcanzaste el 70%. ¡Sigue practicando!", 0, false, null, false);
         }
 
@@ -181,6 +185,7 @@ public class LearningService {
         }
 
         estudianteRepository.save(estudiante);
+        progressService.updateExamProgress(studentId, moduloId, score, true, pointsEarned);
 
         String mensaje = alreadyPassed ?
                 "¡Buen repaso! Ya habías aprobado este examen." :

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, Trophy, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   getFinalExam,
   submitExamV2,
 } from "../services/learningService";
+import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
 
 const fallbackExamQuestions = [
@@ -54,15 +55,32 @@ function mapExamQuestion(question) {
   };
 }
 
+const getTitle = (item, fallback = "") =>
+  item?.title ?? item?.titulo ?? item?.nombre ?? item?.name ?? fallback;
+
+const inferLevelName = (value = "") => {
+  const text = String(value).toLowerCase();
+
+  if (text.includes("intermedio") || /\bii\b/.test(text)) return "Intermedio";
+  if (text.includes("avanzado") || /\biii\b/.test(text)) return "Avanzado";
+  if (text.includes("basico") || text.includes("básico") || /\bi\b/.test(text)) return "Básico";
+  return value;
+};
+
 function getLevelCode(level) {
-  if (level?.name === "Intermedio") return "I";
-  if (level?.name === "Avanzado") return "A";
+  const levelName = inferLevelName(getTitle(level));
+
+  if (levelName === "Intermedio") return "I";
+  if (levelName === "Avanzado") return "A";
   return "B";
 }
 
 function FinalExam() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { moduleId } = useParams();
+  const routeModule = location.state?.module;
+  const routeLevel = location.state?.level;
   const [examQuestions, setExamQuestions] = useState(fallbackExamQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -71,11 +89,22 @@ function FinalExam() {
   const [alreadyPassed, setAlreadyPassed] = useState(false);
   const [isUsingFallback, setIsUsingFallback] = useState(true);
 
-  const module =
+  const fallbackModule =
     modulesData.find((item) => String(item.id) === String(moduleId)) ??
     modulesData[0];
-  const level =
-    module?.levels.find((item) => item.unlocked) ?? module?.levels[0];
+  const fallbackLevel =
+    fallbackModule?.levels.find((item) => item.unlocked) ?? fallbackModule?.levels[0];
+  const module = routeModule ?? fallbackModule;
+  const level = routeLevel ?? fallbackLevel;
+  const moduleTitle = getTitle(routeModule, getTitle(fallbackModule, "Modulo"));
+  const levelName = inferLevelName(getTitle(routeLevel, getTitle(fallbackLevel, "Nivel")));
+  const levelForSubmit = routeLevel ?? fallbackLevel;
+  const backLevelId = routeLevel?.id ?? routeLevel?.levelId;
+  const backModuleId = routeModule?.id ?? moduleId;
+  const backPath =
+    backModuleId && backLevelId
+      ? `/module/${backModuleId}/level/${backLevelId}`
+      : `/module/${moduleId}`;
 
   useEffect(() => {
     const studentId = getStudentId();
@@ -135,10 +164,16 @@ function FinalExam() {
       const result = await submitExamV2({
         studentId: Number(studentId),
         moduloId: Number(moduleId),
-        level: getLevelCode(level),
+        level: getLevelCode(levelForSubmit),
         score: percentage,
       });
-      setSubmitResult(result);
+      let refreshedProgress = null;
+      try {
+        refreshedProgress = await getModuleProgress(studentId, moduleId);
+      } catch {
+        refreshedProgress = null;
+      }
+      setSubmitResult({ ...result, moduleProgress: refreshedProgress });
     } catch {
       setSubmitResult(null);
     }
@@ -264,7 +299,7 @@ function FinalExam() {
           type="button"
           variant="ghost"
           className="mb-4 h-10 rounded-[18px] bg-white/75 px-4 text-sm font-black text-nt-blue shadow-sm hover:bg-white hover:text-nt-purple"
-          onClick={() => navigate(`/module/${moduleId}`)}
+          onClick={() => navigate(backPath, { state: { module: routeModule, level: routeLevel } })}
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           Volver al módulo
@@ -275,7 +310,7 @@ function FinalExam() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <Badge className="mb-3 h-6 rounded-full bg-red-50 px-3 text-[11px] font-black uppercase tracking-wide text-red-700 hover:bg-red-50">
-                  Examen final - {module.title} - {level.name}
+                  Examen final - {moduleTitle} - {levelName}
                 </Badge>
                 <h1 className="text-3xl font-black leading-tight text-nt-text-primary sm:text-4xl">
                   Demuestra lo aprendido

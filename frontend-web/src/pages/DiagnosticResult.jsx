@@ -17,9 +17,10 @@ function DiagnosticResult() {
   const location = useLocation();
   const storedResult = getStoredDiagnosticResult();
 
-  const score = location.state?.score ?? 0;
-  const total = location.state?.total ?? 10;
-  const percentage = Math.round((score / total) * 100);
+  const attemptId = location.state?.attemptId;
+  const score = location.state?.correctAnswers ?? location.state?.score ?? 0;
+  const total = location.state?.totalQuestions ?? location.state?.total ?? 10;
+  const percentage = location.state?.scorePercentage ?? Math.round((score / total) * 100);
 
   const levelMap = {
     BASICO: "Básico",
@@ -27,7 +28,11 @@ function DiagnosticResult() {
     AVANZADO: "Avanzado",
   };
 
-  const level = levelMap[storedResult?.nivel] ?? location.state?.level ?? "Básico";
+  const level =
+    levelMap[location.state?.assignedLevel] ??
+    levelMap[storedResult?.nivel] ??
+    location.state?.level ??
+    "Básico";
 
   const levelConfig = {
     Basico: {
@@ -61,10 +66,12 @@ function DiagnosticResult() {
 
   const config = levelConfig[level] || levelConfig.Basico;
   const reviewState = {
+    attemptId,
     score,
     total,
     level,
     answers: location.state?.answers ?? {},
+    isFallback: location.state?.isFallback === true,
   };
 
   return (

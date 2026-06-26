@@ -12,8 +12,10 @@ import LearningPath from "./pages/LearningPath";
 import ModuleDetail from "./pages/ModuleDetail";
 import LevelActivities from "./pages/LevelActivities";
 import Theory from "./pages/Theory";
+import TheoryLesson from "./pages/TheoryLesson";
 import PracticeExercises from "./pages/PracticeExercises";
 import FinalExam from "./pages/FinalExam";
+import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStudents from "./pages/admin/AdminStudents";
 import AdminStudentDetail from "./pages/admin/AdminStudentDetail";
@@ -99,6 +101,15 @@ function App() {
         />
 
         <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/module/:moduleId/level/:levelId"
           element={
             <ProtectedRoute>
@@ -112,6 +123,24 @@ function App() {
           element={
             <ProtectedRoute>
               <Theory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/module/:moduleId/level/:levelId/theory/:lessonId"
+          element={
+            <ProtectedRoute>
+              <TheoryLesson />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/module/:moduleId/level/:levelId/practice"
+          element={
+            <ProtectedRoute>
+              <PracticeExercises />
             </ProtectedRoute>
           }
         />
