@@ -17,6 +17,11 @@ export const getFinalExam = async (moduloId) => {
   return response.data;
 };
 
+export const submitFinalExamAttempt = async (payload) => {
+  const response = await api.post("/api/learning/exam-attempts", payload);
+  return response.data;
+};
+
 export const getExamPassed = async (studentId, moduloId) => {
   const response = await api.get("/api/learning/exam-passed", {
     params: { studentId, moduloId },

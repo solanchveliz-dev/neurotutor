@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, BookOpenCheck } from "lucide-react";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import PrimaryButton from "../components/student/PrimaryButton";
@@ -67,8 +67,6 @@ const upcomingChallengesData = [
   { title: "Practicar decimales", progress: 35, points: "20 pts" },
   { title: "Revisar porcentajes", progress: 15, points: "25 pts" },
 ];
-
-const badgesData = ["Constancia", "Rapidez", "Precision"];
 
 const normalizeText = (value = "") =>
   value
@@ -179,13 +177,13 @@ function StudentDashboard() {
           }))
         );
       } else {
-        setModules(fallbackModules);
+        setModules([]);
       }
     } catch (err) {
       console.error("Error fetching dashboard:", err);
       setError(err);
       setStudent(fallbackStudent);
-      setModules(fallbackModules);
+      setModules([]);
     } finally {
       setIsLoading(false);
     }
@@ -388,25 +386,17 @@ function StudentDashboard() {
           </section>
 
           <section className="rounded-nt-card border border-white/85 bg-white/90 p-5 shadow-nt-card">
-            <h2 className="text-lg font-black text-nt-text-primary">Insignias recientes</h2>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {badgesData.map((badge) => (
-                <div key={badge} className="rounded-[18px] bg-nt-sky/70 p-2 text-center">
-                  <Star className="mx-auto size-5 fill-nt-yellow text-nt-yellow" />
-                  <p className="mt-1 truncate text-[11px] font-black text-nt-text-primary">{badge}</p>
-                </div>
-              ))}
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-[18px] bg-nt-blue/10 text-nt-blue">
+                <BookOpenCheck className="size-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-nt-text-primary">Cómo avanzas</h2>
+                <p className="text-xs font-bold text-nt-text-secondary">Progreso registrado por nivel</p>
+              </div>
             </div>
-          </section>
-
-          <section className="rounded-nt-card border border-white/85 bg-white/90 p-5 shadow-nt-card">
-            <h2 className="text-lg font-black text-nt-text-primary">Reto semanal</h2>
-            <p className="mt-1 text-sm font-semibold text-nt-text-secondary">Completa 10 ejercicios esta semana</p>
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-nt-border">
-              <div className="h-full rounded-full bg-nt-purple" style={{ width: `${Math.min(100, (completedExercises / 10) * 100)}%` }} />
-            </div>
-            <p className="mt-2 text-xs font-black text-nt-text-secondary">
-              {Math.min(completedExercises, 10)}/10 ejercicios completados
+            <p className="mt-4 text-sm font-semibold leading-6 text-nt-text-secondary">
+              Cada nivel suma 33% por teoría, 33% por práctica y 34% cuando apruebas el examen final.
             </p>
           </section>
         </div>

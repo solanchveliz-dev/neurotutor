@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock, PlayCircle, Search } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, Clock, PlayCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
@@ -6,6 +6,8 @@ import StudentLayout from "../components/layout/StudentLayout";
 import NeoCard from "../components/student/NeoCard";
 import PrimaryButton from "../components/student/PrimaryButton";
 import ProgressCard from "../components/student/ProgressCard";
+import BackButton from "../components/student/BackButton";
+import LearningProgressPanel from "../components/student/LearningProgressPanel";
 import { modulesData } from "../data/modulesData";
 import { getTheoryLessons } from "../data/theoryLessons";
 import { getLearningContent } from "../services/learningService";
@@ -25,6 +27,7 @@ function Theory() {
   const [theoryHtml, setTheoryHtml] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [completionError, setCompletionError] = useState("");
 
   const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
   const fallbackModule =
@@ -94,9 +97,12 @@ function Theory() {
 
     if (studentId && progressModuloId) {
       try {
+        setCompletionError("");
         await markTheoryCompleted(studentId, progressModuloId);
       } catch (error) {
         console.warn("No se pudo marcar la teoria como completada.", error);
+        setCompletionError("No pudimos guardar la teoría como completada. Revisa tu conexión e intenta nuevamente.");
+        return;
       }
     }
 
@@ -109,31 +115,13 @@ function Theory() {
     <StudentLayout
       sidebar={<AppSidebar items={sidebarItems} />}
       topbar={
-        <header className="flex w-full flex-col gap-3 rounded-[28px] bg-white/40 px-3 py-2 backdrop-blur-sm md:flex-row md:items-center md:justify-between">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 text-sm font-black text-nt-blue transition hover:text-nt-purple"
-            onClick={() => navigate(`/module/${moduleId}/level/${levelId}`, { state: { module, level } })}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver a actividades
-          </button>
-          <label className="relative min-w-0 flex-1 md:max-w-lg">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-nt-text-secondary"
-              aria-hidden="true"
-            />
-            <span className="sr-only">Buscar</span>
-            <input
-              type="search"
-              placeholder="Buscar teoría"
-              className="h-12 w-full rounded-nt-button border border-white/80 bg-white/90 pl-11 pr-4 text-sm font-semibold text-nt-text-primary shadow-sm outline-none transition placeholder:text-nt-text-secondary focus:border-nt-blue focus:ring-4 focus:ring-nt-blue-light/25"
-            />
-          </label>
-        </header>
+        <BackButton onClick={() => navigate(`/module/${moduleId}/level/${levelId}`, { state: { module, level } })}>
+          Volver a actividades
+        </BackButton>
       }
       rightPanel={
         <div className="space-y-5">
+          <LearningProgressPanel studentId={getStudentId()} moduloId={levelId ?? moduleId} />
           <ProgressCard
             title="Teoría"
             subtitle={hasLocalLessons ? `${lessons.length} lecciones` : level.status}
@@ -154,6 +142,11 @@ function Theory() {
         </div>
       }
     >
+      {completionError && (
+        <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+          {completionError}
+        </div>
+      )}
       <section className="overflow-hidden rounded-nt-card border border-white/80 bg-white/90 shadow-nt-card backdrop-blur">
         <div className="p-5">
           <span className="inline-flex rounded-full bg-nt-green px-3 py-1 text-xs font-black text-white shadow-lg shadow-nt-green/25">

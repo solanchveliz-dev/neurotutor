@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { Save, UserRound } from "lucide-react";
+import { GraduationCap, Save, Star, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
+import BackButton from "../components/student/BackButton";
+import ProgressSummaryCard from "../components/student/ProgressSummaryCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getStudentDashboard } from "../services/dashboardService";
 import { getStudentProfile, updateStudentProfile } from "../services/profileService";
+import { getStudentProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
 
 const emptyProfile = {
@@ -24,6 +27,8 @@ function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState(null);
+  const [progressError, setProgressError] = useState("");
 
   const studentId = getStudentId();
 
@@ -48,7 +53,7 @@ function Profile() {
 
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
-    { label: "Modulos", onClick: () => navigate("/learning-path") },
+    { label: "Modulos", onClick: () => navigate("/student-dashboard") },
     { label: "Mis Logros", onClick: () => navigate("/learning-path") },
     { label: "Perfil", active: true, onClick: () => navigate("/profile") },
   ];
@@ -63,8 +68,18 @@ function Profile() {
     setIsLoading(true);
     setError("");
 
-    getStudentProfile(studentId)
-      .then((data) => {
+    Promise.allSettled([getStudentProfile(studentId), getStudentProgress(studentId)])
+      .then(async ([profileResult, progressResult]) => {
+        if (progressResult.status === "fulfilled") {
+          setProgress(progressResult.value);
+          setProgressError("");
+        } else {
+          setProgress(null);
+          setProgressError("No se pudo cargar el progreso en este momento.");
+        }
+
+        if (profileResult.status === "fulfilled") {
+          const data = profileResult.value;
         setProfile({
           name: data.name ?? "",
           grade: data.grade ?? "",
@@ -73,11 +88,12 @@ function Profile() {
           gender: data.gender ?? "",
           email: data.email ?? "",
           level: data.level ?? "",
-          points: data.points ?? 0,
+          points: data.points ?? progressResult.value?.points ?? 0,
           diagnostic_completed: data.diagnostic_completed,
         });
-      })
-      .catch(async (profileError) => {
+          return;
+        }
+
         try {
           const legacyProfile = await getStudentDashboard(studentId);
           setProfile(mapLegacyProfile(legacyProfile));
@@ -133,7 +149,11 @@ function Profile() {
     (String(profile.gender).toLowerCase() === "masculino" ? "/assets/avatar-boy.png" : "/assets/avatar-girl.png");
 
   return (
-    <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
+    <StudentLayout
+      sidebar={<AppSidebar items={sidebarItems} />}
+      topbar={<BackButton onClick={() => navigate("/student-dashboard")}>Volver al inicio</BackButton>}
+      rightPanel={<ProgressSummaryCard progress={progress} isLoading={isLoading} error={progressError} />}
+    >
       <section className="rounded-nt-card border border-white/85 bg-white/92 p-5 shadow-nt-card backdrop-blur">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -147,13 +167,27 @@ function Profile() {
               Actualiza tus datos visibles dentro de NeuroTutor.
             </p>
           </div>
-          <div className="flex items-center gap-3 rounded-[26px] bg-nt-sky/70 p-3">
+          <div className="flex items-center gap-3 rounded-[26px] bg-gradient-to-br from-nt-sky/90 to-violet-50 p-3">
             <img src={avatarSrc} alt="" className="size-20 rounded-full border-4 border-white object-cover shadow-sm" />
             <div>
               <p className="text-lg font-black text-nt-text-primary">{profile.name || "Estudiante"}</p>
               <p className="text-sm font-bold text-nt-text-secondary">{profile.level || "Nivel pendiente"}</p>
               <p className="text-xs font-black text-nt-blue">{profile.points ?? 0} pts</p>
             </div>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="flex items-center gap-3 rounded-[22px] bg-nt-sky/65 p-4">
+            <GraduationCap className="size-5 text-nt-blue" />
+            <div><p className="text-xs font-bold text-nt-text-secondary">Grado y sección</p><p className="font-black text-nt-text-primary">{profile.grade || "Sin grado"} {profile.section || ""}</p></div>
+          </div>
+          <div className="flex items-center gap-3 rounded-[22px] bg-violet-50 p-4">
+            <UserRound className="size-5 text-nt-purple" />
+            <div><p className="text-xs font-bold text-nt-text-secondary">Nivel</p><p className="font-black text-nt-text-primary">{profile.level || "Pendiente"}</p></div>
+          </div>
+          <div className="flex items-center gap-3 rounded-[22px] bg-amber-50 p-4">
+            <Star className="size-5 fill-nt-yellow text-nt-yellow" />
+            <div><p className="text-xs font-bold text-nt-text-secondary">Puntos</p><p className="font-black text-nt-text-primary">{profile.points ?? progress?.points ?? 0} pts</p></div>
           </div>
         </div>
       </section>
@@ -167,7 +201,7 @@ function Profile() {
           ) : (
             <form className="grid gap-4" onSubmit={handleSubmit}>
               {error && (
-                <p className="rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                <p className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
                   {error}
                 </p>
               )}

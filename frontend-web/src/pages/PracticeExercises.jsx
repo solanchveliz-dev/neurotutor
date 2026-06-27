@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bot, CheckCircle2, Lightbulb, Star, X, XCircle } from "lucide-react";
+import { ArrowRight, Bot, CheckCircle2, Lightbulb, Star, X, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
+import BackButton from "../components/student/BackButton";
+import LearningProgressPanel from "../components/student/LearningProgressPanel";
 import { modulesData } from "../data/modulesData";
 import { askNeoTutor } from "../services/aiService";
 import { getLearningContent } from "../services/learningService";
@@ -68,7 +70,8 @@ const inferLevelName = (value = "") => {
 function PracticeExercises() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { moduleId } = useParams();
+  const { moduleId, levelId: nestedLevelId } = useParams();
+  const learningModuloId = nestedLevelId ?? moduleId;
   const routeModule = location.state?.module;
   const routeLevel = location.state?.level;
   const [exercises, setExercises] = useState(fallbackExercises);
@@ -95,17 +98,15 @@ function PracticeExercises() {
   const moduleTitle = getTitle(routeModule, getTitle(fallbackModule, "Modulo"));
   const rawLevelTitle = getTitle(routeLevel, getTitle(fallbackLevel, "Nivel"));
   const levelTitle = inferLevelName(rawLevelTitle);
-  const levelStatus = routeLevel?.status ?? routeLevel?.estado ?? fallbackLevel?.status;
-  const levelProgress = routeLevel?.progress ?? routeLevel?.progreso ?? fallbackLevel?.progress;
-  const backLevelId = routeLevel?.id ?? routeLevel?.levelId;
-  const backModuleId = routeModule?.id ?? moduleId;
+  const backLevelId = routeLevel?.id ?? routeLevel?.levelId ?? nestedLevelId;
+  const backModuleId = routeModule?.id ?? (nestedLevelId ? moduleId : null);
   const backPath =
     backModuleId && backLevelId
       ? `/module/${backModuleId}/level/${backLevelId}`
-      : `/module/${moduleId}`;
+      : "/student-dashboard";
 
   useEffect(() => {
-    getLearningContent(moduleId)
+    getLearningContent(learningModuloId)
       .then((content) => {
         if (Array.isArray(content.ejercicios) && content.ejercicios.length > 0) {
           setExercises(content.ejercicios.map(mapExercise));
@@ -120,7 +121,7 @@ function PracticeExercises() {
         setExercises(fallbackExercises);
         setIsUsingFallback(true);
       });
-  }, [moduleId]);
+  }, [learningModuloId]);
 
   const currentExercise = exercises[currentIndex];
   const isCorrect = selectedAnswer === currentExercise.correctAnswer;
@@ -224,7 +225,7 @@ function PracticeExercises() {
       setAttemptError("");
       const result = await submitPracticeAttempt({
         student_id: Number(studentId),
-        modulo_id: Number(moduleId),
+        modulo_id: Number(learningModuloId),
         answers: answersPayload,
       });
       setPoints(result.points_earned ?? points);
@@ -240,7 +241,7 @@ function PracticeExercises() {
       setShowFeedback(false);
     } else {
       await submitAttemptIfReady();
-      navigate(`/final-exam/${moduleId}`, { state: { module, level } });
+      navigate(`/final-exam/${learningModuloId}`, { state: { module, level } });
     }
   };
 
@@ -277,6 +278,7 @@ function PracticeExercises() {
       sidebar={<AppSidebar items={sidebarItems} />}
       rightPanel={
         <div className="grid gap-4">
+          <LearningProgressPanel studentId={getStudentId()} moduloId={learningModuloId} />
           <Card className="relative overflow-hidden rounded-[32px] border border-white/85 bg-gradient-to-br from-[#dbeafe] via-white to-[#ddd6fe] p-0 shadow-[0_22px_55px_rgba(37,99,235,0.16)]">
             <CardContent className="grid min-h-[150px] grid-cols-[112px_minmax(0,1fr)] items-center gap-3 p-4">
               <img
@@ -287,29 +289,6 @@ function PracticeExercises() {
               <p className="text-sm font-black leading-6 text-nt-text-primary">
                 ¡Tú puedes! Lee bien la pregunta y responde con calma. Vas por buen camino.
               </p>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[28px] border border-white/85 bg-white/88 p-0 shadow-sm">
-            <CardContent className="p-5">
-              <h2 className="text-sm font-black uppercase tracking-wide text-nt-text-secondary">
-                Nivel actual
-              </h2>
-              <p className="mt-2 text-xl font-black text-nt-text-primary">{levelTitle}</p>
-              {levelStatus && (
-                <p className="mt-1 text-sm font-bold text-nt-text-secondary">{levelStatus}</p>
-              )}
-              {Number.isFinite(Number(levelProgress)) && (
-                <div className="mt-4">
-                  <div className="mb-1 flex items-center justify-between text-xs font-black text-nt-text-secondary">
-                    <span>Progreso</span>
-                    <span>{levelProgress}%</span>
-                  </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-nt-border">
-                    <div className="h-full rounded-full bg-nt-blue" style={{ width: `${levelProgress}%` }} />
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -325,15 +304,9 @@ function PracticeExercises() {
       }
     >
       <section>
-        <Button
-          type="button"
-          variant="ghost"
-          className="mb-4 h-10 rounded-[18px] bg-white/75 px-4 text-sm font-black text-nt-blue shadow-sm hover:bg-white hover:text-nt-purple"
-          onClick={() => navigate(backPath, { state: { module: routeModule, level: routeLevel } })}
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Volver al módulo
-        </Button>
+        <BackButton className="mb-4" onClick={() => navigate(backPath, { state: { module: routeModule, level: routeLevel } })}>
+          Volver a actividades
+        </BackButton>
 
         <div>
           <Card className="rounded-[32px] border border-white/80 bg-white/90 p-0 shadow-[0_24px_70px_rgba(37,99,235,0.18)] backdrop-blur-xl">

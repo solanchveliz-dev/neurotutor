@@ -1,10 +1,12 @@
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import NeoCard from "../components/student/NeoCard";
 import PrimaryButton from "../components/student/PrimaryButton";
 import ProgressCard from "../components/student/ProgressCard";
+import LearningProgressPanel from "../components/student/LearningProgressPanel";
 import { modulesData } from "../data/modulesData";
 import { getTheoryLessons } from "../data/theoryLessons";
 import { markTheoryCompleted } from "../services/progressService";
@@ -144,6 +146,7 @@ function TheoryLesson() {
   const navigate = useNavigate();
   const location = useLocation();
   const { moduleId, levelId, lessonId } = useParams();
+  const [completionError, setCompletionError] = useState("");
 
   const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
   const fallbackModule =
@@ -206,9 +209,12 @@ function TheoryLesson() {
 
     if (studentId && progressModuloId) {
       try {
+        setCompletionError("");
         await markTheoryCompleted(studentId, progressModuloId);
       } catch (error) {
         console.warn("No se pudo marcar la teoria como completada.", error);
+        setCompletionError("No pudimos guardar la teoría como completada. Revisa tu conexión e intenta nuevamente.");
+        return;
       }
     }
 
@@ -253,6 +259,7 @@ function TheoryLesson() {
       }
       rightPanel={
         <div className="space-y-5">
+          <LearningProgressPanel studentId={getStudentId()} moduloId={levelId ?? moduleId} />
           <ProgressCard
             title="Lección actual"
             subtitle={lesson ? `${lessonIndex + 1}/${lessons.length}` : "Sin lecciones"}
@@ -269,6 +276,11 @@ function TheoryLesson() {
         </div>
       }
     >
+      {completionError && (
+        <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+          {completionError}
+        </div>
+      )}
       {!lesson ? (
         <section className="rounded-nt-card border border-white/80 bg-white/90 p-6 text-center shadow-nt-card backdrop-blur">
           <h1 className="text-2xl font-black text-nt-text-primary">Lección no encontrada</h1>

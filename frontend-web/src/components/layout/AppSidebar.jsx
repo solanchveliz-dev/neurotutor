@@ -25,7 +25,7 @@ function AppSidebar({
   const getDefaultAction = (label) => {
     const normalized = label.toLowerCase();
     if (normalized.includes("inicio")) return () => navigate("/student-dashboard");
-    if (normalized.includes("mod")) return () => navigate("/learning-path");
+    if (normalized.includes("mod")) return () => navigate("/student-dashboard");
     if (normalized.includes("perfil")) return () => navigate("/profile");
     return undefined;
   };

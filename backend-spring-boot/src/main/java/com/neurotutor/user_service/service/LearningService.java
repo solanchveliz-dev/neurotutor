@@ -8,7 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +28,12 @@ public class LearningService {
 
     @Autowired
     private ProgressService progressService;
+
+    @Autowired
+    private FinalExamAttemptRepository finalExamAttemptRepository;
+
+    @Autowired
+    private FinalExamAnswerRepository finalExamAnswerRepository;
 
     /**
      * 🚀 HU-20: Obtiene la ruta completa de niveles (🌱, 🔥, 🚀) para un tema.
@@ -81,11 +90,129 @@ public class LearningService {
     }
 
     // 📝 HU-23: Cargar Examen
-    public List<Exercise> getFinalExam(Long moduloId) {
+    public List<FinalExamQuestionResponse> getFinalExam(Long moduloId) {
         return ejercicioRepository.findByModuloIdAndEsExamenFinal(moduloId, true)
-                .stream().map(e -> new Exercise(e.getId().toString(), e.getEnunciado(), e.getOpciones(),
-                        e.getRespuestaCorrectaIndex(), "", e.getPuntos()))
+                .stream().map(e -> new FinalExamQuestionResponse(
+                        e.getId(), e.getEnunciado(), e.getImagenUrl(), e.getOpciones()))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public SubmitFinalExamAttemptResponse submitFinalExamAttempt(SubmitFinalExamAttemptRequest request) {
+        validateFinalExamAttempt(request);
+
+        Estudiante student = estudianteRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new RuntimeException("Estudiante no encontrado"));
+        Modulo modulo = moduloRepository.findById(request.getModuloId())
+                .orElseThrow(() -> new RuntimeException("Modulo no encontrado"));
+
+        List<Ejercicio> examQuestions = ejercicioRepository
+                .findByModuloIdAndEsExamenFinal(modulo.getId(), true);
+        if (examQuestions.isEmpty()) {
+            throw new RuntimeException("El modulo no tiene preguntas de examen final");
+        }
+
+        Map<Long, Ejercicio> questionsById = examQuestions.stream()
+                .collect(Collectors.toMap(Ejercicio::getId, question -> question));
+        Set<Long> submittedQuestionIds = new HashSet<>();
+        List<FinalExamAnswer> answersToSave = new ArrayList<>();
+        int correctAnswers = 0;
+
+        for (SubmitFinalExamAttemptRequest.AnswerRequest answerRequest : request.getAnswers()) {
+            if (answerRequest.getQuestionId() == null || answerRequest.getSelectedAnswerIndex() == null) {
+                throw new RuntimeException("Cada respuesta debe incluir question_id y selected_answer_index");
+            }
+            if (!submittedQuestionIds.add(answerRequest.getQuestionId())) {
+                throw new RuntimeException("No se permiten preguntas duplicadas");
+            }
+
+            Ejercicio question = questionsById.get(answerRequest.getQuestionId());
+            if (question == null) {
+                throw new RuntimeException("La pregunta no pertenece al examen indicado");
+            }
+            int selectedIndex = answerRequest.getSelectedAnswerIndex();
+            if (selectedIndex < 0 || selectedIndex >= question.getOpciones().size()) {
+                throw new RuntimeException("selected_answer_index no es valido");
+            }
+
+            boolean correct = question.getRespuestaCorrectaIndex() == selectedIndex;
+            if (correct) {
+                correctAnswers++;
+            }
+
+            FinalExamAnswer answer = new FinalExamAnswer();
+            answer.setExercise(question);
+            answer.setSelectedAnswerIndex(selectedIndex);
+            answer.setCorrect(correct);
+            answersToSave.add(answer);
+        }
+
+        if (submittedQuestionIds.size() != examQuestions.size()
+                || !submittedQuestionIds.equals(questionsById.keySet())) {
+            throw new RuntimeException("Debes responder todas las preguntas del examen");
+        }
+
+        int totalQuestions = examQuestions.size();
+        int scorePercentage = Math.round((correctAnswers * 100f) / totalQuestions);
+        boolean passed = scorePercentage >= 70;
+        boolean alreadyPassed = student.getModulosCompletados().stream()
+                .anyMatch(completedModule -> completedModule.getId().equals(modulo.getId()));
+        int pointsEarned = 0;
+
+        if (passed && !alreadyPassed) {
+            pointsEarned = 100;
+            student.setPuntosTotales(student.getPuntosTotales() + pointsEarned);
+            student.getModulosCompletados().add(modulo);
+            promoteStudentLevel(student, modulo);
+            estudianteRepository.save(student);
+        }
+
+        FinalExamAttempt attempt = new FinalExamAttempt();
+        attempt.setStudent(student);
+        attempt.setModulo(modulo);
+        attempt.setTotalQuestions(totalQuestions);
+        attempt.setCorrectAnswers(correctAnswers);
+        attempt.setScorePercentage(scorePercentage);
+        attempt.setPassed(passed);
+        attempt.setPointsEarned(pointsEarned);
+        attempt.setCompletedAt(java.time.LocalDateTime.now());
+        FinalExamAttempt savedAttempt = finalExamAttemptRepository.save(attempt);
+
+        answersToSave.forEach(answer -> answer.setAttempt(savedAttempt));
+        finalExamAnswerRepository.saveAll(answersToSave);
+
+        progressService.updateExamProgress(
+                student.getId(), modulo.getId(), scorePercentage, passed, pointsEarned);
+        int moduleProgress = progressService
+                .getModuleProgress(student.getId(), modulo.getId())
+                .getProgressPercentage();
+
+        String message = passed
+                ? (alreadyPassed ? "Ya habias aprobado este examen." : "¡Aprobaste el examen!")
+                : "Necesitas 70% para aprobar.";
+
+        return new SubmitFinalExamAttemptResponse(
+                savedAttempt.getId(), correctAnswers, totalQuestions, scorePercentage,
+                passed, pointsEarned, message, moduleProgress);
+    }
+
+    private void validateFinalExamAttempt(SubmitFinalExamAttemptRequest request) {
+        if (request == null || request.getStudentId() == null || request.getModuloId() == null) {
+            throw new RuntimeException("student_id y modulo_id son obligatorios");
+        }
+        if (request.getAnswers() == null || request.getAnswers().isEmpty()) {
+            throw new RuntimeException("answers es obligatorio");
+        }
+    }
+
+    private void promoteStudentLevel(Estudiante student, Modulo modulo) {
+        if ("BASICO".equals(modulo.getNivelRequerido())
+                && "BASICO".equals(student.getNivelDiagnostico())) {
+            student.setNivelDiagnostico("INTERMEDIO");
+        } else if ("INTERMEDIO".equals(modulo.getNivelRequerido())
+                && "INTERMEDIO".equals(student.getNivelDiagnostico())) {
+            student.setNivelDiagnostico("AVANZADO");
+        }
     }
 
     // 🚀 HU-24: Promoción de nivel automática

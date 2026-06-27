@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Search, Star } from "lucide-react";
+import { ArrowRight, CheckCircle2, Lock, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
@@ -6,6 +6,7 @@ import StudentLayout from "../components/layout/StudentLayout";
 import NeoCard from "../components/student/NeoCard";
 import PrimaryButton from "../components/student/PrimaryButton";
 import ProgressCard from "../components/student/ProgressCard";
+import BackButton from "../components/student/BackButton";
 import { modulesData } from "../data/modulesData";
 import { getTopicRuta } from "../services/learningService";
 import { getStudentId } from "../utils/auth";
@@ -102,7 +103,7 @@ function normalizeFallbackLevel(item, index) {
     backendTitle: item.name || visual.label,
     description: item.description || visual.description,
     status: item.status || "Disponible",
-    progress: item.progress || 0,
+    progress: 0,
     unlocked: item.unlocked === true,
     icon: visual.icon,
     image: visual.image,
@@ -171,7 +172,7 @@ function ModuleDetail() {
 
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
-    { label: "Modulos", active: true, onClick: () => navigate("/learning-path") },
+    { label: "Modulos", active: true, onClick: () => navigate("/student-dashboard") },
     { label: "Mis logros", onClick: () => navigate("/learning-path") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
@@ -196,7 +197,7 @@ function ModuleDetail() {
       <StudentLayout sidebar={<AppSidebar items={sidebarItems} />} topbar={<div />}>
         <section className="rounded-nt-card border border-white/80 bg-white/90 p-6 text-center shadow-nt-card">
           <h1 className="text-2xl font-black text-nt-text-primary">Modulo no encontrado</h1>
-          <PrimaryButton type="button" className="mt-5" onClick={() => navigate("/learning-path")}>
+          <PrimaryButton type="button" className="mt-5" onClick={() => navigate("/student-dashboard")}>
             Volver a la ruta
           </PrimaryButton>
         </section>
@@ -218,28 +219,9 @@ function ModuleDetail() {
     <StudentLayout
       sidebar={<AppSidebar items={sidebarItems} />}
       topbar={
-        <header className="flex w-full flex-col gap-3 rounded-[28px] bg-white/40 px-3 py-2 backdrop-blur-sm md:flex-row md:items-center md:justify-between">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 text-sm font-black text-nt-blue transition hover:text-nt-purple"
-            onClick={() => navigate("/learning-path")}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver a modulos
-          </button>
-          <label className="relative min-w-0 flex-1 md:max-w-lg">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-nt-text-secondary"
-              aria-hidden="true"
-            />
-            <span className="sr-only">Buscar</span>
-            <input
-              type="search"
-              placeholder="Buscar nivel"
-              className="h-12 w-full rounded-nt-button border border-white/80 bg-white/90 pl-11 pr-4 text-sm font-semibold text-nt-text-primary shadow-sm outline-none transition placeholder:text-nt-text-secondary focus:border-nt-blue focus:ring-4 focus:ring-nt-blue-light/25"
-            />
-          </label>
-        </header>
+        <BackButton onClick={() => navigate("/student-dashboard")}>
+          Volver al inicio
+        </BackButton>
       }
       rightPanel={
         <div className="space-y-5">

@@ -1,10 +1,11 @@
-import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Search } from "lucide-react";
+import { ArrowRight, CheckCircle2, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import NeoCard from "../components/student/NeoCard";
-import ProgressCard from "../components/student/ProgressCard";
+import BackButton from "../components/student/BackButton";
+import LearningProgressPanel from "../components/student/LearningProgressPanel";
 import { modulesData } from "../data/modulesData";
 import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
@@ -20,7 +21,6 @@ function LevelActivities() {
   const location = useLocation();
   const { moduleId, levelId } = useParams();
   const [moduleProgress, setModuleProgress] = useState(null);
-  const [progressError, setProgressError] = useState("");
 
   const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
   const fallbackModule =
@@ -51,10 +51,9 @@ function LevelActivities() {
 
     if (!studentId || !progressModuloId) return;
 
-    setProgressError("");
     getModuleProgress(studentId, progressModuloId)
       .then(setModuleProgress)
-      .catch(() => setProgressError("No se pudo cargar el progreso real. Intenta nuevamente."));
+      .catch(() => setModuleProgress(null));
   }, [moduleId, levelId]);
 
   const completion = {
@@ -62,7 +61,7 @@ function LevelActivities() {
     practiceCompleted: moduleProgress?.practice_completed ?? false,
   };
   const isExamUnlocked = completion.theoryCompleted && completion.practiceCompleted;
-  const progressPercentage = moduleProgress?.progress_percentage ?? level.progress ?? 0;
+  const progressPercentage = moduleProgress?.progress_percentage ?? 0;
 
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
@@ -115,37 +114,16 @@ function LevelActivities() {
     <StudentLayout
       sidebar={<AppSidebar items={sidebarItems} />}
       topbar={
-        <header className="flex w-full flex-col gap-3 rounded-[28px] bg-white/40 px-3 py-2 backdrop-blur-sm md:flex-row md:items-center md:justify-between">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 text-sm font-black text-nt-blue transition hover:text-nt-purple"
-            onClick={() => navigate(`/module/${moduleId}`, { state: { module } })}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver a niveles
-          </button>
-          <label className="relative min-w-0 flex-1 md:max-w-lg">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-nt-text-secondary"
-              aria-hidden="true"
-            />
-            <span className="sr-only">Buscar</span>
-            <input
-              type="search"
-              placeholder="Buscar actividad"
-              className="h-12 w-full rounded-nt-button border border-white/80 bg-white/90 pl-11 pr-4 text-sm font-semibold text-nt-text-primary shadow-sm outline-none transition placeholder:text-nt-text-secondary focus:border-nt-blue focus:ring-4 focus:ring-nt-blue-light/25"
-            />
-          </label>
-        </header>
+        <BackButton onClick={() => navigate(`/module/${moduleId}`, { state: { module } })}>
+          Volver al módulo
+        </BackButton>
       }
       rightPanel={
         <div className="space-y-5">
-          <ProgressCard
-            title="Progreso del nivel"
-            subtitle={progressError || level.status}
-            value={progressPercentage}
-            totalLabel={level.name}
-            tone="green"
+          <LearningProgressPanel
+            studentId={getStudentId()}
+            moduloId={levelId ?? moduleId}
+            progress={moduleProgress}
           />
           <div className="rounded-nt-card border border-white/80 bg-white/95 p-5 shadow-nt-card">
             <h2 className="text-lg font-black text-nt-text-primary">Requisitos</h2>
