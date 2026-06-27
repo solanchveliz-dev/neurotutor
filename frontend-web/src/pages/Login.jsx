@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { login } from '../services/authService';
 import { saveAuthData } from '../utils/auth';
+import { loginAdmin } from '../services/adminService';
 
 const fixVisibleEncoding = (text = '') =>
   text
@@ -63,7 +64,18 @@ function Login() {
     setIsLoading(true);
     setError('');
 
-    // Enviar solo email y password (el rol lo maneja el backend)
+    if (rol === 'ADMIN') {
+      try {
+        await loginAdmin({ username: formData.email, password: formData.password });
+        navigate('/admin/dashboard', { replace: true });
+      } catch (adminError) {
+        setError(adminError.message || 'Credenciales administrativas incorrectas');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     const result = await login({
       email: formData.email,
       password: formData.password

@@ -6,7 +6,7 @@ import AdminStatusBadge from "@/components/admin/AdminStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAdminStudents } from "@/services/adminService";
-import { DataNotice, ErrorState } from "./AdminDashboard";
+import { ErrorState } from "./AdminDashboard";
 
 const levelLabels = { BASICO: "Básico", INTERMEDIO: "Intermedio", AVANZADO: "Avanzado" };
 
@@ -18,17 +18,24 @@ function AdminStudents() {
   const [level, setLevel] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isFallback, setIsFallback] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const loadStudents = useCallback(async () => {
     setIsLoading(true);
     setHasError(false);
+    setErrorMessage("");
     try {
       const result = await getAdminStudents();
-      setStudents(result.data);
-      setIsFallback(result.isFallback);
-    } catch {
+      const studentList = Array.isArray(result)
+        ? result
+        : Array.isArray(result?.students)
+          ? result.students
+          : [];
+      setStudents(studentList);
+    } catch (error) {
       setHasError(true);
+      setStudents([]);
+      setErrorMessage(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +82,6 @@ function AdminStudents() {
       }
     >
       <div className="space-y-5">
-        {isFallback && <DataNotice />}
-
         <Card className="border-[#D8E5F8]/80 bg-white/92 shadow-[0_18px_48px_rgba(37,99,255,0.08)] backdrop-blur">
           <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center">
             <div className="relative min-w-0 flex-1">
@@ -117,7 +122,7 @@ function AdminStudents() {
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-20 animate-pulse rounded-2xl bg-white/80" />)}
           </div>
         )}
-        {!isLoading && hasError && <ErrorState onRetry={loadStudents} />}
+        {!isLoading && hasError && <ErrorState onRetry={loadStudents} message={errorMessage} />}
 
         {!isLoading && !hasError && (
           <Card className="overflow-hidden border-[#D8E5F8]/80 bg-white/92 shadow-[0_18px_48px_rgba(37,99,255,0.08)] backdrop-blur">

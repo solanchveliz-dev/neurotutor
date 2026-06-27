@@ -9,6 +9,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import { logoutAdmin } from "@/services/adminService";
 
 const navigation = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -40,6 +41,16 @@ function Brand() {
 }
 
 function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logoutAdmin();
+    } finally {
+      navigate("/login", { replace: true });
+    }
+  };
+
   return (
     <aside className="hidden min-h-screen w-68 shrink-0 border-r border-[#D8E5F8] bg-white/95 shadow-[18px_0_50px_rgba(37,99,255,0.05)] backdrop-blur-xl lg:flex lg:flex-col">
       <div className="px-6 py-7">
@@ -83,13 +94,14 @@ function Sidebar() {
       </nav>
 
       <div className="border-t border-[#E5EEFC] p-3">
-        <Link
-          to="/login"
+        <button
+          type="button"
+          onClick={handleLogout}
           className="flex h-12 items-center gap-3 rounded-2xl px-3.5 text-sm font-semibold text-[#52617C] transition-colors hover:bg-[#F4F8FF] hover:text-[#1E2A4A]"
         >
           <LogOut className="size-[18px]" strokeWidth={1.8} aria-hidden="true" />
           Cerrar sesión
-        </Link>
+        </button>
       </div>
     </aside>
   );

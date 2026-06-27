@@ -19,6 +19,7 @@ import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStudents from "./pages/admin/AdminStudents";
 import AdminStudentDetail from "./pages/admin/AdminStudentDetail";
+import AdminRoute from "./components/AdminRoute";
 
 function App() {
   const token = localStorage.getItem("token");
@@ -42,9 +43,9 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/students" element={<AdminStudents />} />
-        <Route path="/admin/students/:id" element={<AdminStudentDetail />} />
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />
+        <Route path="/admin/students/:id" element={<AdminRoute><AdminStudentDetail /></AdminRoute>} />
 
         <Route
           path="/diagnostic-exam"

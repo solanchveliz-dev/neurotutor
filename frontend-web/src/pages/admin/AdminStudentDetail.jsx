@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminStudentById } from "@/services/adminService";
-import { DataNotice, ErrorState } from "./AdminDashboard";
+import { ErrorState } from "./AdminDashboard";
 
 const levelLabels = { BASICO: "Básico", INTERMEDIO: "Intermedio", AVANZADO: "Avanzado" };
 
@@ -48,17 +48,23 @@ function AdminStudentDetail() {
   const [student, setStudent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isFallback, setIsFallback] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const loadStudent = useCallback(async () => {
     setIsLoading(true);
     setHasError(false);
+    setErrorMessage("");
     try {
       const result = await getAdminStudentById(id);
-      setStudent(result.data);
-      setIsFallback(result.isFallback);
-    } catch {
+      setStudent(result ? {
+        ...result,
+        progress: result.progress && typeof result.progress === "object" ? result.progress : {},
+        completed_modules: Array.isArray(result.completed_modules) ? result.completed_modules : [],
+      } : null);
+    } catch (error) {
       setHasError(true);
+      setStudent(null);
+      setErrorMessage(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -90,11 +96,9 @@ function AdminStudentDetail() {
           <div className="grid gap-5 lg:grid-cols-2"><div className="h-80 animate-pulse rounded-2xl bg-white/80" /><div className="h-80 animate-pulse rounded-2xl bg-white/80" /></div>
         </div>
       )}
-      {!isLoading && hasError && <ErrorState onRetry={loadStudent} />}
+      {!isLoading && hasError && <ErrorState onRetry={loadStudent} message={errorMessage} />}
       {!isLoading && !hasError && student && (
         <div className="space-y-6">
-          {isFallback && <DataNotice />}
-
           <Card className="overflow-hidden border-[#D8E5F8]/80 bg-white/92 shadow-[0_18px_48px_rgba(37,99,255,0.08)] backdrop-blur">
             <div className="h-1 bg-gradient-to-r from-[#2563FF] to-[#7C3AED]" />
             <CardContent className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">

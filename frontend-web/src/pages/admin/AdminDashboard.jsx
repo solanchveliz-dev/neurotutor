@@ -18,21 +18,13 @@ import { getAdminStudents, getAdminSummary } from "@/services/adminService";
 const levelOrder = ["BASICO", "INTERMEDIO", "AVANZADO"];
 const levelLabels = { BASICO: "Básico", INTERMEDIO: "Intermedio", AVANZADO: "Avanzado" };
 
-function DataNotice() {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-[#7C3AED]/15 bg-white/85 px-4 py-3 text-sm text-[#52617C] shadow-[0_14px_34px_rgba(37,99,255,0.06)] backdrop-blur">
-      <span className="size-2 shrink-0 rounded-full bg-[#7C3AED]" />
-      El backend no está disponible. Se muestran datos temporales de demostración.
-    </div>
-  );
-}
-
-function ErrorState({ onRetry }) {
+function ErrorState({ onRetry, message }) {
   return (
     <Card className="border-[#D8E5F8] bg-white/90 shadow-[0_18px_48px_rgba(37,99,255,0.08)]">
       <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
         <div>
           <h2 className="font-semibold text-[#1E2A4A]">No pudimos cargar el panel</h2>
+          {message && <p className="mt-1 text-sm font-medium text-red-600">{message}</p>}
           <p className="mt-1 text-sm text-[#52617C]">Ocurrió un error inesperado al consultar la información administrativa.</p>
         </div>
         <Button onClick={onRetry} variant="outline" className="rounded-xl">
@@ -88,18 +80,26 @@ function AdminDashboard() {
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isFallback, setIsFallback] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     setHasError(false);
+    setErrorMessage("");
     try {
       const [summaryResult, studentsResult] = await Promise.all([getAdminSummary(), getAdminStudents()]);
-      setSummary(summaryResult.data);
-      setStudents(studentsResult.data);
-      setIsFallback(summaryResult.isFallback || studentsResult.isFallback);
-    } catch {
+      setSummary(summaryResult ?? {});
+      const studentList = Array.isArray(studentsResult)
+        ? studentsResult
+        : Array.isArray(studentsResult?.students)
+          ? studentsResult.students
+          : [];
+      setStudents(studentList);
+    } catch (error) {
       setHasError(true);
+      setSummary(null);
+      setStudents([]);
+      setErrorMessage(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -130,11 +130,9 @@ function AdminDashboard() {
       }
     >
       {isLoading && <LoadingDashboard />}
-      {!isLoading && hasError && <ErrorState onRetry={loadDashboard} />}
+      {!isLoading && hasError && <ErrorState onRetry={loadDashboard} message={errorMessage} />}
       {!isLoading && !hasError && summary && (
         <div className="space-y-6">
-          {isFallback && <DataNotice />}
-
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumen administrativo">
             <StatCard label="Total estudiantes" value={summary.total_students ?? 0} helper="Registrados en la plataforma" icon={Users} />
             <StatCard label="Estudiantes activos" value={summary.active_students ?? 0} helper="Con acceso disponible" icon={UserCheck} tone="violet" />
@@ -222,5 +220,5 @@ function AdminDashboard() {
   );
 }
 
-export { DataNotice, ErrorState };
+export { ErrorState };
 export default AdminDashboard;
