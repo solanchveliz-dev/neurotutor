@@ -128,6 +128,15 @@ function App() {
         />
 
         <Route
+          path="/module/:moduleId/level/:levelId/theory/lesson/:lessonId"
+          element={
+            <ProtectedRoute>
+              <TheoryLesson />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/module/:moduleId/level/:levelId/theory/:lessonId"
           element={
             <ProtectedRoute>

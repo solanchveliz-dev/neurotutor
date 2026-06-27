@@ -35,6 +35,9 @@ public class LearningService {
     @Autowired
     private FinalExamAnswerRepository finalExamAnswerRepository;
 
+    @Autowired
+    private TheoryLessonRepository theoryLessonRepository;
+
     /**
      * 🚀 HU-20: Obtiene la ruta completa de niveles (🌱, 🔥, 🚀) para un tema.
      * Implementa las reglas de bloqueo según el nivel del estudiante.
@@ -95,6 +98,30 @@ public class LearningService {
                 .stream().map(e -> new FinalExamQuestionResponse(
                         e.getId(), e.getEnunciado(), e.getImagenUrl(), e.getOpciones()))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TheoryLessonSummaryResponse> getTheoryLessons(Long moduloId) {
+        if (!moduloRepository.existsById(moduloId)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Modulo no encontrado");
+        }
+        return theoryLessonRepository.findByModuloIdAndActiveTrueOrderByOrderNumberAsc(moduloId)
+                .stream()
+                .map(lesson -> new TheoryLessonSummaryResponse(
+                        lesson.getId(), lesson.getTitle(), lesson.getSubtitle(), lesson.getSummary(),
+                        lesson.getIcon(), lesson.getOrderNumber()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TheoryLessonDetailResponse getTheoryLesson(Long lessonId) {
+        TheoryLesson lesson = theoryLessonRepository.findByIdAndActiveTrue(lessonId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Leccion no encontrada"));
+        return new TheoryLessonDetailResponse(
+                lesson.getId(), lesson.getModulo().getId(), lesson.getTitle(), lesson.getSubtitle(),
+                lesson.getSummary(), lesson.getIcon(), lesson.getContentHtml(), lesson.getOrderNumber());
     }
 
     @Transactional

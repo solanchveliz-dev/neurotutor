@@ -7,6 +7,7 @@ import NeoCard from "../components/student/NeoCard";
 import BackButton from "../components/student/BackButton";
 import LearningProgressPanel from "../components/student/LearningProgressPanel";
 import { modulesData } from "../data/modulesData";
+import { getTheoryLessons } from "../services/learningService";
 import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
 
@@ -21,6 +22,7 @@ function LevelActivities() {
   const location = useLocation();
   const { moduleId, levelId } = useParams();
   const [moduleProgress, setModuleProgress] = useState(null);
+  const [lessonCount, setLessonCount] = useState(0);
 
   const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
   const fallbackModule =
@@ -49,11 +51,17 @@ function LevelActivities() {
     const studentId = getStudentId();
     const progressModuloId = levelId ?? moduleId;
 
-    if (!studentId || !progressModuloId) return;
-
-    getModuleProgress(studentId, progressModuloId)
-      .then(setModuleProgress)
-      .catch(() => setModuleProgress(null));
+    Promise.allSettled([
+      studentId && progressModuloId ? getModuleProgress(studentId, progressModuloId) : Promise.resolve(null),
+      levelId ? getTheoryLessons(levelId) : Promise.resolve([]),
+    ]).then(([progressResult, lessonsResult]) => {
+      setModuleProgress(progressResult.status === "fulfilled" ? progressResult.value : null);
+      setLessonCount(
+        lessonsResult.status === "fulfilled" && Array.isArray(lessonsResult.value)
+          ? lessonsResult.value.length
+          : 0
+      );
+    });
   }, [moduleId, levelId]);
 
   const completion = {
@@ -73,8 +81,10 @@ function LevelActivities() {
   const activities = [
     {
       title: "Teoria",
-      description: "Lee los conceptos clave del nivel antes de resolver ejercicios.",
-      detail: completion.theoryCompleted ? "Completado" : "Disponible",
+      description: lessonCount
+        ? `Avanza por ${lessonCount} lecciones antes de resolver ejercicios.`
+        : "Lee los conceptos clave del nivel antes de resolver ejercicios.",
+      detail: completion.theoryCompleted ? "Completado" : `${lessonCount} lecciones`,
       image: "/assets/teoria.png",
       tone: "bg-nt-green/15",
       barTone: "bg-nt-green",

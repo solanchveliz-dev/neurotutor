@@ -8,7 +8,8 @@ import PrimaryButton from "../components/student/PrimaryButton";
 import ProgressCard from "../components/student/ProgressCard";
 import BackButton from "../components/student/BackButton";
 import { modulesData } from "../data/modulesData";
-import { getTopicRuta } from "../services/learningService";
+import { getTheoryLessons, getTopicRuta } from "../services/learningService";
+import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
 
 const moduleAssets = {
@@ -154,9 +155,29 @@ function ModuleDetail() {
     }
 
     getTopicRuta(moduleId, studentId)
-      .then((data) => {
+      .then(async (data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setLevels(data.map(normalizeBackendLevel));
+          const backendLevels = data.map(normalizeBackendLevel);
+          const enrichedLevels = await Promise.all(
+            backendLevels.map(async (levelItem) => {
+              const [lessonsResult, progressResult] = await Promise.allSettled([
+                getTheoryLessons(levelItem.id),
+                getModuleProgress(studentId, levelItem.id),
+              ]);
+              return {
+                ...levelItem,
+                lessonCount:
+                  lessonsResult.status === "fulfilled" && Array.isArray(lessonsResult.value)
+                    ? lessonsResult.value.length
+                    : 0,
+                progress:
+                  progressResult.status === "fulfilled"
+                    ? progressResult.value?.progress_percentage ?? 0
+                    : 0,
+              };
+            })
+          );
+          setLevels(enrichedLevels);
           setIsUsingFallback(false);
         } else {
           setLevels(fallbackLevels);
@@ -391,6 +412,9 @@ function ModuleDetail() {
                       </p>
                       <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-nt-text-secondary">
                         {item.description || "Contenido adaptado a tu progreso."}
+                      </p>
+                      <p className="mt-2 text-xs font-black text-nt-purple">
+                        {item.lessonCount ? `${item.lessonCount} lecciones de teoría` : "Lecciones pendientes de sincronizar"}
                       </p>
                     </div>
 

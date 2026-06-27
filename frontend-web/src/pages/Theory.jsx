@@ -1,112 +1,69 @@
-import { ArrowRight, BookOpen, CheckCircle2, Clock, PlayCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { BookOpen, CheckCircle2, ChevronRight, Circle, Layers3 } from "lucide-react";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
-import NeoCard from "../components/student/NeoCard";
-import PrimaryButton from "../components/student/PrimaryButton";
-import ProgressCard from "../components/student/ProgressCard";
 import BackButton from "../components/student/BackButton";
 import LearningProgressPanel from "../components/student/LearningProgressPanel";
-import { modulesData } from "../data/modulesData";
-import { getTheoryLessons } from "../data/theoryLessons";
-import { getLearningContent } from "../services/learningService";
-import { markTheoryCompleted } from "../services/progressService";
+import NeoCard from "../components/student/NeoCard";
+import { getTheoryLessons } from "../services/learningService";
+import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
-
-const numericFallbackMap = {
-  1: "fracciones",
-  2: "decimales",
-  3: "porcentajes",
-};
 
 function Theory() {
   const navigate = useNavigate();
   const location = useLocation();
   const { moduleId, levelId } = useParams();
-  const [theoryHtml, setTheoryHtml] = useState("");
+  const [lessons, setLessons] = useState([]);
+  const [moduleProgress, setModuleProgress] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUsingFallback, setIsUsingFallback] = useState(false);
-  const [completionError, setCompletionError] = useState("");
+  const [error, setError] = useState("");
 
-  const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
-  const fallbackModule =
-    modulesData.find((item) => String(item.id) === String(fallbackId)) ??
-    modulesData[0];
-  const fallbackLevel =
-    fallbackModule?.levels.find((item) => String(item.id) === String(levelId)) ??
-    fallbackModule?.levels.find((item) => item.unlocked) ??
-    fallbackModule?.levels[0];
-
-  const module = location.state?.module ?? {
-    id: moduleId,
-    title: fallbackModule?.title ?? "Módulo",
-  };
+  const module = location.state?.module ?? { id: moduleId, title: "Módulo" };
   const level = location.state?.level ?? {
     id: levelId,
-    name: fallbackLevel?.name ?? "Nivel",
-    backendTitle: fallbackLevel?.name ?? "Teoría del nivel",
-    progress: fallbackLevel?.progress ?? 0,
-    status: fallbackLevel?.status ?? "Disponible",
+    name: "Nivel",
+    backendTitle: "Contenido del nivel",
   };
-
-  const lessons = getTheoryLessons({ module, level, moduleId, levelId });
-  const hasLocalLessons = lessons.length > 0;
-  const firstLesson = lessons[0];
-  const overviewProgress = hasLocalLessons ? Math.max(level.progress || 0, 10) : level.progress || 0;
+  const studentId = getStudentId();
 
   useEffect(() => {
-    if (hasLocalLessons) {
-      setTheoryHtml("");
-      setIsUsingFallback(false);
-      setIsLoading(false);
-      return;
-    }
-
+    let active = true;
     setIsLoading(true);
-    setIsUsingFallback(false);
+    setError("");
 
-    getLearningContent(levelId)
-      .then((content) => {
-        setTheoryHtml(content?.teoriaHtml ?? "");
-        setIsUsingFallback(!content?.teoriaHtml);
+    Promise.allSettled([
+      getTheoryLessons(levelId),
+      studentId ? getModuleProgress(studentId, levelId) : Promise.resolve(null),
+    ])
+      .then(([lessonsResult, progressResult]) => {
+        if (!active) return;
+        if (lessonsResult.status !== "fulfilled" || !Array.isArray(lessonsResult.value)) {
+          setLessons([]);
+          setError("No pudimos cargar las lecciones desde el servidor.");
+        } else {
+          setLessons(lessonsResult.value);
+        }
+        setModuleProgress(progressResult.status === "fulfilled" ? progressResult.value : null);
       })
-      .catch(() => {
-        setTheoryHtml("");
-        setIsUsingFallback(true);
-      })
-      .finally(() => setIsLoading(false));
-  }, [levelId, hasLocalLessons]);
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
 
+    return () => {
+      active = false;
+    };
+  }, [levelId, studentId]);
+
+  const theoryCompleted = moduleProgress?.theory_completed === true;
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Módulos", active: true, onClick: () => navigate(`/module/${moduleId}`, { state: { module } }) },
-    { label: "Mis logros", onClick: () => navigate("/learning-path") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 
-  const goToLesson = (lesson) => {
-    navigate(`/module/${moduleId}/level/${levelId}/theory/${lesson.id}`, {
-      state: { module, level },
-    });
-  };
-
-  const goToPractice = async () => {
-    const studentId = getStudentId();
-    const progressModuloId = levelId ?? moduleId;
-
-    if (studentId && progressModuloId) {
-      try {
-        setCompletionError("");
-        await markTheoryCompleted(studentId, progressModuloId);
-      } catch (error) {
-        console.warn("No se pudo marcar la teoria como completada.", error);
-        setCompletionError("No pudimos guardar la teoría como completada. Revisa tu conexión e intenta nuevamente.");
-        return;
-      }
-    }
-
-    navigate(`/module/${moduleId}/level/${levelId}/practice`, {
+  const openLesson = (lesson) => {
+    navigate(`/module/${moduleId}/level/${levelId}/theory/lesson/${lesson.id}`, {
       state: { module, level },
     });
   };
@@ -121,176 +78,112 @@ function Theory() {
       }
       rightPanel={
         <div className="space-y-5">
-          <LearningProgressPanel studentId={getStudentId()} moduloId={levelId ?? moduleId} />
-          <ProgressCard
-            title="Teoría"
-            subtitle={hasLocalLessons ? `${lessons.length} lecciones` : level.status}
-            value={overviewProgress}
-            totalLabel={level.name}
-            tone="green"
+          <LearningProgressPanel
+            studentId={studentId}
+            moduloId={levelId}
+            progress={moduleProgress}
           />
+          <section className="rounded-nt-card border border-white/85 bg-white/95 p-5 shadow-nt-card">
+            <div className="grid size-11 place-items-center rounded-[18px] bg-nt-green/15 text-green-700">
+              <Layers3 className="size-5" />
+            </div>
+            <h2 className="mt-4 text-xl font-black text-nt-text-primary">Teoría del nivel</h2>
+            <p className="mt-1 text-sm font-semibold text-nt-text-secondary">
+              {lessons.length} {lessons.length === 1 ? "lección disponible" : "lecciones disponibles"}
+            </p>
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-nt-border">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-nt-green to-nt-blue"
+                style={{ width: theoryCompleted ? "100%" : "0%" }}
+              />
+            </div>
+            <p className="mt-2 text-xs font-bold text-nt-text-secondary">
+              {theoryCompleted ? "Teoría completada. Puedes repasar cuando quieras." : "Completa la última lección para registrar tu avance."}
+            </p>
+          </section>
           <NeoCard
-            title="Tip de NEO"
-            message={
-              hasLocalLessons
-                ? "Completa las lecciones en orden y luego pasa a práctica."
-                : "Lee con calma y después pasa a práctica para reforzar lo aprendido."
-            }
-            actionLabel={hasLocalLessons ? "Empezar teoría" : "Ir a práctica"}
-            onAction={() => (firstLesson ? goToLesson(firstLesson) : goToPractice())}
+            title="Consejo de NEO"
+            message="Avanza en orden y revisa cada ejemplo antes de continuar."
+            actionLabel={lessons.length ? (theoryCompleted ? "Repasar" : "Comenzar") : "Sin lecciones"}
+            onAction={() => lessons[0] && openLesson(lessons[0])}
           />
         </div>
       }
     >
-      {completionError && (
-        <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
-          {completionError}
-        </div>
-      )}
-      <section className="overflow-hidden rounded-nt-card border border-white/80 bg-white/90 shadow-nt-card backdrop-blur">
-        <div className="p-5">
-          <span className="inline-flex rounded-full bg-nt-green px-3 py-1 text-xs font-black text-white shadow-lg shadow-nt-green/25">
-            {module.title}
-          </span>
-          <h1 className="mt-4 text-3xl font-black leading-tight text-nt-text-primary md:text-4xl">
-            Teoría - {level.name}
-          </h1>
-          <p className="mt-2 text-sm font-black text-nt-blue">{level.backendTitle}</p>
-        </div>
+      <section className="rounded-nt-card border border-white/85 bg-white/92 p-5 shadow-nt-card backdrop-blur sm:p-7">
+        <span className="inline-flex rounded-full bg-nt-green px-3 py-1 text-xs font-black text-white shadow-lg shadow-nt-green/20">
+          {module.title}
+        </span>
+        <h1 className="mt-4 text-3xl font-black text-nt-text-primary sm:text-4xl">
+          Teoría - {level.name}
+        </h1>
+        <p className="mt-2 text-sm font-black text-nt-blue">{level.backendTitle}</p>
+        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-nt-text-secondary">
+          Explora las lecciones en orden. El contenido y los ejemplos provienen del servidor y están adaptados a este nivel.
+        </p>
       </section>
 
-      {hasLocalLessons ? (
-        <>
-          <section className="rounded-nt-card border border-white/80 bg-white/90 p-5 shadow-nt-card backdrop-blur">
-            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="grid size-12 place-items-center rounded-[20px] bg-nt-green/15 text-green-700">
-                  <BookOpen className="size-6" aria-hidden="true" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black text-nt-text-primary">Lecciones de teoría</h2>
-                  <p className="text-sm font-semibold text-nt-text-secondary">
-                    Avanza por cada concepto antes de practicar.
-                  </p>
-                </div>
-              </div>
-              <span className="inline-flex w-fit rounded-full bg-nt-blue-light/20 px-3 py-1 text-xs font-black text-nt-blue">
-                {lessons.length} lecciones
-              </span>
-            </div>
-
-            <div className="grid gap-4">
-              {lessons.map((lesson, index) => (
-                <button
-                  key={lesson.id}
-                  type="button"
-                  onClick={() => goToLesson(lesson)}
-                  className="group grid w-full gap-4 rounded-[28px] border border-white/80 bg-white/90 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-nt-blue-light hover:shadow-nt-card md:grid-cols-[auto_1fr_auto]"
-                >
-                  <div className="flex items-center gap-3 md:block">
-                    <div className="grid size-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-nt-blue to-nt-purple text-lg font-black text-white shadow-lg shadow-nt-blue/20">
-                      {index + 1}
-                    </div>
-                    {index < lessons.length - 1 ? (
-                      <div className="ml-7 hidden h-10 border-l-2 border-dashed border-nt-blue-light/60 md:block" />
-                    ) : null}
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-lg font-black text-nt-text-primary">{lesson.title}</h3>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-black text-green-700">
-                        <Clock className="size-3.5" aria-hidden="true" />
-                        {lesson.duration}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-nt-text-secondary">
-                      {lesson.summary}
-                    </p>
-                    <div className="mt-4 h-2 rounded-full bg-nt-sky">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-nt-green to-nt-blue"
-                        style={{ width: `${Math.round(((index + 1) / lessons.length) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 md:justify-end">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-nt-sky px-3 py-1 text-xs font-black text-nt-blue">
-                      <CheckCircle2 className="size-4" aria-hidden="true" />
-                      Disponible
-                    </span>
-                    <span className="grid size-11 place-items-center rounded-full bg-nt-blue text-white shadow-lg shadow-nt-blue/20 transition group-hover:bg-nt-purple">
-                      <PlayCircle className="size-5" aria-hidden="true" />
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur">
-              <p className="text-xs font-black uppercase tracking-wide text-nt-blue">Ruta</p>
-              <p className="mt-1 text-lg font-black text-nt-text-primary">{level.name}</p>
-            </div>
-            <div className="rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur">
-              <p className="text-xs font-black uppercase tracking-wide text-nt-blue">Objetivo</p>
-              <p className="mt-1 text-lg font-black text-nt-text-primary">Comprender antes de practicar</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => goToLesson(firstLesson)}
-              className="rounded-[24px] bg-gradient-to-r from-nt-blue to-nt-purple p-4 text-left text-white shadow-lg shadow-nt-blue/20 transition hover:-translate-y-0.5"
-            >
-              <p className="text-xs font-black uppercase tracking-wide text-white/80">Siguiente paso</p>
-              <p className="mt-1 text-lg font-black">Empezar lección</p>
-            </button>
-          </section>
-        </>
-      ) : (
-        <section className="rounded-nt-card border border-white/80 bg-white/90 p-5 shadow-nt-card backdrop-blur">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="grid size-11 place-items-center rounded-[18px] bg-nt-green/15 text-green-700">
-              <BookOpen className="size-5" aria-hidden="true" />
+      <section className="rounded-nt-card border border-white/85 bg-white/90 p-5 shadow-nt-card backdrop-blur sm:p-6">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="grid size-12 place-items-center rounded-[20px] bg-nt-green/15 text-green-700">
+              <BookOpen className="size-6" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-nt-text-primary">Contenido de teoría</h2>
-              <p className="text-sm font-semibold text-nt-text-secondary">
-                Revisa los conceptos antes de practicar.
-              </p>
+              <h2 className="text-xl font-black text-nt-text-primary">Lecciones de teoría</h2>
+              <p className="text-sm font-semibold text-nt-text-secondary">Un concepto a la vez, de menor a mayor dificultad.</p>
             </div>
           </div>
+          <span className="rounded-full bg-nt-blue/10 px-3 py-1 text-xs font-black text-nt-blue">
+            {lessons.length} lecciones
+          </span>
+        </div>
 
-          {isLoading ? (
-            <div className="h-40 animate-pulse rounded-[18px] bg-nt-sky/70" />
-          ) : theoryHtml ? (
-            <div
-              className="prose prose-sm max-w-none text-nt-text-primary"
-              dangerouslySetInnerHTML={{ __html: theoryHtml }}
-            />
-          ) : (
-            <div className="rounded-[18px] bg-nt-sky/70 p-4 text-sm font-semibold leading-6 text-nt-text-primary">
-              {isUsingFallback
-                ? "No se pudo cargar la teoría del servidor. Revisa el contenido con tu docente antes de practicar."
-                : "La teoría de este nivel aún no está disponible."}
-            </div>
-          )}
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <PrimaryButton
-              type="button"
-              onClick={() => navigate(`/module/${moduleId}/level/${levelId}`, { state: { module, level } })}
-              className="bg-slate-100 text-nt-text-primary shadow-none hover:bg-slate-200"
-            >
-              Volver a actividades
-            </PrimaryButton>
-            <PrimaryButton type="button" onClick={goToPractice}>
-              Ir a práctica
-            </PrimaryButton>
+        {isLoading ? (
+          <div className="grid gap-3">
+            {[1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-[24px] bg-nt-sky/70" />)}
           </div>
-        </section>
-      )}
+        ) : error || lessons.length === 0 ? (
+          <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-6 text-center">
+            <p className="font-black text-amber-800">{error || "Este nivel todavía no tiene lecciones publicadas."}</p>
+            <p className="mt-2 text-sm font-semibold text-amber-700">Vuelve a actividades e inténtalo nuevamente más tarde.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {lessons.map((lesson, index) => (
+              <button
+                key={lesson.id}
+                type="button"
+                onClick={() => openLesson(lesson)}
+                className="group grid min-w-0 grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-4 rounded-[26px] border border-white bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-nt-blue/25 hover:shadow-nt-card"
+              >
+                <span className="grid size-14 place-items-center rounded-[20px] bg-gradient-to-br from-nt-blue to-nt-purple text-2xl text-white shadow-lg shadow-nt-blue/20">
+                  {lesson.icon || index + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <strong className="text-base font-black text-nt-text-primary sm:text-lg">{lesson.title}</strong>
+                    {theoryCompleted ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-[11px] font-black text-green-700">
+                        <CheckCircle2 className="size-3.5" /> Completada
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-nt-sky px-2 py-1 text-[11px] font-black text-nt-blue">
+                        <Circle className="size-3.5" /> Disponible
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-1 block text-sm font-semibold text-nt-text-secondary">{lesson.summary}</span>
+                  {lesson.subtitle && <span className="mt-2 block text-xs font-black text-nt-purple">{lesson.subtitle}</span>}
+                </span>
+                <span className="grid size-10 place-items-center rounded-full bg-nt-blue text-white transition group-hover:bg-nt-purple">
+                  <ChevronRight className="size-5" />
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
     </StudentLayout>
   );
 }
