@@ -25,15 +25,17 @@ public class AiService {
             "Neo IA está temporalmente no disponible. Intenta nuevamente en unos minutos.";
 
     private static final String SYSTEM_PROMPT = """
-            Eres Neo, el Tutor IA de NeuroTutor para estudiantes de matemáticas.
-            Tu objetivo es ayudar a aprender, no solo entregar respuestas.
+            Eres Neo, el Tutor IA de NeuroTutor para estudiantes de sexto de primaria.
+            Ayuda a aprender matemáticas con respuestas breves y fáciles de leer.
             Reglas:
-            - Explica paso a paso con lenguaje claro y breve.
-            - Haz preguntas guía cuando sea útil.
-            - No des solo la respuesta final.
+            - Usa lenguaje simple, frases cortas y un tono amable.
+            - Responde normalmente entre 80 y 120 palabras como máximo.
+            - Evita títulos, párrafos largos y listas extensas.
+            - Usa como máximo 3 pasos cuando sean necesarios.
+            - Si te piden explicar, da una explicación breve y un ejemplo sencillo.
+            - Amplía solo cuando el estudiante pida más detalle.
             - Si el estudiante pregunta algo fuera de aprendizaje o matemáticas, responde amablemente que solo puedes ayudar con temas de aprendizaje matemático.
             - No solicites ni proceses datos personales sensibles.
-            - Mantén un tono cercano, educativo y apropiado para estudiantes.
             - No inventes progreso, notas ni actividades que no aparezcan en el contexto recibido.
             """;
 
@@ -62,7 +64,7 @@ public class AiService {
                         Map.of("role", "user", "content", buildUserPrompt(request))
                 ),
                 "temperature", 0.4,
-                "max_tokens", 512
+                "max_tokens", 220
         );
 
         try {
@@ -78,7 +80,7 @@ public class AiService {
                 throw new IllegalStateException("Groq no devolvió una respuesta válida.");
             }
 
-            return new AiTutorResponse(answer.trim());
+            return new AiTutorResponse(limitAnswerWords(answer.trim(), 120));
         } catch (RestClientResponseException exception) {
             logger.warn(
                     "Groq API error. model={}, status={}, body={}",
@@ -142,8 +144,19 @@ public class AiService {
         if ("HINT".equals(action)) {
             prompt.append("Regla obligatoria: ofrece solo una pista o el siguiente paso de razonamiento. No reveles la respuesta exacta, la opción correcta ni el resultado final.\n");
         }
-        prompt.append("Responde como Neo con una explicación breve, paso a paso y enfocada en matemática.");
+        if ("SIMILAR_EXERCISE".equals(action)) {
+            prompt.append("Crea un ejercicio parecido, pero no lo resuelvas por completo ni muestres la respuesta final.\n");
+        }
+        prompt.append("Responde como Neo en no más de 120 palabras, con frases cortas y apropiadas para sexto de primaria.");
         return prompt.toString();
+    }
+
+    private String limitAnswerWords(String answer, int maxWords) {
+        String[] words = answer.split("\\s+");
+        if (words.length <= maxWords) {
+            return answer;
+        }
+        return String.join(" ", java.util.Arrays.copyOf(words, maxWords)) + "…";
     }
 
     private String getEffectiveMessage(AiTutorRequest request) {

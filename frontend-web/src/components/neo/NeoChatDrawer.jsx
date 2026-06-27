@@ -81,8 +81,8 @@ function NeoChatDrawer() {
         context: `Ruta actual: ${location.pathname}`,
       });
       setMessages((current) => [...current, { id: `${Date.now()}-neo`, role: "assistant", text: response.answer }]);
-    } catch (requestError) {
-      setError(requestError.response?.data?.error || requestError.response?.data?.message || requestError.message || "NEO no está disponible en este momento. Intenta nuevamente.");
+    } catch {
+      setError("NEO no pudo responder ahora. Intenta otra vez en unos segundos.");
     } finally {
       setIsLoading(false);
     }
