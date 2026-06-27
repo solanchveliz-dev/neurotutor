@@ -6,7 +6,11 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 public class DiagnosticQuestionSeeder implements ApplicationRunner {
@@ -19,11 +23,7 @@ public class DiagnosticQuestionSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (diagnosticQuestionRepository.count() != 0) {
-            return;
-        }
-
-        diagnosticQuestionRepository.saveAll(List.of(
+        List<DiagnosticQuestion> seedQuestions = List.of(
                 question(
                         1,
                         "Como parte de una campaña de reciclaje, los estudiantes de secundaria de una escuela recolectaron 1826 botellas de plástico. Ellos recolectaron 478 botellas de plástico menos que los estudiantes de primaria. ¿Cuántas botellas de plástico recolectaron los estudiantes de primaria?",
@@ -35,7 +35,7 @@ public class DiagnosticQuestionSeeder implements ApplicationRunner {
                                 "2294 botellas de plástico.",
                                 "2304 botellas de plástico."
                         ),
-                        2
+                        3
                 ),
                 question(
                         2,
@@ -99,7 +99,7 @@ public class DiagnosticQuestionSeeder implements ApplicationRunner {
                         null,
                         null,
                         List.of("12 bizcochos", "14 bizcochos", "16 bizcochos", "22 bizcochos"),
-                        2
+                        0
                 ),
                 question(
                         10,
@@ -109,7 +109,51 @@ public class DiagnosticQuestionSeeder implements ApplicationRunner {
                         List.of("S/3", "S/4", "S/5", "S/6"),
                         3
                 )
-        ));
+        );
+
+        seedQuestions.forEach(this::applyReviewMetadata);
+
+        if (diagnosticQuestionRepository.count() == 0) {
+            diagnosticQuestionRepository.saveAll(seedQuestions);
+            return;
+        }
+
+        Map<Integer, DiagnosticQuestion> existingByOrder = diagnosticQuestionRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        DiagnosticQuestion::getOrderNumber,
+                        Function.identity(),
+                        (first, ignored) -> first
+                ));
+        List<DiagnosticQuestion> questionsToUpdate = new ArrayList<>();
+
+        for (DiagnosticQuestion seedQuestion : seedQuestions) {
+            DiagnosticQuestion existingQuestion = existingByOrder.get(seedQuestion.getOrderNumber());
+            if (existingQuestion == null) {
+                continue;
+            }
+
+            boolean changed = false;
+            if (isBlank(existingQuestion.getTopic())) {
+                existingQuestion.setTopic(seedQuestion.getTopic());
+                changed = true;
+            }
+            if (isBlank(existingQuestion.getExplanation())) {
+                existingQuestion.setExplanation(seedQuestion.getExplanation());
+                changed = true;
+            }
+            if (requiresAnswerKeyCorrection(seedQuestion.getOrderNumber())
+                    && existingQuestion.getCorrectAnswerIndex() != seedQuestion.getCorrectAnswerIndex()) {
+                existingQuestion.setCorrectAnswerIndex(seedQuestion.getCorrectAnswerIndex());
+                changed = true;
+            }
+            if (changed) {
+                questionsToUpdate.add(existingQuestion);
+            }
+        }
+
+        if (!questionsToUpdate.isEmpty()) {
+            diagnosticQuestionRepository.saveAll(questionsToUpdate);
+        }
     }
 
     private DiagnosticQuestion question(
@@ -131,5 +175,59 @@ public class DiagnosticQuestionSeeder implements ApplicationRunner {
         question.setOrderNumber(orderNumber);
         question.setActive(true);
         return question;
+    }
+
+    private void applyReviewMetadata(DiagnosticQuestion question) {
+        switch (question.getOrderNumber()) {
+            case 1 -> {
+                question.setTopic("Adición y comparación");
+                question.setExplanation("Primaria recolectó 478 botellas más que secundaria. Por eso se suma 1826 + 478 = 2304 botellas.");
+            }
+            case 2 -> {
+                question.setTopic("Multiplicación");
+                question.setExplanation("Media docena son 6 latas. En 8 cajas hay 8 x 6 = 48 latas y, al vender cada una a S/20, se obtiene 48 x 20 = S/960.");
+            }
+            case 3 -> {
+                question.setTopic("División y redondeo");
+                question.setExplanation("Al dividir 1980 entre 50 se obtiene 39,6. Como no se puede comprar una fracción de bolsa y se necesitan los 1980 kg completos, Sergio debe comprar 40 bolsas.");
+            }
+            case 4 -> {
+                question.setTopic("Fracciones");
+                question.setExplanation("En la bandeja hay 14 frutas en total y 9 son naranjas. La parte que corresponde a las naranjas es 9 de 14, es decir, 9/14.");
+            }
+            case 5 -> {
+                question.setTopic("Adición de números decimales");
+                question.setExplanation("Se suman las longitudes de las dos sogas mostradas, alineando las cifras decimales. La longitud total utilizada es 4,2 m.");
+            }
+            case 6 -> {
+                question.setTopic("Igualdades y operaciones");
+                question.setExplanation("Para conservar la igualdad, se resuelven primero las operaciones conocidas y luego se busca el valor que hace iguales ambos lados. El número que completa el recuadro es 16.");
+            }
+            case 7 -> {
+                question.setTopic("Perímetro");
+                question.setExplanation("El cerco recorre todo el contorno del terreno. Al sumar las longitudes de todos sus lados se obtiene un perímetro de 72 m.");
+            }
+            case 8 -> {
+                question.setTopic("Proporcionalidad");
+                question.setExplanation("Una docena y media equivale a 18 paquetes. Si 3 paquetes cuestan S/5, entonces 18 paquetes forman 6 grupos de 3; por tanto, 6 x S/5 = S/30.");
+            }
+            case 9 -> {
+                question.setTopic("División con residuo");
+                question.setExplanation("Primero se restan los 8 bizcochos que sobraron: 56 - 8 = 48. Luego se reparten los 48 bizcochos entre 4 cajas: 48 / 4 = 12 bizcochos por caja.");
+            }
+            case 10 -> {
+                question.setTopic("Promedio y reparto equitativo");
+                question.setExplanation("Entre los cuatro amigos reúnen S/24: 5 + 7 + 8 + 4. Al repartir ese dinero en partes iguales, 24 / 4 = 6, así que pueden pagar como máximo S/6 por cada vaso.");
+            }
+            default -> throw new IllegalArgumentException("Orden de pregunta diagnostica no reconocido");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private boolean requiresAnswerKeyCorrection(int orderNumber) {
+        return orderNumber == 1 || orderNumber == 9;
     }
 }

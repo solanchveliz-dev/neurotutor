@@ -16,6 +16,7 @@ const normalizeReviewQuestion = (item) => ({
   correctAnswer: item.correct_answer_index,
   selectedAnswer: item.selected_answer_index,
   correct: item.correct,
+  topic: item.topic,
   explanation: item.explanation,
 });
 
@@ -122,9 +123,16 @@ function DiagnosticReview() {
           <Card className="rounded-[34px] border border-white/85 bg-white/90 p-0 shadow-[0_24px_70px_rgba(37,99,235,0.18)] backdrop-blur-xl">
             <CardContent className="p-5 sm:p-7">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs font-black uppercase tracking-wide text-nt-text-secondary">
-                  Pregunta {selectedQuestionIndex + 1} de {total}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-wide text-nt-text-secondary">
+                    Pregunta {selectedQuestionIndex + 1} de {total}
+                  </p>
+                  {selectedQuestion?.topic && (
+                    <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700">
+                      {selectedQuestion.topic}
+                    </span>
+                  )}
+                </div>
                 <span
                   className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black ${
                     isCorrect ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
@@ -192,12 +200,25 @@ function DiagnosticReview() {
                 })}
               </div>
 
-              <div className="mt-6 rounded-[26px] border border-nt-blue/15 bg-nt-sky/65 p-5">
-                <p className="text-xs font-black uppercase tracking-wide text-nt-blue">Explicacion</p>
-                <p className="mt-2 text-sm font-bold leading-6 text-nt-text-secondary">
-                  {selectedQuestion?.explanation ??
-                    "Compara el enunciado con la alternativa correcta y revisa el procedimiento paso a paso para reforzar este tema."}
+              <div
+                className={`mt-6 rounded-[26px] border p-5 ${
+                  isCorrect
+                    ? "border-green-200 bg-green-50/80"
+                    : "border-amber-200 bg-amber-50/90"
+                }`}
+              >
+                <p className={`text-sm font-black ${isCorrect ? "text-green-700" : "text-amber-800"}`}>
+                  {isCorrect ? "¡Correcto! Buen trabajo." : "Consejo para mejorar"}
                 </p>
+                {selectedQuestion?.explanation ? (
+                  <p className="mt-2 text-sm font-bold leading-6 text-nt-text-secondary">
+                    {selectedQuestion.explanation}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm font-bold leading-6 text-nt-text-secondary">
+                    La explicación de esta pregunta no está disponible en el servidor.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
