@@ -2,6 +2,8 @@ package com.neurotutor.user_service.service;
 
 import com.neurotutor.user_service.dto.AiTutorRequest;
 import com.neurotutor.user_service.dto.AiTutorResponse;
+import com.neurotutor.user_service.dto.ProfileResponse;
+import com.neurotutor.user_service.dto.StudentProgressResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -10,7 +12,9 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class AiService {
@@ -34,9 +38,13 @@ public class AiService {
             """;
 
     private final RestClient restClient;
+    private final ProfileService profileService;
+    private final ProgressService progressService;
 
-    public AiService() {
+    public AiService(ProfileService profileService, ProgressService progressService) {
         this.restClient = RestClient.create();
+        this.profileService = profileService;
+        this.progressService = progressService;
     }
 
     public AiTutorResponse askTutor(AiTutorRequest request) {
@@ -95,6 +103,20 @@ public class AiService {
         if (getEffectiveMessage(request).isBlank()) {
             throw new IllegalArgumentException("message o question es obligatorio.");
         }
+
+        String currentScreen = normalizeScreen(request.getCurrentScreen());
+        Set<String> moduleScreens = Set.of(
+                "THEORY",
+                "PRACTICE",
+                "LEVEL",
+                "LEVEL_ACTIVITIES",
+                "MODULE_DETAIL"
+        );
+        if (moduleScreens.contains(currentScreen) && request.getModuleId() == null) {
+            throw new IllegalArgumentException(
+                    "moduleId es obligatorio para la pantalla " + currentScreen + "."
+            );
+        }
     }
 
     private String buildUserPrompt(AiTutorRequest request) {
@@ -103,7 +125,9 @@ public class AiService {
         String action = limitText(request.getAction(), 40).toUpperCase();
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Pantalla actual: ").append(limitText(request.getCurrentScreen(), 60)).append("\n");
+        String currentScreen = normalizeScreen(request.getCurrentScreen());
+        prompt.append("Pantalla actual: ").append(currentScreen).append("\n");
+        appendStudentContext(prompt, request, currentScreen);
         appendIdentifier(prompt, "Módulo", request.getModuleId());
         appendIdentifier(prompt, "Nivel", request.getLevelId());
         appendIdentifier(prompt, "Lección", request.getLessonId());
@@ -127,6 +151,31 @@ public class AiService {
             return request.getMessage().trim();
         }
         return request.getQuestion() == null ? "" : request.getQuestion().trim();
+    }
+
+    private String normalizeScreen(String currentScreen) {
+        return limitText(currentScreen, 60).toUpperCase(Locale.ROOT);
+    }
+
+    private void appendStudentContext(StringBuilder prompt, AiTutorRequest request, String currentScreen) {
+        if (!("DASHBOARD".equals(currentScreen) || "LEARNING_PATH".equals(currentScreen))
+                || request.getStudentId() == null) {
+            return;
+        }
+
+        try {
+            ProfileResponse profile = profileService.getProfile(request.getStudentId());
+            StudentProgressResponse progress = progressService.getStudentProgress(request.getStudentId());
+            prompt.append("Contexto real del estudiante:\n");
+            prompt.append("- Nombre: ").append(profile.getName()).append("\n");
+            prompt.append("- Grado: ").append(profile.getGrade()).append("\n");
+            prompt.append("- Nivel diagnóstico: ").append(profile.getLevel()).append("\n");
+            prompt.append("- Puntos: ").append(progress.getPoints()).append("\n");
+            prompt.append("- Progreso general: ").append(progress.getOverallProgress()).append("%\n");
+            prompt.append("- Módulos con actividad: ").append(progress.getModules().size()).append("\n");
+        } catch (ProfileService.StudentProfileNotFoundException exception) {
+            throw new IllegalArgumentException("No se encontró el estudiante indicado.");
+        }
     }
 
     private void appendIdentifier(StringBuilder prompt, String label, Long value) {
