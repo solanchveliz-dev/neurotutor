@@ -30,6 +30,7 @@ public class AiService {
             - Si el estudiante pregunta algo fuera de aprendizaje o matemáticas, responde amablemente que solo puedes ayudar con temas de aprendizaje matemático.
             - No solicites ni proceses datos personales sensibles.
             - Mantén un tono cercano, educativo y apropiado para estudiantes.
+            - No inventes progreso, notas ni actividades que no aparezcan en el contexto recibido.
             """;
 
     private final RestClient restClient;
@@ -88,29 +89,50 @@ public class AiService {
         if (request == null) {
             throw new IllegalArgumentException("El body de la solicitud es obligatorio.");
         }
-        if (request.getStudentId() == null) {
-            throw new IllegalArgumentException("studentId es obligatorio.");
+        if (request.getStudentId() != null && request.getStudentId() <= 0) {
+            throw new IllegalArgumentException("studentId debe ser un identificador válido.");
         }
-        if (request.getModuleId() == null) {
-            throw new IllegalArgumentException("moduleId es obligatorio.");
-        }
-        if (request.getQuestion() == null || request.getQuestion().isBlank()) {
-            throw new IllegalArgumentException("question es obligatoria.");
+        if (getEffectiveMessage(request).isBlank()) {
+            throw new IllegalArgumentException("message o question es obligatorio.");
         }
     }
 
     private String buildUserPrompt(AiTutorRequest request) {
-        String safeQuestion = limitText(request.getQuestion(), 900);
+        String safeQuestion = limitText(getEffectiveMessage(request), 900);
         String safeContext = limitText(request.getContext(), 1200);
+        String action = limitText(request.getAction(), 40).toUpperCase();
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Módulo actual: ").append(request.getModuleId()).append("\n");
+        prompt.append("Pantalla actual: ").append(limitText(request.getCurrentScreen(), 60)).append("\n");
+        appendIdentifier(prompt, "Módulo", request.getModuleId());
+        appendIdentifier(prompt, "Nivel", request.getLevelId());
+        appendIdentifier(prompt, "Lección", request.getLessonId());
+        appendIdentifier(prompt, "Ejercicio", request.getExerciseId());
+        if (!action.isBlank()) {
+            prompt.append("Acción solicitada: ").append(action).append("\n");
+        }
         if (!safeContext.isBlank()) {
             prompt.append("Contexto educativo del ejercicio: ").append(safeContext).append("\n");
         }
         prompt.append("Pregunta del estudiante: ").append(safeQuestion).append("\n");
+        if ("HINT".equals(action)) {
+            prompt.append("Regla obligatoria: ofrece solo una pista o el siguiente paso de razonamiento. No reveles la respuesta exacta, la opción correcta ni el resultado final.\n");
+        }
         prompt.append("Responde como Neo con una explicación breve, paso a paso y enfocada en matemática.");
         return prompt.toString();
+    }
+
+    private String getEffectiveMessage(AiTutorRequest request) {
+        if (request.getMessage() != null && !request.getMessage().isBlank()) {
+            return request.getMessage().trim();
+        }
+        return request.getQuestion() == null ? "" : request.getQuestion().trim();
+    }
+
+    private void appendIdentifier(StringBuilder prompt, String label, Long value) {
+        if (value != null) {
+            prompt.append(label).append(" actual: ").append(value).append("\n");
+        }
     }
 
     private String limitText(String value, int maxLength) {

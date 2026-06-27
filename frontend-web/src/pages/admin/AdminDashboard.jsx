@@ -139,8 +139,8 @@ function AdminDashboard() {
             <StatCard label="Total módulos" value={summary.total_modules ?? 0} helper="Contenido publicado" icon={BookOpen} />
             <StatCard
               label="Progreso promedio"
-              value={Number.isFinite(averageProgress) ? `${averageProgress}%` : "N/D"}
-              helper={Number.isFinite(averageProgress) ? "Promedio general" : "Sin datos de progreso"}
+              value={Number.isFinite(averageProgress) ? `${averageProgress}%` : "Sin progreso"}
+              helper={Number.isFinite(averageProgress) ? "Promedio de módulos con actividad registrada" : "Sin progreso registrado"}
               icon={TrendingUp}
               tone="violet"
             />

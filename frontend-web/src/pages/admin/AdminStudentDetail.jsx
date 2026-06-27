@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Award, BookCheck, GraduationCap, Mail, RefreshCw, School, UserRound } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -10,6 +10,14 @@ import { getAdminStudentById } from "@/services/adminService";
 import { ErrorState } from "./AdminDashboard";
 
 const levelLabels = { BASICO: "Básico", INTERMEDIO: "Intermedio", AVANZADO: "Avanzado" };
+
+const formatActivityDate = (value) => {
+  if (!value) return "Sin actividad registrada";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "Sin actividad registrada"
+    : new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeStyle: "short" }).format(date);
+};
 
 function ProfileField({ label, value, icon: Icon }) {
   return (
@@ -58,7 +66,7 @@ function AdminStudentDetail() {
       const result = await getAdminStudentById(id);
       setStudent(result ? {
         ...result,
-        progress: result.progress && typeof result.progress === "object" ? result.progress : {},
+        modules_progress: Array.isArray(result.modules_progress) ? result.modules_progress : [],
         completed_modules: Array.isArray(result.completed_modules) ? result.completed_modules : [],
       } : null);
     } catch (error) {
@@ -73,11 +81,6 @@ function AdminStudentDetail() {
   useEffect(() => {
     loadStudent();
   }, [loadStudent]);
-
-  const averageProgress = useMemo(() => {
-    const values = Object.values(student?.progress || {}).filter(Number.isFinite);
-    return values.length ? Math.round(values.reduce((total, value) => total + value, 0) / values.length) : null;
-  }, [student]);
 
   return (
     <AdminLayout
@@ -135,6 +138,7 @@ function AdminStudentDetail() {
                 <ProfileField label="Correo electrónico" value={student.email} icon={Mail} />
                 <ProfileField label="Grado y sección" value={`${student.grade || "—"} ${student.section || ""}`} icon={School} />
                 <ProfileField label="Puntos totales" value={student.points ?? 0} icon={Award} />
+                <ProfileField label="Última actividad" value={formatActivityDate(student.last_activity_at)} icon={BookCheck} />
               </CardContent>
             </Card>
 
@@ -145,13 +149,32 @@ function AdminStudentDetail() {
                     <CardTitle className="text-base font-semibold text-[#1E2A4A]">Progreso académico</CardTitle>
                     <p className="mt-1 text-xs text-[#7C8CAB]">Avance por área de aprendizaje</p>
                   </div>
-                  <span className="text-sm font-semibold text-[#7C3AED]">{Number.isFinite(averageProgress) ? `${averageProgress}%` : "N/D"}</span>
+                  <span className="text-sm font-semibold text-[#7C3AED]">{Number.isFinite(student.overall_progress) ? `${student.overall_progress}%` : "Sin progreso"}</span>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6 p-5">
-                <ProgressRow label="Fracciones" value={student.progress?.fractions} />
-                <ProgressRow label="Decimales" value={student.progress?.decimals} />
-                <ProgressRow label="Porcentajes" value={student.progress?.percentages} />
+              <CardContent className="space-y-5 p-5">
+                {student.modules_progress.length > 0 ? student.modules_progress.map((module) => (
+                  <div key={module.module_id} className="rounded-2xl border border-[#E5EEFC] bg-[#F4F8FF]/70 p-4">
+                    <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-[#1E2A4A]">{module.title || `Módulo ${module.module_id}`}</p>
+                        <p className="mt-1 text-xs text-[#7C8CAB]">{levelLabels[module.level] || module.level || "Nivel sin especificar"}</p>
+                      </div>
+                      {module.exam_best_score > 0 && <span className="text-xs font-semibold text-[#7C3AED]">Mejor examen: {module.exam_best_score}%</span>}
+                    </div>
+                    <ProgressRow label="Progreso del módulo" value={module.progress_percentage} />
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+                      <span className={module.theory_completed ? "text-emerald-700" : "text-[#7C8CAB]"}>Teoría {module.theory_completed ? "completada" : "pendiente"}</span>
+                      <span className={module.practice_completed ? "text-emerald-700" : "text-[#7C8CAB]"}>Práctica {module.practice_completed ? "completada" : "pendiente"}</span>
+                      <span className={module.exam_passed ? "text-emerald-700" : "text-[#7C8CAB]"}>Examen {module.exam_passed ? "aprobado" : "pendiente"}</span>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="rounded-2xl border border-dashed border-[#D8E5F8] bg-[#F4F8FF]/60 px-5 py-8 text-center">
+                    <p className="text-sm font-medium text-[#52617C]">Aún no hay progreso académico registrado.</p>
+                    <p className="mt-1 text-xs text-[#7C8CAB]">Los módulos aparecerán cuando el estudiante complete alguna actividad.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -163,7 +186,7 @@ function AdminStudentDetail() {
                 <div><CardTitle className="text-base font-semibold text-[#1E2A4A]">Resultado diagnóstico</CardTitle><p className="mt-1 text-xs text-[#7C8CAB]">Nivel asignado al estudiante</p></div>
               </CardHeader>
               <CardContent className="p-5">
-                <p className="text-2xl font-semibold tracking-tight text-[#1E2A4A]">{levelLabels[student.level] || student.level || "Sin datos"}</p>
+                <p className="text-2xl font-semibold tracking-tight text-[#1E2A4A]">{levelLabels[student.diagnostic_level] || student.diagnostic_level || levelLabels[student.level] || student.level || "Sin datos"}</p>
                 <p className="mt-2 text-sm leading-6 text-[#52617C]">Este nivel determina la ruta de aprendizaje recomendada.</p>
               </CardContent>
             </Card>
@@ -180,13 +203,13 @@ function AdminStudentDetail() {
                 {student.completed_modules?.length ? (
                   <ul className="space-y-3">
                     {student.completed_modules.map((module) => (
-                      <li key={module} className="flex items-center gap-3 text-sm text-[#52617C]">
-                        <span className="grid size-5 place-items-center rounded-full bg-[#DFF4FF] text-[10px] font-bold text-[#2563FF]">✓</span>{module}
+                      <li key={module.module_id} className="flex items-center gap-3 text-sm text-[#52617C]">
+                        <span className="grid size-5 place-items-center rounded-full bg-[#DFF4FF] text-[10px] font-bold text-[#2563FF]">✓</span>{module.title || `Módulo ${module.module_id}`}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm leading-6 text-[#7C8CAB]">La API todavía no proporciona información de módulos completados.</p>
+                  <p className="text-sm leading-6 text-[#7C8CAB]">El estudiante todavía no ha completado ningún módulo.</p>
                 )}
               </CardContent>
             </Card>
