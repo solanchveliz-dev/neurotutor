@@ -5,7 +5,6 @@ import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import BackButton from "../components/student/BackButton";
 import LearningProgressPanel from "../components/student/LearningProgressPanel";
-import NeoCard from "../components/student/NeoCard";
 import { getTheoryLessons } from "../services/learningService";
 import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
@@ -101,12 +100,6 @@ function Theory() {
               {theoryCompleted ? "Teoría completada. Puedes repasar cuando quieras." : "Completa la última lección para registrar tu avance."}
             </p>
           </section>
-          <NeoCard
-            title="Consejo de NEO"
-            message="Avanza en orden y revisa cada ejemplo antes de continuar."
-            actionLabel={lessons.length ? (theoryCompleted ? "Repasar" : "Comenzar") : "Sin lecciones"}
-            onAction={() => lessons[0] && openLesson(lessons[0])}
-          />
         </div>
       }
     >

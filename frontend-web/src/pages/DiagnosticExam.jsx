@@ -5,8 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { diagnosticQuestions } from "../data/diagnosticQuestions";
-import { getDiagnosticQuestions, submitDiagnostic, submitDiagnosticV2 } from "../services/diagnosticService";
+import { getDiagnosticQuestions, submitDiagnosticV2 } from "../services/diagnosticService";
 import { getStudentId } from "../utils/auth";
 
 function DiagnosticExam() {
@@ -16,11 +15,9 @@ function DiagnosticExam() {
   const [answers, setAnswers] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setIsLoading(true);
     getDiagnosticQuestions()
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -33,15 +30,14 @@ function DiagnosticExam() {
               options: question.options ?? [],
             }))
           );
-          setIsUsingFallback(false);
         } else {
-          setQuestions(diagnosticQuestions);
-          setIsUsingFallback(true);
+          setQuestions([]);
+          setError("El diagnóstico todavía no tiene preguntas disponibles.");
         }
       })
       .catch(() => {
-        setQuestions(diagnosticQuestions);
-        setIsUsingFallback(true);
+        setQuestions([]);
+        setError("No pudimos cargar el diagnóstico desde el servidor. Intenta nuevamente en unos minutos.");
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -64,20 +60,6 @@ function DiagnosticExam() {
         : "border-nt-border"
     }`;
 
-  const calculateScore = (finalAnswers) => {
-    return diagnosticQuestions.reduce((score, question) => {
-      return finalAnswers[question.id] === question.correctAnswer
-        ? score + 1
-        : score;
-    }, 0);
-  };
-
-  const getLevel = (score) => {
-    if (score <= 4) return "Básico";
-    if (score <= 7) return "Intermedio";
-    return "Avanzado";
-  };
-
   const handleNext = async () => {
     if (selectedAnswer === undefined) return;
 
@@ -96,30 +78,6 @@ function DiagnosticExam() {
     try {
       setIsSubmitting(true);
       setError("");
-
-      if (isUsingFallback) {
-        const labels = ["A", "B", "C", "D"];
-        const respuestas = diagnosticQuestions.map((question) => {
-          const answerIndex = answers[question.id];
-          return labels[answerIndex];
-        });
-        const diagnosticResult = await submitDiagnostic(studentId, respuestas);
-        localStorage.setItem("diagnosticResult", JSON.stringify(diagnosticResult));
-
-        const score = calculateScore(answers);
-        const level = getLevel(score);
-
-        navigate("/diagnostic-result", {
-          state: {
-            score,
-            total: diagnosticQuestions.length,
-            level,
-            answers,
-            isFallback: true,
-          },
-        });
-        return;
-      }
 
       const diagnosticResult = await submitDiagnosticV2({
         student_id: Number(studentId),
@@ -146,12 +104,26 @@ function DiagnosticExam() {
     }
   };
 
-  if (isLoading || !currentQuestion) {
+  if (isLoading) {
     return (
       <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4 py-8 text-nt-text-primary">
         <section className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
         </section>
+      </main>
+    );
+  }
+
+  if (error || !currentQuestion) {
+    return (
+      <main className="relative grid min-h-screen place-items-center bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4 py-8 text-nt-text-primary">
+        <Card className="w-full max-w-xl rounded-[28px] border border-white/85 bg-white/92 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
+          <CardContent className="p-8">
+            <h1 className="text-2xl font-black">Diagnóstico no disponible</h1>
+            <p className="mt-3 text-sm font-semibold leading-6 text-nt-text-secondary">{error || "No encontramos preguntas disponibles."}</p>
+            <Button className="mt-6 rounded-[18px] bg-nt-blue px-5 text-white" onClick={() => window.location.reload()}>Reintentar</Button>
+          </CardContent>
+        </Card>
       </main>
     );
   }

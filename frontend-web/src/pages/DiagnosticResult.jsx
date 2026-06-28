@@ -20,8 +20,6 @@ function DiagnosticResult() {
   const attemptId = location.state?.attemptId;
   const score = location.state?.correctAnswers ?? location.state?.score ?? 0;
   const total = location.state?.totalQuestions ?? location.state?.total ?? 10;
-  const percentage = location.state?.scorePercentage ?? Math.round((score / total) * 100);
-
   const levelMap = {
     BASICO: "Básico",
     INTERMEDIO: "Intermedio",

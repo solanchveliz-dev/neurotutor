@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { GraduationCap, ShieldCheck, UserCog } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,8 +8,7 @@ import { saveAuthData } from '../utils/auth';
 
 function Register({ initialTab = 'register' }) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(initialTab);
-  const [role, setRole] = useState('ESTUDIANTE');
+  const activeTab = initialTab;
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -24,16 +22,6 @@ function Register({ initialTab = 'register' }) {
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [serverError, setServerError] = useState('');
-
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
-  const roleOptions = [
-    { id: 'ESTUDIANTE', label: 'Estudiante', icon: GraduationCap },
-    { id: 'DOCENTE', label: 'Docente', icon: ShieldCheck },
-    { id: 'ADMIN', label: 'Administrador', icon: UserCog }
-  ];
 
   const inputClass = (hasError) =>
     `h-12 w-full rounded-[18px] border bg-white px-4 text-sm font-semibold text-nt-text-primary outline-none transition placeholder:text-nt-text-secondary/70 focus:ring-4 ${
@@ -270,29 +258,6 @@ function Register({ initialTab = 'register' }) {
 
             {activeTab === 'login' ? (
               <form className="space-y-4" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-3 gap-2 rounded-[22px] bg-nt-sky/70 p-1.5">
-                  {roleOptions.map(({ id, label, icon: Icon }) => {
-                    const isActive = role === id;
-
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-[18px] px-2 text-[11px] font-black transition ${
-                          isActive
-                            ? 'bg-white text-nt-blue shadow-[0_10px_24px_rgba(37,99,235,0.16)]'
-                            : 'text-nt-text-secondary hover:bg-white/70 hover:text-nt-blue'
-                        }`}
-                        onClick={() => setRole(id)}
-                        aria-pressed={isActive}
-                      >
-                        <Icon className="size-4" aria-hidden="true" />
-                        <span className="leading-tight">{label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
                 <div className="space-y-2">
                   <label htmlFor="register-login-email" className="text-sm font-black text-nt-text-primary">
                     Correo electrónico

@@ -9,39 +9,9 @@ import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import BackButton from "../components/student/BackButton";
 import LearningProgressPanel from "../components/student/LearningProgressPanel";
-import { modulesData } from "../data/modulesData";
 import { getLearningContent } from "../services/learningService";
 import { submitPracticeAttempt } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
-
-const fallbackExercises = [
-  {
-    question: "Cual fraccion representa la mitad de una pizza?",
-    options: ["1/4", "1/2", "2/3", "3/4"],
-    correctAnswer: 1,
-    explanation: "La mitad significa dividir el todo en 2 partes iguales y tomar 1 parte.",
-    points: 10,
-  },
-  {
-    question: "Si tienes 3/4 de una barra de chocolate, que indica el numero 4?",
-    options: [
-      "Las partes que tomaste",
-      "El total de partes iguales",
-      "El numero de chocolates",
-      "La respuesta final",
-    ],
-    correctAnswer: 1,
-    explanation: "El denominador indica en cuantas partes iguales se divide el todo.",
-    points: 10,
-  },
-  {
-    question: "Cual es el numerador en la fraccion 5/8?",
-    options: ["8", "5", "13", "3"],
-    correctAnswer: 1,
-    explanation: "El numerador es el numero de arriba. En 5/8, el numerador es 5.",
-    points: 10,
-  },
-];
 
 function mapExercise(exercise) {
   return {
@@ -73,24 +43,20 @@ function PracticeExercises() {
   const learningModuloId = nestedLevelId ?? moduleId;
   const routeModule = location.state?.module;
   const routeLevel = location.state?.level;
-  const [exercises, setExercises] = useState(fallbackExercises);
+  const [exercises, setExercises] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [points, setPoints] = useState(0);
   const [answeredItems, setAnsweredItems] = useState({});
-  const [isUsingFallback, setIsUsingFallback] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [attemptError, setAttemptError] = useState("");
 
-  const fallbackModule =
-    modulesData.find((item) => String(item.id) === String(moduleId)) ??
-    modulesData[0];
-  const fallbackLevel =
-    fallbackModule?.levels.find((item) => item.unlocked) ?? fallbackModule?.levels[0];
-  const module = routeModule ?? fallbackModule;
-  const level = routeLevel ?? fallbackLevel;
-  const moduleTitle = getTitle(routeModule, getTitle(fallbackModule, "Modulo"));
-  const rawLevelTitle = getTitle(routeLevel, getTitle(fallbackLevel, "Nivel"));
+  const module = routeModule ?? { id: moduleId, title: "Módulo" };
+  const level = routeLevel ?? { id: learningModuloId, name: "Nivel" };
+  const moduleTitle = getTitle(routeModule, "Módulo");
+  const rawLevelTitle = getTitle(routeLevel, "Nivel");
   const levelTitle = inferLevelName(rawLevelTitle);
   const backLevelId = routeLevel?.id ?? routeLevel?.levelId ?? nestedLevelId;
   const backModuleId = routeModule?.id ?? (nestedLevelId ? moduleId : null);
@@ -100,6 +66,7 @@ function PracticeExercises() {
       : "/student-dashboard";
 
   useEffect(() => {
+    setLoadError("");
     getLearningContent(learningModuloId)
       .then((content) => {
         if (Array.isArray(content.ejercicios) && content.ejercicios.length > 0) {
@@ -108,18 +75,21 @@ function PracticeExercises() {
           setSelectedAnswer(null);
           setShowFeedback(false);
           setAnsweredItems({});
-          setIsUsingFallback(false);
+          return;
         }
+        setExercises([]);
+        setLoadError("Este nivel todavía no tiene ejercicios de práctica disponibles.");
       })
       .catch(() => {
-        setExercises(fallbackExercises);
-        setIsUsingFallback(true);
-      });
+        setExercises([]);
+        setLoadError("No pudimos cargar la práctica desde el servidor. Intenta nuevamente en unos minutos.");
+      })
+      .finally(() => setIsLoading(false));
   }, [learningModuloId]);
 
   const currentExercise = exercises[currentIndex];
-  const isCorrect = selectedAnswer === currentExercise.correctAnswer;
-  const progress = ((currentIndex + 1) / exercises.length) * 100;
+  const isCorrect = currentExercise ? selectedAnswer === currentExercise.correctAnswer : false;
+  const progress = exercises.length ? ((currentIndex + 1) / exercises.length) * 100 : 0;
 
   const handleAnswer = (index) => {
     if (showFeedback) return;
@@ -145,7 +115,7 @@ function PracticeExercises() {
     const studentId = getStudentId();
     const answersPayload = Object.values(answeredItems).filter((item) => item.exercise_id);
 
-    if (!studentId || isUsingFallback || !answersPayload.length) return;
+    if (!studentId || !answersPayload.length) return;
 
     try {
       setAttemptError("");
@@ -178,19 +148,28 @@ function PracticeExercises() {
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 
-  if (!module || !level) {
+  if (isLoading) {
+    return (
+      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
+        <div className="grid min-h-[450px] place-items-center"><div className="h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" /></div>
+      </StudentLayout>
+    );
+  }
+
+  if (loadError || !currentExercise) {
     return (
       <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
         <section className="flex min-h-[400px] items-center justify-center">
           <Card className="w-full rounded-[32px] border border-white/80 bg-white/90 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
             <CardContent className="p-8">
-              <h1 className="text-2xl font-black text-nt-text-primary">Ejercicios no encontrados</h1>
+              <h1 className="text-2xl font-black text-nt-text-primary">Práctica no disponible</h1>
+              <p className="mt-3 text-sm font-semibold leading-6 text-nt-text-secondary">{loadError || "No encontramos ejercicios para este nivel."}</p>
               <Button
                 type="button"
                 className="mt-5 h-11 rounded-[18px] bg-nt-blue px-5 text-sm font-black text-white hover:bg-blue-700"
-                onClick={() => navigate("/learning-path")}
+                onClick={() => navigate(backPath, { state: { module: routeModule, level: routeLevel } })}
               >
-                Volver a módulos
+                Volver a actividades
               </Button>
             </CardContent>
           </Card>

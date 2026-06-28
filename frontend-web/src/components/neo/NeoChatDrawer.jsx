@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bot, Lightbulb, Send, Sparkles, X } from "lucide-react";
 import { matchPath, useLocation } from "react-router-dom";
 
@@ -35,13 +35,13 @@ const readHistory = () => {
 
 function NeoChatDrawer() {
   const location = useLocation();
-  const context = useMemo(() => {
+  const context = (() => {
     for (const [pattern, currentScreen, actions] of screens) {
       const match = matchPath({ path: pattern, end: true }, location.pathname);
       if (match) return { currentScreen, actions, params: match.params };
     }
     return null;
-  }, [location.pathname]);
+  })();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState(readHistory);
   const [input, setInput] = useState("");
@@ -53,8 +53,6 @@ function NeoChatDrawer() {
     sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-30)));
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
-
-  useEffect(() => setIsOpen(false), [location.pathname]);
 
   if (!context || location.pathname.startsWith("/final-exam/")) return null;
 

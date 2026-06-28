@@ -14,8 +14,6 @@ const defaultItems = [
 
 function AppSidebar({
   items = defaultItems,
-  title = "NeuroTutor",
-  subtitle = "Panel estudiante",
   footer,
   className,
 }) {

@@ -9,65 +9,6 @@ import { getStudentProfile } from "../services/profileService";
 import { getStudentProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
 
-const fallbackStudent = {
-  name: "Estudiante Demo",
-  grade: "6to grado",
-  section: "A",
-  level: "Intermedio",
-  points: 320,
-  gender: "female",
-};
-
-const fallbackModules = [
-  {
-    id: 1,
-    title: "Problemas de cantidad",
-    description: "Operaciones, numeros y situaciones de conteo.",
-    progress: 6,
-    total: 10,
-    unlocked: true,
-    active: true,
-  },
-  {
-    id: 2,
-    title: "Regularidad, equivalencia y cambio",
-    description: "Patrones, secuencias y relaciones.",
-    progress: 2,
-    total: 10,
-    unlocked: true,
-    active: false,
-  },
-  {
-    id: 3,
-    title: "Forma, movimiento y localizacion",
-    description: "Figuras, medidas y ubicacion espacial.",
-    progress: 0,
-    total: 10,
-    unlocked: false,
-    active: false,
-  },
-  {
-    id: 4,
-    title: "Gestion de datos e incertidumbre",
-    description: "Tablas, graficos y probabilidades.",
-    progress: 0,
-    total: 10,
-    unlocked: false,
-    active: false,
-  },
-];
-
-const recentActivitiesData = [
-  { title: "Fracciones basicas", detail: "Completaste una practica", image: "/assets/card-fracciones-basic.png", points: "+25 pts" },
-  { title: "Decimales", detail: "Repasaste ejercicios guiados", image: "/assets/card-decimales-basic.png", points: "+15 pts" },
-];
-
-const upcomingChallengesData = [
-  { title: "Resolver 5 fracciones", progress: 60, points: "30 pts" },
-  { title: "Practicar decimales", progress: 35, points: "20 pts" },
-  { title: "Revisar porcentajes", progress: 15, points: "25 pts" },
-];
-
 const normalizeText = (value = "") =>
   value
     .toString()
@@ -98,8 +39,8 @@ const normalizeLevel = (level) => {
 
 function StudentDashboard() {
   const navigate = useNavigate();
-  const [student, setStudent] = useState(fallbackStudent);
-  const [modules, setModules] = useState(fallbackModules);
+  const [student, setStudent] = useState(null);
+  const [modules, setModules] = useState([]);
   const [progressSummary, setProgressSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -108,6 +49,7 @@ function StudentDashboard() {
     const studentId = getStudentId();
 
     if (!studentId) {
+      setError(new Error("No se encontró la sesión del estudiante."));
       setIsLoading(false);
       return;
     }
@@ -116,29 +58,21 @@ function StudentDashboard() {
     setError(null);
 
     try {
-      const [profileResult, progressResult, legacyResult] = await Promise.allSettled([
+      const [profile, progress] = await Promise.all([
         getStudentProfile(studentId),
         getStudentProgress(studentId),
-        getStudentDashboard(studentId),
       ]);
-
-      const profile = profileResult.status === "fulfilled" ? profileResult.value : null;
-      const progress = progressResult.status === "fulfilled" ? progressResult.value : null;
-      const legacyProfile = legacyResult.status === "fulfilled" ? legacyResult.value : null;
+      const legacyProfile = await getStudentDashboard(studentId).catch(() => null);
       const [grade = "", section = ""] = (legacyProfile?.gradoSeccion || "").split(" ");
-
-      if (!profile && !legacyProfile) {
-        throw new Error("No se pudo cargar el perfil del estudiante.");
-      }
 
       setProgressSummary(progress);
 
       setStudent({
-        name: profile?.name || legacyProfile?.nombreCompleto || fallbackStudent.name,
-        grade: profile?.grade || grade || fallbackStudent.grade,
-        section: profile?.section || section || fallbackStudent.section,
-        level: profile?.level || legacyProfile?.nivelActual || fallbackStudent.level,
-        points: profile?.points ?? legacyProfile?.puntosTotales ?? fallbackStudent.points,
+        name: profile.name,
+        grade: profile.grade || grade,
+        section: profile.section || section,
+        level: profile.level,
+        points: profile.points ?? 0,
         gender: profile?.gender || legacyProfile?.gender || legacyProfile?.genero,
         avatarUrl: profile?.avatar_url,
       });
@@ -182,7 +116,7 @@ function StudentDashboard() {
     } catch (err) {
       console.error("Error fetching dashboard:", err);
       setError(err);
-      setStudent(fallbackStudent);
+      setStudent(null);
       setModules([]);
     } finally {
       setIsLoading(false);
@@ -218,11 +152,6 @@ function StudentDashboard() {
     navigate(`/module/${selectedRealModule.id}`, { state: { module: selectedRealModule } });
   };
 
-  const handleOpenModule = (module) => {
-    if (!module?.unlocked) return;
-    navigate(`/module/${module.id}`, { state: { module } });
-  };
-
   const handleOpenLearningCard = (module) => {
     if (!module?.id) return;
 
@@ -238,9 +167,7 @@ function StudentDashboard() {
     navigate(`/module/${module.id}`, { state: { module } });
   };
 
-  const totalExercises = modules.reduce((sum, module) => sum + (module.total || 0), 0);
-  const completedExercises = modules.reduce((sum, module) => sum + (module.progress || 0), 0);
-  const overallProgress = progressSummary?.overall_progress ?? (totalExercises ? Math.round((completedExercises / totalExercises) * 100) : 0);
+  const overallProgress = progressSummary?.overall_progress ?? 0;
 
   const getModulePercentage = (module) => {
     if (!module?.total) return 0;
@@ -262,12 +189,9 @@ function StudentDashboard() {
     { label: "Porcentajes", image: "/assets/island-porcentajes.png", module: getIslandModule("Porcentajes", 2) },
   ];
 
-  const learningCards = [
+  const learningCardVisuals = [
     {
-      title: "Fracciones - Basico",
-      subtitle: "Que es una fraccion?",
       image: "/assets/card-fracciones-basic.png",
-      module: modules[0],
       tone: "bg-nt-green",
       gradient: "linear-gradient(135deg, #4A00E0 0%, #8E2DE2 100%)",
       glow: "shadow-violet-950/25",
@@ -275,10 +199,7 @@ function StudentDashboard() {
       progressTone: "bg-[#D9C5FF]",
     },
     {
-      title: "Decimales - Basico",
-      subtitle: "Introduccion a los decimales",
       image: "/assets/card-decimales-basic.png",
-      module: modules[1],
       tone: "bg-nt-yellow",
       gradient: "linear-gradient(135deg, #2948ff 0%, #396afc 100%)",
       glow: "shadow-blue-950/25",
@@ -286,19 +207,20 @@ function StudentDashboard() {
       progressTone: "bg-[#C7D4FF]",
     },
     {
-      title: "Porcentajes - Basico",
-      subtitle: "Porcentajes en la vida diaria",
       image: "/assets/card-porcentajes-basic.png",
-      module: modules[2],
       tone: "bg-nt-red",
       gradient: "linear-gradient(135deg, #2C7744 0%, #52c234 100%)",
       glow: "shadow-emerald-950/25",
       buttonTone: "bg-white/95 text-[#2C7744] hover:bg-white",
       progressTone: "bg-[#B9F58C]",
     },
-  ].map(card => ({
-    ...card,
-    percentage: getModulePercentage(card.module)
+  ];
+  const learningCards = modules.slice(0, 3).map((module, index) => ({
+    ...learningCardVisuals[index],
+    title: module.title,
+    subtitle: module.description,
+    module,
+    percentage: getModulePercentage(module),
   }));
 
   const subjectProgress = learningCards.map(card => ({
@@ -307,11 +229,11 @@ function StudentDashboard() {
     tone: card.tone,
   }));
 
-  const studentGender = (student.gender || student.genero || "").toLowerCase();
+  const studentGender = (student?.gender || student?.genero || "").toLowerCase();
   const avatarSrc = studentGender === "male" || studentGender === "masculino"
     ? "/assets/avatar-boy.png"
     : "/assets/avatar-girl.png";
-  const profileAvatar = student.avatarUrl || avatarSrc;
+  const profileAvatar = student?.avatarUrl || avatarSrc;
 
   const sidebarItems = [
     { label: "Inicio", active: true, onClick: () => navigate("/student-dashboard") },
@@ -512,46 +434,6 @@ function StudentDashboard() {
         </div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <article className="rounded-nt-card border border-white/80 bg-white/85 p-5 shadow-nt-card backdrop-blur">
-          <h2 className="text-lg font-black text-nt-text-primary">Actividad reciente</h2>
-          <p className="mb-4 text-sm font-semibold text-nt-text-secondary">Ultimo avance registrado</p>
-          <div className="grid gap-2">
-            {recentActivitiesData.map((activity) => (
-              <div key={activity.title} className="flex items-center gap-3 rounded-[18px] bg-white px-3 py-2 shadow-sm">
-                <img src={activity.image} alt="" className="size-11 rounded-[14px] object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-black text-nt-text-primary">{activity.title}</p>
-                  <p className="truncate text-xs font-semibold text-nt-text-secondary">{activity.detail}</p>
-                </div>
-                <span className="shrink-0 rounded-full bg-nt-green/15 px-2.5 py-1 text-xs font-black text-green-700">
-                  {activity.points}
-                </span>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="rounded-nt-card border border-white/80 bg-white/85 p-5 shadow-nt-card backdrop-blur">
-          <h2 className="text-lg font-black text-nt-text-primary">Proximos desafios</h2>
-          <p className="mb-4 text-sm font-semibold text-nt-text-secondary">Retos sugeridos para hoy</p>
-          <div className="grid gap-2">
-            {upcomingChallengesData.map((challenge) => (
-              <div key={challenge.title} className="rounded-[18px] bg-white px-3 py-2 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-extrabold text-nt-text-primary">{challenge.title}</span>
-                  <span className="shrink-0 rounded-full bg-nt-purple/10 px-2.5 py-1 text-xs font-black text-nt-purple">
-                    {challenge.points}
-                  </span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-nt-border">
-                  <div className="h-full rounded-full bg-nt-blue" style={{ width: `${challenge.progress}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-      </div>
     </StudentLayout>
   );
 }

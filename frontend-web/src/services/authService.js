@@ -120,7 +120,7 @@ export const logout = async () => {
       success: true,
       data: response.data
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       message: 'Error al cerrar sesiÃ³n'
