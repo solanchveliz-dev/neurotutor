@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,78 @@ public class LearningService {
 
     @Autowired
     private TheoryLessonRepository theoryLessonRepository;
+
+    @Transactional(readOnly = true)
+    public LearningModuleDetailsResponse getModuleDetails(Long moduleId) {
+        Modulo requestedModule = findModule(moduleId);
+        List<Modulo> levels = getOrderedTopicLevels(requestedModule);
+        Long canonicalModuleId = levels.get(0).getId();
+        Tema topic = requestedModule.getTema();
+        String title = topic != null && topic.getNombre() != null
+                ? topic.getNombre()
+                : requestedModule.getTitulo();
+        String description = topic == null ? null : topic.getDescripcion();
+
+        return new LearningModuleDetailsResponse(
+                moduleId,
+                title,
+                description,
+                levels.stream()
+                        .map(level -> toLevelDetails(level, canonicalModuleId))
+                        .toList()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public LearningLevelDetailsResponse getLevelDetails(Long levelId) {
+        Modulo level = findModule(levelId);
+        List<Modulo> levels = getOrderedTopicLevels(level);
+        return toLevelDetails(level, levels.get(0).getId());
+    }
+
+    private Modulo findModule(Long moduleId) {
+        return moduloRepository.findById(moduleId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Modulo no encontrado"));
+    }
+
+    private List<Modulo> getOrderedTopicLevels(Modulo module) {
+        List<Modulo> levels = module.getTema() == null
+                ? List.of(module)
+                : moduloRepository.findByTemaId(module.getTema().getId());
+        if (levels.isEmpty()) {
+            levels = List.of(module);
+        }
+        return levels.stream()
+                .sorted(Comparator.comparingInt(this::levelOrder).thenComparing(Modulo::getId))
+                .toList();
+    }
+
+    private int levelOrder(Modulo module) {
+        return switch (module.getNivelRequerido() == null ? "" : module.getNivelRequerido()) {
+            case "BASICO" -> 0;
+            case "INTERMEDIO" -> 1;
+            case "AVANZADO" -> 2;
+            default -> 3;
+        };
+    }
+
+    private LearningLevelDetailsResponse toLevelDetails(Modulo level, Long canonicalModuleId) {
+        List<TheoryLesson> lessons = theoryLessonRepository
+                .findByModuloIdAndActiveTrueOrderByOrderNumberAsc(level.getId());
+        String description = lessons.isEmpty() ? null : lessons.get(0).getSummary();
+
+        return new LearningLevelDetailsResponse(
+                level.getId(),
+                canonicalModuleId,
+                level.getTitulo(),
+                level.getNivelRequerido(),
+                description,
+                theoryLessonRepository.countByModuloIdAndActiveTrue(level.getId()),
+                ejercicioRepository.countByModuloIdAndEsExamenFinal(level.getId(), false),
+                ejercicioRepository.countByModuloIdAndEsExamenFinal(level.getId(), true)
+        );
+    }
 
     /**
      * 🚀 HU-20: Obtiene la ruta completa de niveles (🌱, 🔥, 🚀) para un tema.

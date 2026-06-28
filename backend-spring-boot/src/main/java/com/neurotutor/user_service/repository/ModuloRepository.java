@@ -7,4 +7,5 @@ import java.util.List;
 public interface ModuloRepository extends JpaRepository<Modulo, Long> {
     // 🚀 Filtra automáticamente los temas permitidos para el nivel del estudiante
     List<Modulo> findByNivelRequerido(String nivelRequerido);
+    List<Modulo> findByTemaId(Long temaId);
 }

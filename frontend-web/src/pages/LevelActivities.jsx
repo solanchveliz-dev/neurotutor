@@ -1,67 +1,59 @@
 import { ArrowRight, CheckCircle2, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
-import NeoCard from "../components/student/NeoCard";
 import BackButton from "../components/student/BackButton";
 import LearningProgressPanel from "../components/student/LearningProgressPanel";
-import { modulesData } from "../data/modulesData";
-import { getTheoryLessons } from "../services/learningService";
+import { getLevelDetails, getModuleDetails } from "../services/learningService";
 import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
 
-const numericFallbackMap = {
-  1: "fracciones",
-  2: "decimales",
-  3: "porcentajes",
+const levelLabels = {
+  BASICO: "Básico",
+  INTERMEDIO: "Intermedio",
+  AVANZADO: "Avanzado",
 };
 
 function LevelActivities() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { moduleId, levelId } = useParams();
   const [moduleProgress, setModuleProgress] = useState(null);
-  const [lessonCount, setLessonCount] = useState(0);
-
-  const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
-  const fallbackModule =
-    modulesData.find((item) => String(item.id) === String(fallbackId)) ??
-    modulesData[0];
-  const fallbackLevel =
-    fallbackModule?.levels.find((item) => String(item.id) === String(levelId)) ??
-    fallbackModule?.levels.find((item) => item.unlocked) ??
-    fallbackModule?.levels[0];
-
-  const module = location.state?.module ?? {
-    id: moduleId,
-    title: fallbackModule?.title ?? "Modulo",
-    description: fallbackModule?.description ?? "Actividades del nivel seleccionado.",
-  };
-  const level = location.state?.level ?? {
-    id: levelId,
-    name: fallbackLevel?.name ?? "Nivel",
-    backendTitle: fallbackLevel?.name ?? "Contenido del nivel",
-    description: fallbackLevel?.description ?? "Completa las actividades para avanzar.",
-    progress: fallbackLevel?.progress ?? 0,
-    status: fallbackLevel?.status ?? "Disponible",
-  };
+  const [module, setModule] = useState(null);
+  const [level, setLevel] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     const studentId = getStudentId();
-    const progressModuloId = levelId ?? moduleId;
+    setIsLoading(true);
+    setLoadError("");
 
-    Promise.allSettled([
-      studentId && progressModuloId ? getModuleProgress(studentId, progressModuloId) : Promise.resolve(null),
-      levelId ? getTheoryLessons(levelId) : Promise.resolve([]),
-    ]).then(([progressResult, lessonsResult]) => {
-      setModuleProgress(progressResult.status === "fulfilled" ? progressResult.value : null);
-      setLessonCount(
-        lessonsResult.status === "fulfilled" && Array.isArray(lessonsResult.value)
-          ? lessonsResult.value.length
-          : 0
-      );
-    });
+    Promise.all([
+      getModuleDetails(moduleId),
+      getLevelDetails(levelId),
+      studentId ? getModuleProgress(studentId, levelId) : Promise.resolve(null),
+    ])
+      .then(([moduleData, levelData, progressData]) => {
+        setModule(moduleData);
+        setLevel({
+          id: levelData.id,
+          name: levelLabels[levelData.level] ?? levelData.level,
+          backendTitle: levelData.title,
+          description: levelData.description,
+          lessonCount: levelData.lessons_count ?? 0,
+          practiceCount: levelData.practice_count ?? 0,
+          examCount: levelData.exam_count ?? 0,
+        });
+        setModuleProgress(progressData);
+      })
+      .catch(() => {
+        setModule(null);
+        setLevel(null);
+        setModuleProgress(null);
+        setLoadError("No pudimos cargar los datos de este nivel desde el servidor.");
+      })
+      .finally(() => setIsLoading(false));
   }, [moduleId, levelId]);
 
   const completion = {
@@ -81,10 +73,10 @@ function LevelActivities() {
   const activities = [
     {
       title: "Teoria",
-      description: lessonCount
-        ? `Avanza por ${lessonCount} lecciones antes de resolver ejercicios.`
+      description: level?.lessonCount
+        ? `Avanza por ${level.lessonCount} lecciones antes de resolver ejercicios.`
         : "Lee los conceptos clave del nivel antes de resolver ejercicios.",
-      detail: completion.theoryCompleted ? "Completado" : `${lessonCount} lecciones`,
+      detail: completion.theoryCompleted ? "Completado" : `${level?.lessonCount ?? 0} lecciones`,
       image: "/assets/teoria.png",
       tone: "bg-nt-green/15",
       barTone: "bg-nt-green",
@@ -95,7 +87,7 @@ function LevelActivities() {
     },
     {
       title: "Practica",
-      description: "Resuelve ejercicios guiados y recibe ayuda cuando lo necesites.",
+      description: `Resuelve ${level?.practiceCount ?? 0} ejercicios guiados y recibe ayuda cuando lo necesites.`,
       detail: completion.practiceCompleted ? "Completado" : "Disponible",
       image: "/assets/practica.png",
       tone: "bg-nt-blue/10",
@@ -107,7 +99,7 @@ function LevelActivities() {
     },
     {
       title: "Examen Final",
-      description: "Demuestra lo aprendido cuando hayas completado las actividades previas.",
+      description: `Demuestra lo aprendido en ${level?.examCount ?? 0} preguntas cuando completes las actividades previas.`,
       detail: isExamUnlocked ? "Disponible" : "Bloqueado",
       image: "/assets/examen-final.png",
       tone: isExamUnlocked ? "bg-nt-purple/10" : "bg-slate-100",
@@ -119,6 +111,34 @@ function LevelActivities() {
       onClick: () => navigate(`/final-exam/${levelId}`, { state: { module, level } }),
     },
   ];
+
+  if (isLoading) {
+    return (
+      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
+        <div className="flex min-h-[420px] items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  if (loadError || !module || !level) {
+    return (
+      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
+        <section className="rounded-nt-card border border-white/80 bg-white/90 p-8 text-center shadow-nt-card">
+          <h1 className="text-2xl font-black text-nt-text-primary">Nivel no disponible</h1>
+          <p className="mt-3 text-sm font-semibold text-nt-text-secondary">{loadError}</p>
+          <button
+            type="button"
+            className="mt-5 rounded-nt-button bg-nt-blue px-5 py-3 text-sm font-black text-white"
+            onClick={() => navigate(`/module/${moduleId}`)}
+          >
+            Volver al módulo
+          </button>
+        </section>
+      </StudentLayout>
+    );
+  }
 
   return (
     <StudentLayout
@@ -152,12 +172,6 @@ function LevelActivities() {
               </div>
             </div>
           </div>
-          <NeoCard
-            title="NEO te acompana"
-            message="Completa teoria y practica para desbloquear el examen final."
-            actionLabel="Ver teoria"
-            onAction={() => navigate(`/module/${moduleId}/level/${levelId}/theory`, { state: { module, level } })}
-          />
         </div>
       }
     >

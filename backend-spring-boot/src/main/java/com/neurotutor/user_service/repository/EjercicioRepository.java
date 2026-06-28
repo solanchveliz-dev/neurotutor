@@ -7,4 +7,5 @@ import java.util.List;
 public interface EjercicioRepository extends JpaRepository<Ejercicio, Long> {
     // 🚀 Busca ejercicios normales o de examen para un nivel específico
     List<Ejercicio> findByModuloIdAndEsExamenFinal(Long moduloId, boolean esExamenFinal);
+    long countByModuloIdAndEsExamenFinal(Long moduloId, boolean esExamenFinal);
 }

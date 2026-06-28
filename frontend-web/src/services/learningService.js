@@ -5,6 +5,16 @@ export const getLearningContent = async (moduloId) => {
   return response.data;
 };
 
+export const getModuleDetails = async (moduleId) => {
+  const response = await api.get(`/api/learning/modules/${moduleId}/details`);
+  return response.data;
+};
+
+export const getLevelDetails = async (levelId) => {
+  const response = await api.get(`/api/learning/levels/${levelId}`);
+  return response.data;
+};
+
 export const getTheoryLessons = async (levelId) => {
   const response = await api.get(`/api/learning/modules/${levelId}/lessons`);
   return response.data;

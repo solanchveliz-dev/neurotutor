@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowRight, CheckCircle2, ShieldCheck, Trophy, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import BackButton from "../components/student/BackButton";
 import LearningProgressPanel from "../components/student/LearningProgressPanel";
-import { modulesData } from "../data/modulesData";
 import {
   getFinalExam,
+  getLevelDetails,
+  getModuleDetails,
   submitFinalExamAttempt,
 } from "../services/learningService";
 import { getModuleProgress } from "../services/progressService";
@@ -23,9 +24,6 @@ function mapExamQuestion(question) {
     options: question.options ?? [],
   };
 }
-
-const getTitle = (item, fallback = "") =>
-  item?.title ?? item?.titulo ?? item?.nombre ?? item?.name ?? fallback;
 
 const inferLevelName = (value = "") => {
   const text = String(value).toLowerCase();
@@ -42,6 +40,8 @@ function FinalExam() {
   const { moduleId } = useParams();
   const routeModule = location.state?.module;
   const routeLevel = location.state?.level;
+  const [module, setModule] = useState(null);
+  const [level, setLevel] = useState(null);
   const [examQuestions, setExamQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -52,17 +52,10 @@ function FinalExam() {
   const [loadError, setLoadError] = useState("");
   const [submitError, setSubmitError] = useState("");
 
-  const fallbackModule =
-    modulesData.find((item) => String(item.id) === String(moduleId)) ??
-    modulesData[0];
-  const fallbackLevel =
-    fallbackModule?.levels.find((item) => item.unlocked) ?? fallbackModule?.levels[0];
-  const module = routeModule ?? fallbackModule;
-  const level = routeLevel ?? fallbackLevel;
-  const moduleTitle = getTitle(routeModule, getTitle(fallbackModule, "Modulo"));
-  const levelName = inferLevelName(getTitle(routeLevel, getTitle(fallbackLevel, "Nivel")));
-  const backLevelId = routeLevel?.id ?? routeLevel?.levelId;
-  const backModuleId = routeModule?.id;
+  const moduleTitle = module?.title;
+  const levelName = inferLevelName(level?.level || level?.title);
+  const backLevelId = level?.id ?? routeLevel?.id ?? routeLevel?.levelId;
+  const backModuleId = level?.module_id ?? routeModule?.id;
   const backPath =
     backModuleId && backLevelId
       ? `/module/${backModuleId}/level/${backLevelId}`
@@ -71,10 +64,13 @@ function FinalExam() {
   useEffect(() => {
     setIsLoading(true);
     setLoadError("");
-    getFinalExam(moduleId)
-      .then((questions) => {
+    Promise.all([getFinalExam(moduleId), getLevelDetails(moduleId)])
+      .then(async ([questions, levelData]) => {
         if (Array.isArray(questions) && questions.length > 0) {
+          const moduleData = await getModuleDetails(levelData.module_id);
           setExamQuestions(questions.map(mapExamQuestion));
+          setModule(moduleData);
+          setLevel(levelData);
           setCurrentIndex(0);
           setAnswers({});
           setFinished(false);
@@ -84,7 +80,9 @@ function FinalExam() {
       })
       .catch(() => {
         setExamQuestions([]);
-        setLoadError("No pudimos cargar el examen final desde el servidor.");
+        setModule(null);
+        setLevel(null);
+        setLoadError("No pudimos cargar el examen final y sus datos desde el servidor.");
       })
       .finally(() => setIsLoading(false));
   }, [moduleId]);
@@ -167,7 +165,7 @@ function FinalExam() {
               <Button
                 type="button"
                 className="mt-5 h-11 rounded-[18px] bg-nt-blue px-5 text-sm font-black text-white hover:bg-blue-700"
-                onClick={() => navigate(backPath, { state: { module: routeModule, level: routeLevel } })}
+                onClick={() => navigate(backPath, { state: { module, level } })}
               >
                 Volver a actividades
               </Button>
@@ -240,7 +238,7 @@ function FinalExam() {
               <Button
                 type="button"
                 className="mt-7 h-12 w-full rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple text-sm font-black text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] hover:from-nt-blue/90 hover:to-nt-purple/90"
-                onClick={() => navigate(backPath, { state: { module: routeModule, level: routeLevel } })}
+                onClick={() => navigate(backPath, { state: { module, level } })}
               >
                 {backModuleId && backLevelId ? "Volver a actividades" : "Volver al panel"}
                 <ArrowRight className="size-4" aria-hidden="true" />
@@ -264,7 +262,7 @@ function FinalExam() {
       <div className="pointer-events-none absolute bottom-8 right-10 hidden h-36 w-36 rounded-full bg-nt-purple-light/30 blur-3xl md:block" />
 
       <section className="relative mx-auto w-full max-w-5xl">
-        <BackButton className="mb-4" onClick={() => navigate(backPath, { state: { module: routeModule, level: routeLevel } })}>
+        <BackButton className="mb-4" onClick={() => navigate(backPath, { state: { module, level } })}>
           Volver a actividades
         </BackButton>
 

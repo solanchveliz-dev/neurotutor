@@ -27,6 +27,18 @@ public class LearningController {
         return ResponseEntity.ok(learningService.getTheoryLessons(levelId));
     }
 
+    @GetMapping("/modules/{moduleId}/details")
+    public ResponseEntity<LearningModuleDetailsResponse> getModuleDetails(
+            @PathVariable Long moduleId) {
+        return ResponseEntity.ok(learningService.getModuleDetails(moduleId));
+    }
+
+    @GetMapping("/levels/{levelId}")
+    public ResponseEntity<LearningLevelDetailsResponse> getLevelDetails(
+            @PathVariable Long levelId) {
+        return ResponseEntity.ok(learningService.getLevelDetails(levelId));
+    }
+
     @GetMapping("/lessons/{lessonId}")
     public ResponseEntity<TheoryLessonDetailResponse> getTheoryLesson(
             @PathVariable Long lessonId) {

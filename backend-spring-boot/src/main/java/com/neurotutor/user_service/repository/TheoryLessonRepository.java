@@ -10,4 +10,5 @@ public interface TheoryLessonRepository extends JpaRepository<TheoryLesson, Long
     List<TheoryLesson> findByModuloIdAndActiveTrueOrderByOrderNumberAsc(Long moduloId);
     Optional<TheoryLesson> findByIdAndActiveTrue(Long id);
     Optional<TheoryLesson> findByModuloIdAndOrderNumber(Long moduloId, int orderNumber);
+    long countByModuloIdAndActiveTrue(Long moduloId);
 }
