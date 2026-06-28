@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { GraduationCap, Save, Star, UserRound } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { BadgeCheck, CalendarDays, GraduationCap, Save, Star, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
@@ -7,7 +7,6 @@ import BackButton from "../components/student/BackButton";
 import ProgressSummaryCard from "../components/student/ProgressSummaryCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getStudentDashboard } from "../services/dashboardService";
 import { getStudentProfile, updateStudentProfile } from "../services/profileService";
 import { getStudentProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
@@ -18,6 +17,11 @@ const emptyProfile = {
   section: "",
   avatar_url: "",
   gender: "",
+  email: "",
+  level: "",
+  points: 0,
+  diagnostic_completed: false,
+  created_at: "",
 };
 
 function Profile() {
@@ -29,24 +33,9 @@ function Profile() {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(null);
   const [progressError, setProgressError] = useState("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const studentId = getStudentId();
-
-  const mapLegacyProfile = (data) => {
-    const [grade = "", section = ""] = (data?.gradoSeccion || "").split(" ");
-    return {
-      name: data?.nombreCompleto ?? "",
-      grade,
-      section,
-      avatar_url: "",
-      gender: data?.genero ?? "",
-      email: "",
-      level: data?.nivelActual ?? "",
-      points: data?.puntosTotales ?? 0,
-      diagnostic_completed: true,
-      isLegacyFallback: true,
-    };
-  };
 
   const getErrorStatus = (error) => error?.response?.status;
   const getErrorPath = (error) => error?.response?.data?.path || "";
@@ -58,18 +47,21 @@ function Profile() {
     { label: "Perfil", active: true, onClick: () => navigate("/profile") },
   ];
 
-  useEffect(() => {
+  const loadProfile = useCallback(() => {
     if (!studentId) {
       setError("No se encontro el ID del estudiante. Inicia sesion nuevamente.");
+      setProfileLoaded(false);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     setError("");
+    setMessage("");
+    setProfileLoaded(false);
 
     Promise.allSettled([getStudentProfile(studentId), getStudentProgress(studentId)])
-      .then(async ([profileResult, progressResult]) => {
+      .then(([profileResult, progressResult]) => {
         if (progressResult.status === "fulfilled") {
           setProgress(progressResult.value);
           setProgressError("");
@@ -80,30 +72,31 @@ function Profile() {
 
         if (profileResult.status === "fulfilled") {
           const data = profileResult.value;
-        setProfile({
-          name: data.name ?? "",
-          grade: data.grade ?? "",
-          section: data.section ?? "",
-          avatar_url: data.avatar_url ?? "",
-          gender: data.gender ?? "",
-          email: data.email ?? "",
-          level: data.level ?? "",
-          points: data.points ?? progressResult.value?.points ?? 0,
-          diagnostic_completed: data.diagnostic_completed,
-        });
+          setProfile({
+            name: data.name ?? "",
+            grade: data.grade ?? "",
+            section: data.section ?? "",
+            avatar_url: data.avatar_url ?? "",
+            gender: data.gender ?? "",
+            email: data.email ?? "",
+            level: data.level ?? "",
+            points: data.points ?? progressResult.value?.points ?? 0,
+            diagnostic_completed: data.diagnostic_completed,
+            created_at: data.created_at ?? "",
+          });
+          setProfileLoaded(true);
           return;
         }
 
-        try {
-          const legacyProfile = await getStudentDashboard(studentId);
-          setProfile(mapLegacyProfile(legacyProfile));
-          setError("El endpoint nuevo de perfil no esta disponible en el backend activo. Se muestran datos basicos del dashboard.");
-        } catch {
-          setError("No se pudo cargar tu perfil desde el servidor.");
-        }
+        setProfile(emptyProfile);
+        setError("No se pudo cargar tu perfil desde el servidor.");
       })
       .finally(() => setIsLoading(false));
   }, [studentId]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -114,17 +107,23 @@ function Profile() {
     event.preventDefault();
     if (!studentId) return;
 
+    const normalizedName = profile.name?.trim() ?? "";
+    if (!normalizedName) {
+      setError("El nombre es obligatorio.");
+      return;
+    }
+
     setIsSaving(true);
     setMessage("");
     setError("");
 
     try {
       const payload = {
-        ...(profile.name?.trim() ? { name: profile.name.trim() } : {}),
-        grade: profile.grade?.trim() || null,
-        section: profile.section?.trim() || null,
-        avatar_url: profile.avatar_url?.trim() || null,
-        gender: profile.gender || null,
+        name: normalizedName,
+        grade: profile.grade?.trim() ?? "",
+        section: profile.section?.trim() ?? "",
+        avatar_url: profile.avatar_url?.trim() ?? "",
+        gender: profile.gender?.trim() ?? "",
       };
 
       const updated = await updateStudentProfile(studentId, payload);
@@ -144,9 +143,37 @@ function Profile() {
     }
   };
 
-  const avatarSrc =
-    profile.avatar_url ||
-    (String(profile.gender).toLowerCase() === "masculino" ? "/assets/avatar-boy.png" : "/assets/avatar-girl.png");
+  const initials = profile.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "NT";
+  const createdAtLabel = profile.created_at
+    ? new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "long", year: "numeric" })
+        .format(new Date(profile.created_at))
+    : "Sin fecha registrada";
+  const predefinedAvatars = ["/assets/avatar-girl.png", "/assets/avatar-boy.png"];
+  const hasCustomAvatar = profile.avatar_url && !predefinedAvatars.includes(profile.avatar_url);
+
+  if (!isLoading && !profileLoaded) {
+    return (
+      <StudentLayout
+        sidebar={<AppSidebar items={sidebarItems} />}
+        topbar={<BackButton onClick={() => navigate("/student-dashboard")}>Volver al inicio</BackButton>}
+        rightPanel={<ProgressSummaryCard progress={progress} error={progressError} />}
+      >
+        <section className="rounded-nt-card border border-amber-200 bg-white/92 p-8 text-center shadow-nt-card">
+          <UserRound className="mx-auto size-12 text-nt-blue" />
+          <h1 className="mt-4 text-2xl font-black text-nt-text-primary">No pudimos cargar tu perfil</h1>
+          <p className="mt-2 text-sm font-semibold text-nt-text-secondary">{error}</p>
+          <Button type="button" className="mt-5 h-11 rounded-[18px] bg-nt-blue px-5 font-black text-white" onClick={loadProfile}>
+            Reintentar
+          </Button>
+        </section>
+      </StudentLayout>
+    );
+  }
 
   return (
     <StudentLayout
@@ -168,7 +195,13 @@ function Profile() {
             </p>
           </div>
           <div className="flex items-center gap-3 rounded-[26px] bg-gradient-to-br from-nt-sky/90 to-violet-50 p-3">
-            <img src={avatarSrc} alt="" className="size-20 rounded-full border-4 border-white object-cover shadow-sm" />
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="size-20 rounded-full border-4 border-white object-cover shadow-sm" />
+            ) : (
+              <div className="grid size-20 place-items-center rounded-full border-4 border-white bg-gradient-to-br from-nt-blue to-nt-purple text-xl font-black text-white shadow-sm">
+                {initials}
+              </div>
+            )}
             <div>
               <p className="text-lg font-black text-nt-text-primary">{profile.name || "Estudiante"}</p>
               <p className="text-sm font-bold text-nt-text-secondary">{profile.level || "Nivel pendiente"}</p>
@@ -176,7 +209,7 @@ function Profile() {
             </div>
           </div>
         </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="flex items-center gap-3 rounded-[22px] bg-nt-sky/65 p-4">
             <GraduationCap className="size-5 text-nt-blue" />
             <div><p className="text-xs font-bold text-nt-text-secondary">Grado y sección</p><p className="font-black text-nt-text-primary">{profile.grade || "Sin grado"} {profile.section || ""}</p></div>
@@ -189,6 +222,14 @@ function Profile() {
             <Star className="size-5 fill-nt-yellow text-nt-yellow" />
             <div><p className="text-xs font-bold text-nt-text-secondary">Puntos</p><p className="font-black text-nt-text-primary">{profile.points ?? progress?.points ?? 0} pts</p></div>
           </div>
+          <div className="flex items-center gap-3 rounded-[22px] bg-green-50 p-4">
+            <BadgeCheck className="size-5 text-green-700" />
+            <div><p className="text-xs font-bold text-nt-text-secondary">Diagnóstico</p><p className="font-black text-nt-text-primary">{profile.diagnostic_completed ? "Completado" : "Pendiente"}</p></div>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-xs font-bold text-nt-text-secondary">
+          <CalendarDays className="size-4 text-nt-blue" />
+          Miembro desde {createdAtLabel}
         </div>
       </section>
 
@@ -237,8 +278,13 @@ function Profile() {
                   </select>
                 </label>
                 <label className="grid gap-2">
-                  <span className="text-sm font-black text-nt-text-primary">Avatar URL</span>
-                  <input name="avatar_url" value={profile.avatar_url} onChange={handleChange} placeholder="/assets/avatar-girl.png" className="h-12 rounded-[18px] border border-nt-border bg-white px-4 text-sm font-bold outline-none focus:border-nt-blue" />
+                  <span className="text-sm font-black text-nt-text-primary">Avatar opcional</span>
+                  <select name="avatar_url" value={profile.avatar_url} onChange={handleChange} className="h-12 rounded-[18px] border border-nt-border bg-white px-4 text-sm font-bold outline-none focus:border-nt-blue">
+                    <option value="">Usar mis iniciales</option>
+                    {hasCustomAvatar && <option value={profile.avatar_url}>Avatar actual</option>}
+                    <option value="/assets/avatar-girl.png">Avatar 1</option>
+                    <option value="/assets/avatar-boy.png">Avatar 2</option>
+                  </select>
                 </label>
               </div>
 

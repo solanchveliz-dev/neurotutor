@@ -6,6 +6,8 @@ import com.neurotutor.user_service.model.Estudiante;
 import com.neurotutor.user_service.repository.EstudianteRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ProfileService {
@@ -28,23 +30,32 @@ public class ProfileService {
 
         if (request != null) {
             if (request.getName() != null) {
-                student.setNombreCompleto(request.getName());
+                String name = request.getName().trim();
+                if (name.isEmpty()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre es obligatorio");
+                }
+                student.setNombreCompleto(name);
             }
             if (request.getGrade() != null) {
-                student.setGrado(request.getGrade());
+                student.setGrado(toNullableValue(request.getGrade()));
             }
             if (request.getSection() != null) {
-                student.setSeccion(request.getSection());
+                student.setSeccion(toNullableValue(request.getSection()));
             }
             if (request.getAvatarUrl() != null) {
-                student.setAvatarUrl(request.getAvatarUrl());
+                student.setAvatarUrl(toNullableValue(request.getAvatarUrl()));
             }
             if (request.getGender() != null) {
-                student.setGenero(request.getGender());
+                student.setGenero(toNullableValue(request.getGender()));
             }
         }
 
         return toResponse(estudianteRepository.save(student));
+    }
+
+    private String toNullableValue(String value) {
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 
     private Estudiante findStudent(Long studentId) {
