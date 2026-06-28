@@ -16,6 +16,7 @@ import TheoryLesson from "./pages/TheoryLesson";
 import PracticeExercises from "./pages/PracticeExercises";
 import FinalExam from "./pages/FinalExam";
 import Profile from "./pages/Profile";
+import Achievements from "./pages/Achievements";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStudents from "./pages/admin/AdminStudents";
 import AdminStudentDetail from "./pages/admin/AdminStudentDetail";
@@ -106,6 +107,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/achievements"
+          element={
+            <ProtectedRoute>
+              <Achievements />
             </ProtectedRoute>
           }
         />

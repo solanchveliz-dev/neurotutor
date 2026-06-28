@@ -144,7 +144,7 @@ function PracticeExercises() {
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Módulos", active: true, onClick: () => navigate(backPath, { state: { module, level } }) },
-    { label: "Mis logros", onClick: () => navigate("/learning-path") },
+    { label: "Mis logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 

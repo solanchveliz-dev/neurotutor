@@ -58,6 +58,7 @@ function Theory() {
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Módulos", active: true, onClick: () => navigate(`/module/${moduleId}`, { state: { module } }) },
+    { label: "Mis Logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 

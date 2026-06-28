@@ -27,19 +27,22 @@ public class ProgressService {
     private final EstudianteRepository estudianteRepository;
     private final ModuloRepository moduloRepository;
     private final EjercicioRepository ejercicioRepository;
+    private final AchievementService achievementService;
 
     public ProgressService(StudentModuleProgressRepository progressRepository,
                            PracticeAttemptRepository practiceAttemptRepository,
                            PracticeAnswerRepository practiceAnswerRepository,
                            EstudianteRepository estudianteRepository,
                            ModuloRepository moduloRepository,
-                           EjercicioRepository ejercicioRepository) {
+                           EjercicioRepository ejercicioRepository,
+                           AchievementService achievementService) {
         this.progressRepository = progressRepository;
         this.practiceAttemptRepository = practiceAttemptRepository;
         this.practiceAnswerRepository = practiceAnswerRepository;
         this.estudianteRepository = estudianteRepository;
         this.moduloRepository = moduloRepository;
         this.ejercicioRepository = ejercicioRepository;
+        this.achievementService = achievementService;
     }
 
     @Transactional(readOnly = true)
@@ -75,7 +78,9 @@ public class ProgressService {
         StudentModuleProgress progress = getOrCreateProgress(studentId, moduloId);
         progress.setTheoryCompleted(true);
         touchAndRecalculate(progress);
-        return toModuleProgressResponse(progressRepository.save(progress));
+        StudentModuleProgress savedProgress = progressRepository.save(progress);
+        achievementService.evaluateStudentAchievements(studentId);
+        return toModuleProgressResponse(savedProgress);
     }
 
     @Transactional
@@ -144,6 +149,7 @@ public class ProgressService {
         progress.setPracticeTotalCount(Math.max(progress.getPracticeTotalCount(), totalQuestions));
         touchAndRecalculate(progress);
         StudentModuleProgress savedProgress = progressRepository.save(progress);
+        achievementService.evaluateStudentAchievements(student.getId());
 
         return new SubmitPracticeAttemptResponse(
                 savedAttempt.getId(),
@@ -163,6 +169,7 @@ public class ProgressService {
         progress.setExamPassed(progress.isExamPassed() || passed);
         touchAndRecalculate(progress);
         progressRepository.save(progress);
+        achievementService.evaluateStudentAchievements(studentId);
     }
 
     private void validatePracticeRequest(SubmitPracticeAttemptRequest request) {

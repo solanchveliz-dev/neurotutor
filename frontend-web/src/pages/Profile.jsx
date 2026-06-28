@@ -54,7 +54,7 @@ function Profile() {
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Modulos", onClick: () => navigate("/student-dashboard") },
-    { label: "Mis Logros", onClick: () => navigate("/learning-path") },
+    { label: "Mis Logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", active: true, onClick: () => navigate("/profile") },
   ];
 

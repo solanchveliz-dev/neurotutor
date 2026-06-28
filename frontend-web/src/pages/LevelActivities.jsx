@@ -66,7 +66,7 @@ function LevelActivities() {
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Modulos", active: true, onClick: () => navigate(`/module/${moduleId}`, { state: { module } }) },
-    { label: "Mis logros", onClick: () => navigate("/learning-path") },
+    { label: "Mis logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 

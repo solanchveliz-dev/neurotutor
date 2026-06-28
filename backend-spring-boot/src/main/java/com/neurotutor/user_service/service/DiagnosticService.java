@@ -40,6 +40,9 @@ public class DiagnosticService {
     @Autowired
     private DiagnosticAnswerRepository diagnosticAnswerRepository;
 
+    @Autowired
+    private AchievementService achievementService;
+
     /**
      *  HU-11: Procesa el examen, calcula el nivel y guarda los resultados.
      *  HU-10: Marca el examen como completado para evitar repeticiones.
@@ -201,6 +204,7 @@ public class DiagnosticService {
         estudiante.setNivelDiagnostico(assignedLevel);
         estudiante.setExamenCompletado(true);
         estudianteRepository.save(estudiante);
+        achievementService.evaluateStudentAchievements(estudiante.getId());
 
         return new DiagnosticResultResponse(
                 savedAttempt.getId(),

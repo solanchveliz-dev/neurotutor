@@ -150,7 +150,7 @@ function ModuleDetail() {
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Modulos", active: true, onClick: () => navigate("/student-dashboard") },
-    { label: "Mis logros", onClick: () => navigate("/learning-path") },
+    { label: "Mis logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 

@@ -18,12 +18,13 @@ function AppSidebar({
   className,
 }) {
   const navigate = useNavigate();
-  const visibleItems = items.filter((item) => !item.label.toLowerCase().includes("logro"));
+  const visibleItems = items;
 
   const getDefaultAction = (label) => {
     const normalized = label.toLowerCase();
     if (normalized.includes("inicio")) return () => navigate("/student-dashboard");
     if (normalized.includes("mod")) return () => navigate("/student-dashboard");
+    if (normalized.includes("logro")) return () => navigate("/achievements");
     if (normalized.includes("perfil")) return () => navigate("/profile");
     return undefined;
   };

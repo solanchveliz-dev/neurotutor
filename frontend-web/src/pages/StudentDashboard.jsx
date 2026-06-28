@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BookOpenCheck } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Medal } from "lucide-react";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import PrimaryButton from "../components/student/PrimaryButton";
 import { getStudentDashboard } from "../services/dashboardService";
 import { getStudentProfile } from "../services/profileService";
 import { getStudentProgress } from "../services/progressService";
+import { getStudentAchievements } from "../services/achievementService";
 import { getStudentId } from "../utils/auth";
 
 const normalizeText = (value = "") =>
@@ -42,6 +43,8 @@ function StudentDashboard() {
   const [student, setStudent] = useState(null);
   const [modules, setModules] = useState([]);
   const [progressSummary, setProgressSummary] = useState(null);
+  const [achievements, setAchievements] = useState([]);
+  const [achievementError, setAchievementError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -56,16 +59,22 @@ function StudentDashboard() {
 
     setIsLoading(true);
     setError(null);
+    setAchievementError("");
 
     try {
-      const [profile, progress] = await Promise.all([
+      const [profile, progress, achievementData] = await Promise.all([
         getStudentProfile(studentId),
         getStudentProgress(studentId),
+        getStudentAchievements(studentId).catch(() => {
+          setAchievementError("No pudimos cargar tus logros ahora.");
+          return null;
+        }),
       ]);
       const legacyProfile = await getStudentDashboard(studentId).catch(() => null);
       const [grade = "", section = ""] = (legacyProfile?.gradoSeccion || "").split(" ");
 
       setProgressSummary(progress);
+      setAchievements(Array.isArray(achievementData?.unlocked) ? achievementData.unlocked : []);
 
       setStudent({
         name: profile.name,
@@ -118,6 +127,7 @@ function StudentDashboard() {
       setError(err);
       setStudent(null);
       setModules([]);
+      setAchievements([]);
     } finally {
       setIsLoading(false);
     }
@@ -238,7 +248,7 @@ function StudentDashboard() {
   const sidebarItems = [
     { label: "Inicio", active: true, onClick: () => navigate("/student-dashboard") },
     { label: "Módulos", onClick: () => openModuleFlow() },
-    { label: "Mis Logros", onClick: () => navigate("/student-dashboard") },
+    { label: "Mis Logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 
@@ -432,6 +442,46 @@ function StudentDashboard() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="rounded-nt-card border border-white/80 bg-white/85 p-5 shadow-nt-card backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="grid size-12 place-items-center rounded-[20px] bg-nt-purple/12 text-nt-purple">
+              <Medal className="size-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-nt-text-primary">Mis Logros</h2>
+              <p className="text-sm font-semibold text-nt-text-secondary">Insignias obtenidas con tu progreso real.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-nt-button bg-nt-purple px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-nt-purple/20"
+            onClick={() => navigate("/achievements")}
+          >
+            Ver logros
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
+
+        {achievementError ? (
+          <p className="mt-4 rounded-[18px] bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{achievementError}</p>
+        ) : achievements.length ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {achievements.slice(0, 3).map((achievement) => (
+              <div key={achievement.id} className="rounded-[22px] border border-white bg-gradient-to-br from-white to-nt-sky/70 p-4 shadow-sm">
+                <Medal className="size-7 text-nt-purple" />
+                <h3 className="mt-3 font-black text-nt-text-primary">{achievement.title}</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-nt-text-secondary">{achievement.description}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-[20px] bg-nt-sky/60 px-4 py-4 text-sm font-bold text-nt-text-secondary">
+            Completa actividades para desbloquear logros.
+          </p>
+        )}
       </section>
 
     </StudentLayout>
