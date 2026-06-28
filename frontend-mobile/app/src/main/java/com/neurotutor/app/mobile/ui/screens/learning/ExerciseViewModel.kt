@@ -6,8 +6,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.neurotutor.app.mobile.data.local.ProgressManager
 import com.neurotutor.app.mobile.data.model.learning.Exercise
-import com.neurotutor.app.mobile.data.network.GeminiService
-import com.neurotutor.app.mobile.data.model.learning.PreguntaPractica
 import com.neurotutor.app.mobile.data.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +34,6 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     val uiState: StateFlow<ExerciseUiState> = _uiState.asStateFlow()
 
     private val progressManager = ProgressManager(getApplication())
-    private val geminiService = GeminiService()
     private var currentModuleId: String = ""
 
     fun loadExercises(moduleId: String) {
@@ -48,7 +45,7 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
 
                 if (response.isSuccessful && response.body() != null) {
                     val data = response.body()!!
-                    
+
                     // ✅ LOG DE VERIFICACIÓN: Confirmamos que cada ejercicio trae su subtema real
                     data.ejercicios.forEachIndexed { index, exercise ->
                         Log.d("DEBUG_SUBTEMA", "Ejercicio [$index] ID: ${exercise.id} -> Subtema recibido: ${exercise.subtema}")
@@ -99,42 +96,19 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
             goToNextExercise(studentId)
         } else {
             // ❌ Respuesta Incorrecta
-            val respuestaUsuario = currentExercise.options[selectedIndex]
-            val respuestaCorrecta = currentExercise.options[currentExercise.correctAnswerIndex]
+            // Se muestra directamente la explicación del tutor configurada en el ejercicio
+            val explanation = if (!currentExercise.tutorExplanation.isNullOrBlank()) {
+                currentExercise.tutorExplanation
+            } else {
+                "¡Casi lo logras! Revisa la teoría y vuelve a intentarlo. 💪"
+            }
 
-            _uiState.update { it.copy(isTutorLoading = true) }
-
-            viewModelScope.launch(Dispatchers.IO) {
-                try {
-                    Log.e("GEMINI_TEST", "📢 Llamando a explicarError de Gemini")
-                    val mensajePersonalizado = geminiService.explicarError(
-                        pregunta = currentExercise.question,
-                        respuestaUsuario = respuestaUsuario,
-                        respuestaCorrecta = respuestaCorrecta,
-                        explicacionOriginal = currentExercise.tutorExplanation
-                    )
-
-                    withContext(Dispatchers.Main) {
-                        _uiState.update {
-                            it.copy(
-                                isTutorVisible = true,
-                                tutorMessage = mensajePersonalizado,
-                                isTutorLoading = false
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("GEMINI_TEST", "❌ Error en Gemini: ${e.message}")
-                    withContext(Dispatchers.Main) {
-                        _uiState.update {
-                            it.copy(
-                                isTutorVisible = true,
-                                tutorMessage = "¡Casi lo logras! La respuesta correcta era $respuestaCorrecta. Revisa la teoría y vuelve a intentarlo. 💪",
-                                isTutorLoading = false
-                            )
-                        }
-                    }
-                }
+            _uiState.update {
+                it.copy(
+                    isTutorVisible = true,
+                    tutorMessage = explanation,
+                    isTutorLoading = false
+                )
             }
         }
     }
@@ -159,7 +133,7 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
                         _uiState.update { it.copy(isFinished = true) }
                     }
                 } catch (e: Exception) {
-                    Log.e("GEMINI_TEST", "❌ Error al guardar puntos: ${e.message}")
+                    Log.e("ExerciseViewModel", "Error al guardar puntos: ${e.message}")
                     withContext(Dispatchers.Main) {
                         _uiState.update { it.copy(isFinished = true) }
                     }
@@ -170,50 +144,5 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
 
     fun hideTutor() {
         _uiState.update { it.copy(isTutorVisible = false, tutorMessage = "", isTutorLoading = false) }
-    }
-
-    // ==================== MÉTODOS PARA TUTOR IA ====================
-
-    fun generarExplicacionGemini(
-        pregunta: String,
-        opciones: List<String>,
-        respuestaCorrecta: String,
-        onResult: (String) -> Unit
-    ) {
-        Log.e("GEMINI_TEST", "🎯 generarExplicacionGemini llamado")
-        viewModelScope.launch(Dispatchers.IO) {
-            val explicacion = geminiService.generarExplicacion(pregunta, opciones, respuestaCorrecta)
-            withContext(Dispatchers.Main) {
-                onResult(explicacion)
-            }
-        }
-    }
-
-    fun generarPistaGemini(
-        pregunta: String,
-        opciones: List<String>,
-        onResult: (String) -> Unit
-    ) {
-        Log.e("GEMINI_TEST", "💡 generarPistaGemini llamado")
-        viewModelScope.launch(Dispatchers.IO) {
-            val pista = geminiService.generarPista(pregunta, opciones)
-            withContext(Dispatchers.Main) {
-                onResult(pista)
-            }
-        }
-    }
-
-    fun generarEjerciciosSimilaresGemini(
-        preguntaOriginal: String,
-        tema: String,
-        onResult: (List<PreguntaPractica>) -> Unit
-    ) {
-        Log.e("GEMINI_TEST", "📝 generarEjerciciosSimilaresGemini llamado")
-        viewModelScope.launch(Dispatchers.IO) {
-            val preguntas = geminiService.generarPreguntasPractica(preguntaOriginal, tema)
-            withContext(Dispatchers.Main) {
-                onResult(preguntas)
-            }
-        }
     }
 }
