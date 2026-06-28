@@ -3,31 +3,23 @@ import { ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-function getStoredDiagnosticResult() {
-  try {
-    const result = localStorage.getItem("diagnosticResult");
-    return result ? JSON.parse(result) : null;
-  } catch {
-    return null;
-  }
-}
-
 function DiagnosticResult() {
   const navigate = useNavigate();
   const location = useLocation();
-  const storedResult = getStoredDiagnosticResult();
 
-  const score = location.state?.score ?? 0;
-  const total = location.state?.total ?? 10;
-  const percentage = Math.round((score / total) * 100);
-
+  const attemptId = location.state?.attemptId;
+  const score = location.state?.correctAnswers ?? location.state?.score ?? 0;
+  const total = location.state?.totalQuestions ?? location.state?.total ?? 10;
   const levelMap = {
     BASICO: "Básico",
     INTERMEDIO: "Intermedio",
     AVANZADO: "Avanzado",
   };
 
-  const level = levelMap[storedResult?.nivel] ?? location.state?.level ?? "Básico";
+  const level =
+    levelMap[location.state?.assignedLevel] ??
+    location.state?.level ??
+    "Básico";
 
   const levelConfig = {
     Basico: {
@@ -60,13 +52,6 @@ function DiagnosticResult() {
   };
 
   const config = levelConfig[level] || levelConfig.Basico;
-  const reviewState = {
-    score,
-    total,
-    level,
-    answers: location.state?.answers ?? {},
-  };
-
   return (
     <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center bg-no-repeat px-4 py-8 text-nt-text-primary">
       <div className="pointer-events-none absolute inset-0 bg-white/5" />
@@ -119,7 +104,7 @@ function DiagnosticResult() {
             <Button
               type="button"
               className="mt-7 h-12 w-full max-w-sm rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple text-sm font-black text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] hover:from-nt-blue/90 hover:to-nt-purple/90"
-              onClick={() => navigate("/diagnostic-review", { state: reviewState })}
+              onClick={() => navigate("/diagnostic-review", attemptId ? { state: { attemptId } } : undefined)}
             >
               <ClipboardCheck className="size-4" aria-hidden="true" />
               Ver mis respuestas

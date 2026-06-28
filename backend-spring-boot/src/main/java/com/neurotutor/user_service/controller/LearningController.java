@@ -21,9 +21,39 @@ public class LearningController {
         return ResponseEntity.ok(learningService.getLevelContent(moduloId));
     }
 
+    @GetMapping("/modules/{levelId}/lessons")
+    public ResponseEntity<List<TheoryLessonSummaryResponse>> getTheoryLessons(
+            @PathVariable Long levelId) {
+        return ResponseEntity.ok(learningService.getTheoryLessons(levelId));
+    }
+
+    @GetMapping("/modules/{moduleId}/details")
+    public ResponseEntity<LearningModuleDetailsResponse> getModuleDetails(
+            @PathVariable Long moduleId) {
+        return ResponseEntity.ok(learningService.getModuleDetails(moduleId));
+    }
+
+    @GetMapping("/levels/{levelId}")
+    public ResponseEntity<LearningLevelDetailsResponse> getLevelDetails(
+            @PathVariable Long levelId) {
+        return ResponseEntity.ok(learningService.getLevelDetails(levelId));
+    }
+
+    @GetMapping("/lessons/{lessonId}")
+    public ResponseEntity<TheoryLessonDetailResponse> getTheoryLesson(
+            @PathVariable Long lessonId) {
+        return ResponseEntity.ok(learningService.getTheoryLesson(lessonId));
+    }
+
     @GetMapping("/exam/{moduloId}")
-    public ResponseEntity<List<Exercise>> getExam(@PathVariable Long moduloId) {
+    public ResponseEntity<List<FinalExamQuestionResponse>> getExam(@PathVariable Long moduloId) {
         return ResponseEntity.ok(learningService.getFinalExam(moduloId));
+    }
+
+    @PostMapping("/exam-attempts")
+    public ResponseEntity<SubmitFinalExamAttemptResponse> submitFinalExamAttempt(
+            @RequestBody SubmitFinalExamAttemptRequest request) {
+        return ResponseEntity.ok(learningService.submitFinalExamAttempt(request));
     }
 
     @PostMapping("/submit-exam")

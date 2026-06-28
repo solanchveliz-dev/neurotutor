@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import NeoChatDrawer from "@/components/neo/NeoChatDrawer";
 
 function StudentLayout({
   sidebar,
@@ -29,6 +30,7 @@ function StudentLayout({
           </aside>
         )}
       </div>
+      <NeoChatDrawer />
     </div>
   );
 }

@@ -1,205 +1,224 @@
-import { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  Activity,
-  AlertCircle,
-  BarChart3,
+  ArrowRight,
   BookOpen,
-  LayoutDashboard,
+  ChartNoAxesColumnIncreasing,
   RefreshCw,
+  TrendingUp,
+  UserCheck,
   Users,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AdminLayout from "@/components/admin/AdminLayout";
+import AdminStatusBadge from "@/components/admin/AdminStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { getAdminSummary } from "@/services/adminService";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAdminStudents, getAdminSummary } from "@/services/adminService";
 
-const adminNavItems = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Estudiantes", href: "/admin/students", icon: Users },
-];
+const levelOrder = ["BASICO", "INTERMEDIO", "AVANZADO"];
+const levelLabels = { BASICO: "Básico", INTERMEDIO: "Intermedio", AVANZADO: "Avanzado" };
 
-function AdminLayout({ title, description, children }) {
+function ErrorState({ onRetry, message }) {
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
-      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="border-b border-slate-200 bg-white px-5 py-5 lg:border-b-0 lg:border-r">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-500/20">
-              <BarChart3 className="size-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm font-black uppercase tracking-wide text-slate-400">NeuroTutor</p>
-              <h1 className="text-lg font-black text-slate-900">Administrador</h1>
-            </div>
-          </div>
-
-          <nav className="mt-7 flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
-            {adminNavItems.map(({ label, href, icon: Icon }) => (
-              <NavLink
-                key={href}
-                to={href}
-                className={({ isActive }) =>
-                  `flex min-h-11 shrink-0 items-center gap-3 rounded-2xl px-4 text-sm font-bold transition ${
-                    isActive
-                      ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                  }`
-                }
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-        </aside>
-
-        <section className="min-w-0 px-4 py-6 sm:px-6 lg:px-8">
-          <header className="mb-6 flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end">
-            <div>
-              <Badge className="mb-3 bg-white text-blue-700 ring-1 ring-blue-100 hover:bg-white">
-                Panel administrativo
-              </Badge>
-              <h2 className="text-2xl font-black tracking-normal text-slate-950 sm:text-3xl">{title}</h2>
-              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">{description}</p>
-            </div>
-            <Button asChild variant="outline" className="h-10 rounded-2xl border-slate-200 bg-white font-bold">
-              <Link to="/admin/students">
-                <Users className="size-4" aria-hidden="true" />
-                Ver estudiantes
-              </Link>
-            </Button>
-          </header>
-
-          {children}
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function ErrorState({ onRetry }) {
-  return (
-    <Card className="rounded-3xl border border-red-100 bg-white shadow-sm">
-      <CardContent className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600">
-            <AlertCircle className="size-5" aria-hidden="true" />
-          </div>
-          <div>
-            <h3 className="font-black text-slate-950">No se pudo conectar con Django</h3>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              Verifica que el backend este activo en http://127.0.0.1:8000.
-            </p>
-          </div>
+    <Card className="border-[#D8E5F8] bg-white/90 shadow-[0_18px_48px_rgba(37,99,255,0.08)]">
+      <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
+        <div>
+          <h2 className="font-semibold text-[#1E2A4A]">No pudimos cargar el panel</h2>
+          {message && <p className="mt-1 text-sm font-medium text-red-600">{message}</p>}
+          <p className="mt-1 text-sm text-[#52617C]">Ocurrió un error inesperado al consultar la información administrativa.</p>
         </div>
-        <Button onClick={onRetry} className="h-10 rounded-2xl bg-blue-600 font-bold text-white hover:bg-blue-700">
-          <RefreshCw className="size-4" aria-hidden="true" />
-          Reintentar
+        <Button onClick={onRetry} variant="outline" className="rounded-xl">
+          <RefreshCw className="size-4" /> Reintentar
         </Button>
       </CardContent>
     </Card>
   );
 }
 
-function LoadingCards() {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {[1, 2, 3, 4].map((item) => (
-        <Card key={item} className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <CardContent className="p-5">
-            <div className="h-4 w-24 animate-pulse rounded-full bg-slate-100" />
-            <div className="mt-5 h-8 w-16 animate-pulse rounded-xl bg-slate-100" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function StatCard({ label, value, icon: Icon, tone }) {
-  const tones = {
-    blue: "bg-blue-50 text-blue-700",
-    green: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
-    purple: "bg-violet-50 text-violet-700",
-  };
+function StatCard({ label, value, helper, icon: Icon, tone = "blue" }) {
+  const toneClasses = tone === "violet"
+    ? "bg-white/72 text-[#7C3AED] ring-[#7C3AED]/12"
+    : "bg-white/72 text-[#2563FF] ring-[#2563FF]/12";
+  const gradientClasses = tone === "violet"
+    ? "from-white via-[#F7F3FF] to-[#DFF4FF]/45"
+    : "from-white via-[#F4F8FF] to-[#DFF4FF]/75";
 
   return (
-    <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <CardContent className="flex items-center justify-between gap-4 p-5">
-        <div>
-          <p className="text-sm font-bold text-slate-500">{label}</p>
-          <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
-        </div>
-        <div className={`flex size-12 items-center justify-center rounded-2xl ${tones[tone]}`}>
-          <Icon className="size-5" aria-hidden="true" />
+    <Card className={`group overflow-hidden border-[#D8E5F8]/80 bg-gradient-to-br ${gradientClasses} shadow-[0_18px_46px_rgba(37,99,255,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(37,99,255,0.14)]`}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-[#52617C]">{label}</p>
+            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[#1E2A4A]">{value}</p>
+            <p className="mt-2 text-xs text-[#7C8CAB]">{helper}</p>
+          </div>
+          <div className={`grid size-11 place-items-center rounded-2xl shadow-[0_12px_28px_rgba(37,99,255,0.10)] ring-1 ${toneClasses}`}>
+            <Icon className="size-[18px]" strokeWidth={1.8} aria-hidden="true" />
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
+function LoadingDashboard() {
+  return (
+    <div className="space-y-6" aria-label="Cargando dashboard">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[1, 2, 3, 4].map((item) => <div key={item} className="h-36 animate-pulse rounded-2xl bg-white/80" />)}
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[1.65fr_1fr]">
+        <div className="h-80 animate-pulse rounded-2xl bg-white/80" />
+        <div className="h-80 animate-pulse rounded-2xl bg-white/80" />
+      </div>
+    </div>
+  );
+}
+
 function AdminDashboard() {
   const [summary, setSummary] = useState(null);
+  const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const loadSummary = async () => {
+  const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     setHasError(false);
-
+    setErrorMessage("");
     try {
-      const data = await getAdminSummary();
-      setSummary(data);
-    } catch {
+      const [summaryResult, studentsResult] = await Promise.all([getAdminSummary(), getAdminStudents()]);
+      setSummary(summaryResult ?? {});
+      const studentList = Array.isArray(studentsResult)
+        ? studentsResult
+        : Array.isArray(studentsResult?.students)
+          ? studentsResult.students
+          : [];
+      setStudents(studentList);
+    } catch (error) {
       setHasError(true);
+      setSummary(null);
+      setStudents([]);
+      setErrorMessage(error.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadSummary();
-  }, []);
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const distribution = useMemo(() => {
+    const total = students.length || 1;
+    return levelOrder.map((level) => {
+      const count = students.filter((student) => student.level === level).length;
+      return { level, count, percentage: Math.round((count / total) * 100) };
+    });
+  }, [students]);
+
+  const averageProgress = summary?.average_progress;
 
   return (
     <AdminLayout
-      title="Resumen general"
-      description="Vista inicial para supervisar estudiantes, actividad y modulos disponibles desde Django."
+      title="Dashboard"
+      description="Indicadores generales y seguimiento académico de los estudiantes de NeuroTutor."
+      actions={
+        <Button onClick={loadDashboard} variant="outline" className="rounded-xl border-[#D8E5F8] bg-white text-[#52617C] shadow-sm hover:bg-[#F4F8FF]">
+          <RefreshCw className="size-4" /> Actualizar
+        </Button>
+      }
     >
-      {isLoading && <LoadingCards />}
-      {!isLoading && hasError && <ErrorState onRetry={loadSummary} />}
+      {isLoading && <LoadingDashboard />}
+      {!isLoading && hasError && <ErrorState onRetry={loadDashboard} message={errorMessage} />}
       {!isLoading && !hasError && summary && (
-        <div className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Estudiantes" value={summary.total_students} icon={Users} tone="blue" />
-            <StatCard label="Activos" value={summary.active_students} icon={Activity} tone="green" />
-            <StatCard label="Inactivos" value={summary.inactive_students} icon={AlertCircle} tone="amber" />
-            <StatCard label="Modulos" value={summary.total_modules} icon={BookOpen} tone="purple" />
-          </div>
+        <div className="space-y-6">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumen administrativo">
+            <StatCard label="Total estudiantes" value={summary.total_students ?? 0} helper="Registrados en la plataforma" icon={Users} />
+            <StatCard label="Estudiantes activos" value={summary.active_students ?? 0} helper="Con acceso disponible" icon={UserCheck} tone="violet" />
+            <StatCard label="Total módulos" value={summary.total_modules ?? 0} helper="Contenido publicado" icon={BookOpen} />
+            <StatCard
+              label="Progreso promedio"
+              value={Number.isFinite(averageProgress) ? `${averageProgress}%` : "Sin progreso"}
+              helper={Number.isFinite(averageProgress) ? "Promedio de módulos con actividad registrada" : "Sin progreso registrado"}
+              icon={TrendingUp}
+              tone="violet"
+            />
+          </section>
 
-          <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-black text-slate-950">Siguiente paso</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4 p-5 pt-0 md:flex-row md:items-center md:justify-between">
-              <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-                Revisa la lista de estudiantes para validar que React pueda leer informacion administrativa desde el backend Django.
-              </p>
-              <Button asChild className="h-10 rounded-2xl bg-blue-600 font-bold text-white hover:bg-blue-700">
-                <Link to="/admin/students">
-                  <Users className="size-4" aria-hidden="true" />
-                  Abrir estudiantes
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="grid gap-6 xl:grid-cols-[1.65fr_1fr]">
+            <Card className="overflow-hidden border-[#D8E5F8]/80 bg-white/92 shadow-[0_18px_48px_rgba(37,99,255,0.08)] backdrop-blur">
+              <CardHeader className="flex-row items-center justify-between border-b border-[#E5EEFC] px-5 py-4">
+                <div>
+                  <CardTitle className="text-base font-semibold text-[#1E2A4A]">Vista general de estudiantes</CardTitle>
+                  <p className="mt-1 text-xs text-[#7C8CAB]">Actividad y rendimiento reciente</p>
+                </div>
+                <Button asChild variant="ghost" className="rounded-lg text-[#2563FF] hover:bg-[#DFF4FF]/55 hover:text-[#1E2A4A]">
+                  <Link to="/admin/students">Ver todos <ArrowRight className="size-4" /></Link>
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="hidden grid-cols-[1.5fr_.6fr_.6fr_.7fr_.6fr_.7fr] gap-3 border-b border-[#E5EEFC] bg-[#F4F8FF]/70 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[#7C8CAB] md:grid">
+                  <span>Nombre</span><span>Grado</span><span>Sección</span><span>Nivel</span><span>Puntos</span><span>Estado</span>
+                </div>
+                <div className="divide-y divide-[#E5EEFC]">
+                  {students.slice(0, 5).map((student) => (
+                    <Link
+                      key={student.id}
+                      to={`/admin/students/${student.id}`}
+                      className="grid gap-2 px-5 py-4 transition-colors hover:bg-[#F4F8FF]/70 md:grid-cols-[1.5fr_.6fr_.6fr_.7fr_.6fr_.7fr] md:items-center md:gap-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-[#1E2A4A]">{student.name}</p>
+                        <p className="mt-0.5 truncate text-xs text-[#7C8CAB] md:hidden">{student.email}</p>
+                      </div>
+                      <p className="text-sm text-slate-600">{student.grade || "—"}</p>
+                      <p className="text-sm text-slate-600">{student.section || "—"}</p>
+                      <p className="text-xs font-semibold text-[#7C3AED]">{levelLabels[student.level] || student.level || "—"}</p>
+                      <p className="text-sm font-medium text-[#52617C]">{student.points ?? 0}</p>
+                      <AdminStatusBadge status={student.status} />
+                    </Link>
+                  ))}
+                  {students.length === 0 && <p className="px-5 py-10 text-center text-sm text-slate-400">No hay estudiantes registrados.</p>}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#D8E5F8]/80 bg-white/92 shadow-[0_18px_48px_rgba(37,99,255,0.08)] backdrop-blur">
+              <CardHeader className="border-b border-[#E5EEFC] px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="grid size-10 place-items-center rounded-2xl bg-[#DFF4FF] text-[#7C3AED] shadow-[0_12px_28px_rgba(124,58,237,0.10)]">
+                    <ChartNoAxesColumnIncreasing className="size-[18px]" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold text-[#1E2A4A]">Distribución por nivel</CardTitle>
+                    <p className="mt-1 text-xs text-[#7C8CAB]">Resultado diagnóstico actual</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6 p-5">
+                {distribution.map(({ level, count, percentage }) => (
+                  <div key={level}>
+                    <div className="mb-2 flex items-center justify-between text-sm">
+                      <span className="font-medium text-[#52617C]">{levelLabels[level]}</span>
+                      <span className="text-[#7C8CAB]">{count} · {percentage}%</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-[#E5EEFC]">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#2563FF] to-[#7C3AED]"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </AdminLayout>
   );
 }
 
-export { AdminLayout, ErrorState };
+export { ErrorState };
 export default AdminDashboard;

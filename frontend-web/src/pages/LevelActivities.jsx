@@ -1,63 +1,82 @@
-import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Search } from "lucide-react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowRight, CheckCircle2, Lock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
-import NeoCard from "../components/student/NeoCard";
-import ProgressCard from "../components/student/ProgressCard";
-import { modulesData } from "../data/modulesData";
+import BackButton from "../components/student/BackButton";
+import LearningProgressPanel from "../components/student/LearningProgressPanel";
+import { getLevelDetails, getModuleDetails } from "../services/learningService";
+import { getModuleProgress } from "../services/progressService";
+import { getStudentId } from "../utils/auth";
 
-const numericFallbackMap = {
-  1: "fracciones",
-  2: "decimales",
-  3: "porcentajes",
+const levelLabels = {
+  BASICO: "Básico",
+  INTERMEDIO: "Intermedio",
+  AVANZADO: "Avanzado",
 };
 
 function LevelActivities() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { moduleId, levelId } = useParams();
+  const [moduleProgress, setModuleProgress] = useState(null);
+  const [module, setModule] = useState(null);
+  const [level, setLevel] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
-  const fallbackModule =
-    modulesData.find((item) => String(item.id) === String(fallbackId)) ??
-    modulesData[0];
-  const fallbackLevel =
-    fallbackModule?.levels.find((item) => String(item.id) === String(levelId)) ??
-    fallbackModule?.levels.find((item) => item.unlocked) ??
-    fallbackModule?.levels[0];
+  useEffect(() => {
+    const studentId = getStudentId();
+    setIsLoading(true);
+    setLoadError("");
 
-  const module = location.state?.module ?? {
-    id: moduleId,
-    title: fallbackModule?.title ?? "Modulo",
-    description: fallbackModule?.description ?? "Actividades del nivel seleccionado.",
-  };
-  const level = location.state?.level ?? {
-    id: levelId,
-    name: fallbackLevel?.name ?? "Nivel",
-    backendTitle: fallbackLevel?.name ?? "Contenido del nivel",
-    description: fallbackLevel?.description ?? "Completa las actividades para avanzar.",
-    progress: fallbackLevel?.progress ?? 0,
-    status: fallbackLevel?.status ?? "Disponible",
-  };
+    Promise.all([
+      getModuleDetails(moduleId),
+      getLevelDetails(levelId),
+      studentId ? getModuleProgress(studentId, levelId) : Promise.resolve(null),
+    ])
+      .then(([moduleData, levelData, progressData]) => {
+        setModule(moduleData);
+        setLevel({
+          id: levelData.id,
+          name: levelLabels[levelData.level] ?? levelData.level,
+          backendTitle: levelData.title,
+          description: levelData.description,
+          lessonCount: levelData.lessons_count ?? 0,
+          practiceCount: levelData.practice_count ?? 0,
+          examCount: levelData.exam_count ?? 0,
+        });
+        setModuleProgress(progressData);
+      })
+      .catch(() => {
+        setModule(null);
+        setLevel(null);
+        setModuleProgress(null);
+        setLoadError("No pudimos cargar los datos de este nivel desde el servidor.");
+      })
+      .finally(() => setIsLoading(false));
+  }, [moduleId, levelId]);
 
   const completion = {
-    theoryCompleted: false,
-    practiceCompleted: false,
+    theoryCompleted: moduleProgress?.theory_completed ?? false,
+    practiceCompleted: moduleProgress?.practice_completed ?? false,
   };
   const isExamUnlocked = completion.theoryCompleted && completion.practiceCompleted;
+  const progressPercentage = moduleProgress?.progress_percentage ?? 0;
 
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
     { label: "Modulos", active: true, onClick: () => navigate(`/module/${moduleId}`, { state: { module } }) },
-    { label: "Mis logros", onClick: () => navigate("/learning-path") },
-    { label: "Perfil", onClick: () => navigate("/student-dashboard") },
+    { label: "Mis logros", onClick: () => navigate("/achievements") },
+    { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 
   const activities = [
     {
       title: "Teoria",
-      description: "Lee los conceptos clave del nivel antes de resolver ejercicios.",
-      detail: completion.theoryCompleted ? "Completado" : "Disponible",
+      description: level?.lessonCount
+        ? `Avanza por ${level.lessonCount} lecciones antes de resolver ejercicios.`
+        : "Lee los conceptos clave del nivel antes de resolver ejercicios.",
+      detail: completion.theoryCompleted ? "Completado" : `${level?.lessonCount ?? 0} lecciones`,
       image: "/assets/teoria.png",
       tone: "bg-nt-green/15",
       barTone: "bg-nt-green",
@@ -68,7 +87,7 @@ function LevelActivities() {
     },
     {
       title: "Practica",
-      description: "Resuelve ejercicios guiados y recibe ayuda cuando lo necesites.",
+      description: `Resuelve ${level?.practiceCount ?? 0} ejercicios guiados y recibe ayuda cuando lo necesites.`,
       detail: completion.practiceCompleted ? "Completado" : "Disponible",
       image: "/assets/practica.png",
       tone: "bg-nt-blue/10",
@@ -80,7 +99,7 @@ function LevelActivities() {
     },
     {
       title: "Examen Final",
-      description: "Demuestra lo aprendido cuando hayas completado las actividades previas.",
+      description: `Demuestra lo aprendido en ${level?.examCount ?? 0} preguntas cuando completes las actividades previas.`,
       detail: isExamUnlocked ? "Disponible" : "Bloqueado",
       image: "/assets/examen-final.png",
       tone: isExamUnlocked ? "bg-nt-purple/10" : "bg-slate-100",
@@ -93,41 +112,48 @@ function LevelActivities() {
     },
   ];
 
+  if (isLoading) {
+    return (
+      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
+        <div className="flex min-h-[420px] items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  if (loadError || !module || !level) {
+    return (
+      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
+        <section className="rounded-nt-card border border-white/80 bg-white/90 p-8 text-center shadow-nt-card">
+          <h1 className="text-2xl font-black text-nt-text-primary">Nivel no disponible</h1>
+          <p className="mt-3 text-sm font-semibold text-nt-text-secondary">{loadError}</p>
+          <button
+            type="button"
+            className="mt-5 rounded-nt-button bg-nt-blue px-5 py-3 text-sm font-black text-white"
+            onClick={() => navigate(`/module/${moduleId}`)}
+          >
+            Volver al módulo
+          </button>
+        </section>
+      </StudentLayout>
+    );
+  }
+
   return (
     <StudentLayout
       sidebar={<AppSidebar items={sidebarItems} />}
       topbar={
-        <header className="flex w-full flex-col gap-3 rounded-[28px] bg-white/40 px-3 py-2 backdrop-blur-sm md:flex-row md:items-center md:justify-between">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 text-sm font-black text-nt-blue transition hover:text-nt-purple"
-            onClick={() => navigate(`/module/${moduleId}`, { state: { module } })}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver a niveles
-          </button>
-          <label className="relative min-w-0 flex-1 md:max-w-lg">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-nt-text-secondary"
-              aria-hidden="true"
-            />
-            <span className="sr-only">Buscar</span>
-            <input
-              type="search"
-              placeholder="Buscar actividad"
-              className="h-12 w-full rounded-nt-button border border-white/80 bg-white/90 pl-11 pr-4 text-sm font-semibold text-nt-text-primary shadow-sm outline-none transition placeholder:text-nt-text-secondary focus:border-nt-blue focus:ring-4 focus:ring-nt-blue-light/25"
-            />
-          </label>
-        </header>
+        <BackButton onClick={() => navigate(`/module/${moduleId}`, { state: { module } })}>
+          Volver al módulo
+        </BackButton>
       }
       rightPanel={
         <div className="space-y-5">
-          <ProgressCard
-            title="Progreso del nivel"
-            subtitle={level.status}
-            value={level.progress || 0}
-            totalLabel={level.name}
-            tone="green"
+          <LearningProgressPanel
+            studentId={getStudentId()}
+            moduloId={levelId ?? moduleId}
+            progress={moduleProgress}
           />
           <div className="rounded-nt-card border border-white/80 bg-white/95 p-5 shadow-nt-card">
             <h2 className="text-lg font-black text-nt-text-primary">Requisitos</h2>
@@ -142,16 +168,10 @@ function LevelActivities() {
               </div>
               <div className="flex items-center gap-2 rounded-[18px] bg-slate-100 p-3 text-slate-500">
                 <Lock className="size-4" />
-                Examen bloqueado
+                {isExamUnlocked ? "Examen disponible" : "Examen bloqueado"}
               </div>
             </div>
           </div>
-          <NeoCard
-            title="NEO te acompana"
-            message="Completa teoria y practica para desbloquear el examen final."
-            actionLabel="Ver teoria"
-            onAction={() => navigate(`/module/${moduleId}/level/${levelId}/theory`, { state: { module, level } })}
-          />
         </div>
       }
     >
@@ -173,7 +193,7 @@ function LevelActivities() {
           </div>
           <div className="rounded-[28px] bg-nt-sky/80 px-5 py-4 text-center">
             <p className="text-sm font-black text-nt-text-secondary">Avance</p>
-            <p className="text-4xl font-black text-nt-blue">{level.progress || 0}%</p>
+            <p className="text-4xl font-black text-nt-blue">{progressPercentage}%</p>
           </div>
         </div>
       </section>

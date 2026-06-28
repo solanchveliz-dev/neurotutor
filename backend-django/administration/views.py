@@ -1,71 +1,109 @@
-from rest_framework.decorators import api_view
+from django.conf import settings
+from django.contrib.auth import authenticate, login, logout
+from django.views.decorators.csrf import csrf_exempt
+import requests
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
 
 
-TEMP_STUDENTS = [
-    {
-        "id": 1,
-        "name": "Maria Gonzales",
-        "email": "maria.gonzales@neurotutor.test",
-        "grade": "6to",
-        "section": "A",
-        "level": "BASICO",
-        "points": 120,
-        "status": "active",
-    },
-    {
-        "id": 2,
-        "name": "Luis Ramirez",
-        "email": "luis.ramirez@neurotutor.test",
-        "grade": "6to",
-        "section": "B",
-        "level": "INTERMEDIO",
-        "points": 280,
-        "status": "active",
-    },
-    {
-        "id": 3,
-        "name": "Ana Torres",
-        "email": "ana.torres@neurotutor.test",
-        "grade": "5to",
-        "section": "A",
-        "level": "AVANZADO",
-        "points": 430,
-        "status": "inactive",
-    },
-]
+class IsDjangoAdmin(BasePermission):
+    message = "Se requiere una sesion de administrador valida."
 
-TEMP_TOTAL_MODULES = 3
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated and (user.is_staff or user.is_superuser))
+
+
+def _get_from_spring(endpoint):
+    headers = {}
+    if settings.SPRING_ADMIN_PROXY_KEY:
+        headers["X-ADMIN-PROXY-KEY"] = settings.SPRING_ADMIN_PROXY_KEY
+
+    try:
+        spring_response = requests.get(
+            f"{settings.SPRING_ADMIN_API_URL}/{endpoint}",
+            headers=headers,
+            timeout=settings.SPRING_REQUEST_TIMEOUT_SECONDS,
+        )
+        try:
+            payload = spring_response.json()
+        except ValueError:
+            payload = {"detail": "Spring Boot returned an invalid response."}
+
+        return Response(
+            payload,
+            status=spring_response.status_code,
+        )
+    except requests.Timeout:
+        return Response(
+            {"detail": "Spring Boot service timed out."},
+            status=504,
+        )
+    except requests.RequestException:
+        return Response(
+            {"detail": "Spring Boot service is currently unavailable."},
+            status=503,
+        )
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def admin_login(request):
+    username = request.data.get("username") or request.data.get("email")
+    password = request.data.get("password")
+
+    if not username or not password:
+        return Response({"detail": "Usuario y contrasena son obligatorios."}, status=400)
+
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        return Response({"detail": "Credenciales administrativas invalidas."}, status=401)
+    if not (user.is_staff or user.is_superuser):
+        return Response({"detail": "El usuario no tiene acceso administrativo."}, status=403)
+
+    login(request, user)
+    return Response(_admin_user_payload(user))
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def admin_logout(request):
+    logout(request)
+    return Response(status=204)
 
 
 @api_view(["GET"])
+@permission_classes([IsDjangoAdmin])
+def admin_me(request):
+    return Response(_admin_user_payload(request.user))
+
+
+def _admin_user_payload(user):
+    return {
+        "id": user.id,
+        "username": user.get_username(),
+        "email": user.email,
+        "is_staff": user.is_staff,
+        "is_superuser": user.is_superuser,
+    }
+
+
+@api_view(["GET"])
+@permission_classes([IsDjangoAdmin])
 def admin_summary(request):
-    active_students = sum(1 for student in TEMP_STUDENTS if student["status"] == "active")
-    total_students = len(TEMP_STUDENTS)
-
-    return Response(
-        {
-            "total_students": total_students,
-            "active_students": active_students,
-            "inactive_students": total_students - active_students,
-            "total_modules": TEMP_TOTAL_MODULES,
-        }
-    )
+    return _get_from_spring("summary")
 
 
 @api_view(["GET"])
+@permission_classes([IsDjangoAdmin])
 def admin_students(request):
-    return Response(TEMP_STUDENTS)
+    return _get_from_spring("students")
 
 
 @api_view(["GET"])
+@permission_classes([IsDjangoAdmin])
 def admin_student_detail(request, student_id):
-    student = next(
-        (item for item in TEMP_STUDENTS if item["id"] == student_id),
-        None,
-    )
-
-    if student is None:
-        return Response({"detail": "Student not found."}, status=404)
-
-    return Response(student)
+    return _get_from_spring(f"students/{student_id}")

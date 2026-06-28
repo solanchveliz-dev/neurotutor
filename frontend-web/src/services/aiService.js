@@ -1,10 +1,17 @@
 import api from "./api";
 
-export const askNeoTutor = async ({ studentId, moduleId, question, context }) => {
+export const askNeoTutor = async ({ studentId, moduleId, levelId, lessonId, exerciseId, currentScreen, action, message, question, context }) => {
+  const promptText = (message || question || "").trim();
   const response = await api.post("/api/ai/tutor", {
     studentId,
     moduleId,
-    question,
+    levelId,
+    lessonId,
+    exerciseId,
+    currentScreen,
+    action,
+    message: promptText,
+    question: promptText,
     context,
   });
 

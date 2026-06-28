@@ -1,39 +1,124 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { diagnosticQuestions } from "../data/diagnosticQuestions";
+import { getDiagnosticReview, getLatestDiagnosticReview } from "../services/diagnosticService";
+import { getStudentId } from "../utils/auth";
+
+const normalizeReviewQuestion = (item) => ({
+  id: item.question_id,
+  textBeforeImage: item.text_before_image ?? "",
+  textAfterImage: item.text_after_image ?? "",
+  image: item.image_url,
+  options: item.options ?? [],
+  correctAnswer: item.correct_answer_index,
+  selectedAnswer: item.selected_answer_index,
+  correct: item.correct,
+  topic: item.topic,
+  explanation: item.explanation,
+});
 
 function DiagnosticReview() {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
+  const [review, setReview] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [reviewError, setReviewError] = useState("");
+  const attemptId = location.state?.attemptId;
 
-  const answers = location.state?.answers ?? {};
-  const score = location.state?.score ?? 0;
-  const total = location.state?.total ?? diagnosticQuestions.length;
-  const level = location.state?.level ?? "Básico";
-  const percentage = Math.round((score / total) * 100);
+  const loadReview = useCallback(() => {
+    const studentId = getStudentId();
+
+    setIsLoading(true);
+    setReviewError("");
+    setReview(null);
+    setSelectedQuestionIndex(0);
+
+    if (!attemptId && !studentId) {
+      setReviewError("No pudimos identificar el intento ni al estudiante conectado.");
+      setIsLoading(false);
+      return;
+    }
+
+    const request = attemptId ? getDiagnosticReview(attemptId) : getLatestDiagnosticReview(studentId);
+
+    request
+      .then((data) => setReview(data))
+      .catch(() => setReviewError("No se pudo cargar la revisión desde el servidor."))
+      .finally(() => setIsLoading(false));
+  }, [attemptId]);
+
+  useEffect(() => {
+    loadReview();
+  }, [loadReview]);
+
+  const questions = Array.isArray(review?.questions)
+    ? review.questions.map(normalizeReviewQuestion)
+    : [];
+  const score = review?.correct_answers ?? 0;
+  const total = review?.total_questions ?? 0;
+  const percentage = review?.score_percentage ?? 0;
   const incorrectCount = total - score;
-  const selectedQuestion = diagnosticQuestions[selectedQuestionIndex];
-  const selectedIndex = answers[selectedQuestion.id];
-  const isCorrect = selectedIndex === selectedQuestion.correctAnswer;
+  const selectedQuestion = questions[selectedQuestionIndex] ?? questions[0];
+  const selectedIndex = selectedQuestion?.selectedAnswer;
+  const isCorrect = selectedQuestion?.correct === true;
+  const assignedLevel = review?.assigned_level;
 
   const getOptionClass = (optionIndex) => {
     const isUserAnswer = selectedIndex === optionIndex;
-    const isCorrectAnswer = selectedQuestion.correctAnswer === optionIndex;
+    const isCorrectAnswer = selectedQuestion?.correctAnswer === optionIndex;
 
-    if (isCorrectAnswer) {
-      return "border-green-300 bg-green-50 text-green-800 ring-2 ring-green-100";
-    }
-
-    if (isUserAnswer && !isCorrectAnswer) {
-      return "border-red-300 bg-red-50 text-red-800 ring-2 ring-red-100";
-    }
-
+    if (isCorrectAnswer) return "border-green-300 bg-green-50 text-green-800 ring-2 ring-green-100";
+    if (isUserAnswer && !isCorrectAnswer) return "border-red-300 bg-red-50 text-red-800 ring-2 ring-red-100";
     return "border-nt-border bg-white text-nt-text-primary";
   };
+
+  if (isLoading) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4">
+        <Card className="w-full max-w-lg rounded-[32px] border border-white/85 bg-white/90 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
+          <CardContent className="p-8">
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
+            <p className="mt-4 font-black text-nt-text-primary">Cargando tu revisión...</p>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (reviewError) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4">
+        <Card className="w-full max-w-lg rounded-[32px] border border-amber-200 bg-white/92 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
+          <CardContent className="p-8">
+            <h1 className="text-2xl font-black text-nt-text-primary">Revisión no disponible</h1>
+            <p className="mt-3 text-sm font-semibold text-nt-text-secondary">{reviewError}</p>
+            <Button type="button" className="mt-5 h-11 rounded-[18px] bg-nt-blue px-5 font-black text-white" onClick={loadReview}>
+              Reintentar
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4">
+        <Card className="w-full max-w-lg rounded-[32px] border border-white/85 bg-white/92 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
+          <CardContent className="p-8">
+            <h1 className="text-2xl font-black text-nt-text-primary">Sin respuestas para revisar</h1>
+            <p className="mt-3 text-sm font-semibold text-nt-text-secondary">El servidor no devolvió preguntas para este intento.</p>
+            <Button type="button" className="mt-5 h-11 rounded-[18px] bg-nt-blue px-5 font-black text-white" onClick={() => navigate("/student-dashboard")}>
+              Volver al dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center bg-no-repeat px-4 py-8 text-nt-text-primary">
@@ -52,9 +137,8 @@ function DiagnosticReview() {
           <Card className="rounded-[30px] border border-white/80 bg-white/82 p-0 shadow-[0_18px_46px_rgba(37,99,235,0.14)] backdrop-blur-xl">
             <CardContent className="p-4">
               <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-                {diagnosticQuestions.map((question, index) => {
-                  const questionAnswer = answers[question.id];
-                  const questionCorrect = questionAnswer === question.correctAnswer;
+                {questions.map((question, index) => {
+                  const questionCorrect = question.correct;
                   const isSelected = selectedQuestionIndex === index;
 
                   return (
@@ -72,9 +156,6 @@ function DiagnosticReview() {
                       >
                         {index + 1}
                       </span>
-                      {isSelected && (
-                        <span className="absolute -bottom-2 left-1/2 size-3 -translate-x-1/2 rotate-45 bg-nt-blue lg:-right-2 lg:bottom-auto lg:left-auto lg:top-1/2 lg:-translate-y-1/2" />
-                      )}
                     </button>
                   );
                 })}
@@ -85,31 +166,32 @@ function DiagnosticReview() {
           <Card className="rounded-[34px] border border-white/85 bg-white/90 p-0 shadow-[0_24px_70px_rgba(37,99,235,0.18)] backdrop-blur-xl">
             <CardContent className="p-5 sm:p-7">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="text-xs font-black uppercase tracking-wide text-nt-text-secondary">
                     Pregunta {selectedQuestionIndex + 1} de {total}
                   </p>
+                  {selectedQuestion?.topic && (
+                    <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700">
+                      {selectedQuestion.topic}
+                    </span>
+                  )}
                 </div>
                 <span
                   className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black ${
                     isCorrect ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
                   }`}
                 >
-                  {isCorrect ? (
-                    <CheckCircle2 className="size-4" aria-hidden="true" />
-                  ) : (
-                    <XCircle className="size-4" aria-hidden="true" />
-                  )}
+                  {isCorrect ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
                   {isCorrect ? "Correcta" : "Incorrecta"}
                 </span>
               </div>
 
               <div className="space-y-4">
                 <p className="whitespace-pre-line text-base font-black leading-8 text-slate-800 sm:text-lg">
-                  {selectedQuestion.textBeforeImage}
+                  {selectedQuestion?.textBeforeImage}
                 </p>
 
-                {selectedQuestion.image && (
+                {selectedQuestion?.image && (
                   <div className="flex justify-center rounded-[26px] border border-nt-border bg-white p-3 shadow-sm">
                     <img
                       src={selectedQuestion.image}
@@ -119,7 +201,7 @@ function DiagnosticReview() {
                   </div>
                 )}
 
-                {selectedQuestion.textAfterImage && (
+                {selectedQuestion?.textAfterImage && (
                   <p className="whitespace-pre-line text-base font-semibold leading-8 text-slate-800 sm:text-lg">
                     {selectedQuestion.textAfterImage}
                   </p>
@@ -127,7 +209,7 @@ function DiagnosticReview() {
               </div>
 
               <div className="mt-6 grid gap-3 md:grid-cols-2">
-                {selectedQuestion.options.map((option, index) => {
+                {selectedQuestion?.options.map((option, index) => {
                   const isUserAnswer = selectedIndex === index;
                   const isCorrectAnswer = selectedQuestion.correctAnswer === index;
 
@@ -142,11 +224,9 @@ function DiagnosticReview() {
                         </span>
                         <div className="flex flex-wrap gap-2">
                           {isUserAnswer && (
-                            <span
-                              className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                                isCorrectAnswer ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                              }`}
-                            >
+                            <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                              isCorrectAnswer ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                            }`}>
                               Tu respuesta
                             </span>
                           )}
@@ -163,14 +243,25 @@ function DiagnosticReview() {
                 })}
               </div>
 
-              <div className="mt-6 rounded-[26px] border border-nt-blue/15 bg-nt-sky/65 p-5">
-                <p className="text-xs font-black uppercase tracking-wide text-nt-blue">
-                  Explicación
+              <div
+                className={`mt-6 rounded-[26px] border p-5 ${
+                  isCorrect
+                    ? "border-green-200 bg-green-50/80"
+                    : "border-amber-200 bg-amber-50/90"
+                }`}
+              >
+                <p className={`text-sm font-black ${isCorrect ? "text-green-700" : "text-amber-800"}`}>
+                  {isCorrect ? "¡Correcto! Buen trabajo." : "Consejo para mejorar"}
                 </p>
-                <p className="mt-2 text-sm font-bold leading-6 text-nt-text-secondary">
-                  {selectedQuestion.explanation ??
-                    "Compara el enunciado con la alternativa correcta y revisa el procedimiento paso a paso para reforzar este tema."}
-                </p>
+                {selectedQuestion?.explanation ? (
+                  <p className="mt-2 text-sm font-bold leading-6 text-nt-text-secondary">
+                    {selectedQuestion.explanation}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm font-bold leading-6 text-nt-text-secondary">
+                    La explicación de esta pregunta no está disponible en el servidor.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -180,6 +271,11 @@ function DiagnosticReview() {
               <div className="text-center">
                 <p className="text-5xl font-black text-nt-blue">{percentage}%</p>
                 <p className="mt-1 text-sm font-black text-nt-text-primary">rendimiento</p>
+                {assignedLevel && (
+                  <p className="mt-3 rounded-full bg-nt-purple/10 px-3 py-1.5 text-xs font-black text-nt-purple">
+                    Nivel {assignedLevel}
+                  </p>
+                )}
               </div>
 
               <div className="mt-5 grid gap-3">
@@ -203,7 +299,7 @@ function DiagnosticReview() {
                 onClick={() => navigate("/student-dashboard")}
               >
                 Continuar al dashboard
-                <ArrowRight className="size-4" aria-hidden="true" />
+                <ArrowRight className="size-4" />
               </Button>
             </CardContent>
           </Card>

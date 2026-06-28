@@ -1,110 +1,97 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, Trophy, XCircle } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowRight, CheckCircle2, ShieldCheck, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { modulesData } from "../data/modulesData";
+import BackButton from "../components/student/BackButton";
+import LearningProgressPanel from "../components/student/LearningProgressPanel";
 import {
-  getExamPassed,
   getFinalExam,
-  submitExamV2,
+  getLevelDetails,
+  getModuleDetails,
+  submitFinalExamAttempt,
 } from "../services/learningService";
+import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
-
-const fallbackExamQuestions = [
-  {
-    question: "Que representa el denominador de una fraccion?",
-    options: [
-      "Las partes tomadas",
-      "El total de partes iguales",
-      "La respuesta",
-      "El numero mayor",
-    ],
-    correctAnswer: 1,
-  },
-  {
-    question: "Cual fraccion es equivalente a 1/2?",
-    options: ["2/4", "1/3", "3/5", "4/5"],
-    correctAnswer: 0,
-  },
-  {
-    question: "Si una figura se divide en 4 partes iguales y tomas 3, que fraccion tienes?",
-    options: ["1/4", "4/3", "3/4", "2/4"],
-    correctAnswer: 2,
-  },
-  {
-    question: "Cual es el numerador en 7/10?",
-    options: ["10", "7", "17", "3"],
-    correctAnswer: 1,
-  },
-  {
-    question: "Que fraccion representa un entero completo?",
-    options: ["1/4", "2/8", "4/4", "3/5"],
-    correctAnswer: 2,
-  },
-];
 
 function mapExamQuestion(question) {
   return {
+    id: question.id,
     question: question.question,
+    imageUrl: question.image_url,
     options: question.options ?? [],
-    correctAnswer: question.correctAnswerIndex,
   };
 }
 
-function getLevelCode(level) {
-  if (level?.name === "Intermedio") return "I";
-  if (level?.name === "Avanzado") return "A";
-  return "B";
-}
+const inferLevelName = (value = "") => {
+  const text = String(value).toLowerCase();
+
+  if (text.includes("intermedio") || /\bii\b/.test(text)) return "Intermedio";
+  if (text.includes("avanzado") || /\biii\b/.test(text)) return "Avanzado";
+  if (text.includes("basico") || text.includes("básico") || /\bi\b/.test(text)) return "Básico";
+  return value;
+};
 
 function FinalExam() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { moduleId } = useParams();
-  const [examQuestions, setExamQuestions] = useState(fallbackExamQuestions);
+  const routeModule = location.state?.module;
+  const routeLevel = location.state?.level;
+  const [module, setModule] = useState(null);
+  const [level, setLevel] = useState(null);
+  const [examQuestions, setExamQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [finished, setFinished] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
-  const [alreadyPassed, setAlreadyPassed] = useState(false);
-  const [isUsingFallback, setIsUsingFallback] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
-  const module =
-    modulesData.find((item) => String(item.id) === String(moduleId)) ??
-    modulesData[0];
-  const level =
-    module?.levels.find((item) => item.unlocked) ?? module?.levels[0];
+  const moduleTitle = module?.title;
+  const levelName = inferLevelName(level?.level || level?.title);
+  const backLevelId = level?.id ?? routeLevel?.id ?? routeLevel?.levelId;
+  const backModuleId = level?.module_id ?? routeModule?.id;
+  const backPath =
+    backModuleId && backLevelId
+      ? `/module/${backModuleId}/level/${backLevelId}`
+      : "/student-dashboard";
 
   useEffect(() => {
-    const studentId = getStudentId();
-
-    getFinalExam(moduleId)
-      .then((questions) => {
+    setIsLoading(true);
+    setLoadError("");
+    Promise.all([getFinalExam(moduleId), getLevelDetails(moduleId)])
+      .then(async ([questions, levelData]) => {
         if (Array.isArray(questions) && questions.length > 0) {
+          const moduleData = await getModuleDetails(levelData.module_id);
           setExamQuestions(questions.map(mapExamQuestion));
-          setIsUsingFallback(false);
+          setModule(moduleData);
+          setLevel(levelData);
           setCurrentIndex(0);
           setAnswers({});
           setFinished(false);
+          return;
         }
+        throw new Error("El examen no tiene preguntas disponibles.");
       })
       .catch(() => {
-        setExamQuestions(fallbackExamQuestions);
-        setIsUsingFallback(true);
-      });
-
-    if (studentId) {
-      getExamPassed(studentId, moduleId)
-        .then((result) => setAlreadyPassed(result.alreadyPassed === true))
-        .catch(() => setAlreadyPassed(false));
-    }
+        setExamQuestions([]);
+        setModule(null);
+        setLevel(null);
+        setLoadError("No pudimos cargar el examen final y sus datos desde el servidor.");
+      })
+      .finally(() => setIsLoading(false));
   }, [moduleId]);
 
   const currentQuestion = examQuestions[currentIndex];
   const selectedAnswer = answers[currentIndex];
-  const progress = ((currentIndex + 1) / examQuestions.length) * 100;
+  const progress = examQuestions.length
+    ? ((currentIndex + 1) / examQuestions.length) * 100
+    : 0;
 
   const handleSelect = (index) => {
     setAnswers({
@@ -113,34 +100,37 @@ function FinalExam() {
     });
   };
 
-  const calculateScore = () => {
-    return examQuestions.reduce((score, question, index) => {
-      return answers[index] === question.correctAnswer ? score + 1 : score;
-    }, 0);
-  };
-
   const submitExam = async () => {
     const studentId = getStudentId();
-    const score = calculateScore();
-    const percentage = Math.round((score / examQuestions.length) * 100);
 
-    if (!studentId || !Number.isFinite(Number(moduleId)) || isUsingFallback) {
-      setSubmitResult({
-        message: "Modo demo: el resultado no se envio al servidor.",
-      });
+    if (!studentId || !Number.isFinite(Number(moduleId))) {
+      setSubmitError("No pudimos identificar al estudiante o al nivel del examen.");
       return;
     }
 
+    setIsSubmitting(true);
+    setSubmitError("");
     try {
-      const result = await submitExamV2({
-        studentId: Number(studentId),
-        moduloId: Number(moduleId),
-        level: getLevelCode(level),
-        score: percentage,
+      const result = await submitFinalExamAttempt({
+        student_id: Number(studentId),
+        modulo_id: Number(moduleId),
+        answers: examQuestions.map((question, index) => ({
+          question_id: Number(question.id),
+          selected_answer_index: answers[index],
+        })),
       });
-      setSubmitResult(result);
+      let refreshedProgress = null;
+      try {
+        refreshedProgress = await getModuleProgress(studentId, moduleId);
+      } catch {
+        refreshedProgress = null;
+      }
+      setSubmitResult({ ...result, moduleProgress: refreshedProgress });
+      setFinished(true);
     } catch {
-      setSubmitResult(null);
+      setSubmitError("No pudimos enviar el examen. Tus respuestas siguen guardadas para que puedas reintentar.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -150,24 +140,34 @@ function FinalExam() {
     if (currentIndex < examQuestions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      setFinished(true);
       submitExam();
     }
   };
 
-  if (!module || !level) {
+  if (isLoading) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top_left,#ffffff_0,#dff4ff_34%,#bfe7ff_100%)]">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
+      </main>
+    );
+  }
+
+  if (!module || !level || loadError || examQuestions.length === 0) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffffff_0,#dff4ff_34%,#bfe7ff_100%)] px-4 py-8 text-nt-text-primary">
         <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl items-center justify-center">
           <Card className="w-full rounded-[32px] border border-white/80 bg-white/90 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
             <CardContent className="p-8">
-              <h1 className="text-2xl font-black text-nt-text-primary">Examen no encontrado</h1>
+              <h1 className="text-2xl font-black text-nt-text-primary">Examen no disponible</h1>
+              <p className="mt-3 text-sm font-semibold text-nt-text-secondary">
+                {loadError || "No pudimos identificar el módulo y nivel seleccionados."}
+              </p>
               <Button
                 type="button"
                 className="mt-5 h-11 rounded-[18px] bg-nt-blue px-5 text-sm font-black text-white hover:bg-blue-700"
-                onClick={() => navigate("/learning-path")}
+                onClick={() => navigate(backPath, { state: { module, level } })}
               >
-                Volver a módulos
+                Volver a actividades
               </Button>
             </CardContent>
           </Card>
@@ -177,16 +177,17 @@ function FinalExam() {
   }
 
   if (finished) {
-    const score = calculateScore();
-    const percentage = Math.round((score / examQuestions.length) * 100);
-    const approved = percentage >= 70;
+    const score = submitResult.correct_answers;
+    const totalQuestions = submitResult.total_questions;
+    const percentage = submitResult.score_percentage;
+    const approved = submitResult.passed;
 
     return (
       <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#ffffff_0,#dff4ff_34%,#bfe7ff_100%)] px-4 py-8 text-nt-text-primary">
         <div className="pointer-events-none absolute left-8 top-10 hidden h-28 w-28 rounded-full bg-nt-yellow/35 blur-3xl md:block" />
         <div className="pointer-events-none absolute bottom-8 right-10 hidden h-36 w-36 rounded-full bg-nt-purple-light/30 blur-3xl md:block" />
 
-        <section className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-2xl items-center justify-center">
+        <section className="relative mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <Card className="w-full rounded-[32px] border border-white/80 bg-white/88 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)] backdrop-blur-xl">
             <CardContent className="p-6 sm:p-8">
               <div
@@ -219,7 +220,7 @@ function FinalExam() {
 
               <p className="mt-3 text-sm font-semibold leading-6 text-nt-text-secondary sm:text-base">
                 Obtuviste <strong>{score}</strong> de{" "}
-                <strong>{examQuestions.length}</strong> respuestas correctas.
+                <strong>{totalQuestions}</strong> respuestas correctas.
               </p>
 
               <div
@@ -231,24 +232,25 @@ function FinalExam() {
               </div>
 
               <p className="mx-auto mt-5 max-w-md text-sm font-bold leading-6 text-nt-text-secondary">
-                {submitResult?.message ??
-                  (alreadyPassed
-                    ? "Ya habías aprobado este examen anteriormente."
-                    : approved
-                      ? "Excelente trabajo. Puedes continuar con el siguiente nivel."
-                      : "Te recomendamos revisar la teoría y repetir los ejercicios antes de intentarlo otra vez.")}
+                {submitResult.message}
               </p>
 
               <Button
                 type="button"
                 className="mt-7 h-12 w-full rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple text-sm font-black text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] hover:from-nt-blue/90 hover:to-nt-purple/90"
-                onClick={() => navigate("/student-dashboard")}
+                onClick={() => navigate(backPath, { state: { module, level } })}
               >
-                Volver al panel
+                {backModuleId && backLevelId ? "Volver a actividades" : "Volver al panel"}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
             </CardContent>
           </Card>
+          <LearningProgressPanel
+            studentId={getStudentId()}
+            moduloId={moduleId}
+            progress={submitResult?.moduleProgress}
+            title="Progreso después del examen"
+          />
         </section>
       </main>
     );
@@ -260,22 +262,16 @@ function FinalExam() {
       <div className="pointer-events-none absolute bottom-8 right-10 hidden h-36 w-36 rounded-full bg-nt-purple-light/30 blur-3xl md:block" />
 
       <section className="relative mx-auto w-full max-w-5xl">
-        <Button
-          type="button"
-          variant="ghost"
-          className="mb-4 h-10 rounded-[18px] bg-white/75 px-4 text-sm font-black text-nt-blue shadow-sm hover:bg-white hover:text-nt-purple"
-          onClick={() => navigate(`/module/${moduleId}`)}
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Volver al módulo
-        </Button>
+        <BackButton className="mb-4" onClick={() => navigate(backPath, { state: { module, level } })}>
+          Volver a actividades
+        </BackButton>
 
         <Card className="rounded-[32px] border border-white/80 bg-white/88 p-0 shadow-[0_24px_70px_rgba(37,99,235,0.18)] backdrop-blur-xl">
           <CardContent className="p-5 sm:p-7 lg:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <Badge className="mb-3 h-6 rounded-full bg-red-50 px-3 text-[11px] font-black uppercase tracking-wide text-red-700 hover:bg-red-50">
-                  Examen final - {module.title} - {level.name}
+                  Examen final - {moduleTitle} - {levelName}
                 </Badge>
                 <h1 className="text-3xl font-black leading-tight text-nt-text-primary sm:text-4xl">
                   Demuestra lo aprendido
@@ -316,6 +312,14 @@ function FinalExam() {
                   {currentQuestion.question}
                 </h2>
 
+                {currentQuestion.imageUrl && (
+                  <img
+                    src={currentQuestion.imageUrl}
+                    alt="Apoyo visual de la pregunta"
+                    className="mx-auto mt-5 max-h-72 w-full rounded-[20px] object-contain"
+                  />
+                )}
+
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
                   {currentQuestion.options.map((option, index) => {
                     const isSelected = selectedAnswer === index;
@@ -347,13 +351,21 @@ function FinalExam() {
               </CardContent>
             </Card>
 
+            {submitError && (
+              <p className="mt-4 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+                {submitError}
+              </p>
+            )}
+
             <Button
               type="button"
               className="mt-6 h-12 w-full rounded-[18px] bg-gradient-to-r from-nt-blue to-nt-purple text-sm font-black text-white shadow-[0_16px_30px_rgba(37,99,235,0.24)] hover:from-nt-blue/90 hover:to-nt-purple/90"
-              disabled={selectedAnswer === undefined}
+              disabled={selectedAnswer === undefined || isSubmitting}
               onClick={handleNext}
             >
-              {currentIndex === examQuestions.length - 1
+              {isSubmitting
+                ? "Enviando respuestas..."
+                : currentIndex === examQuestions.length - 1
                 ? "Finalizar examen"
                 : "Siguiente"}
               {currentIndex === examQuestions.length - 1 ? (

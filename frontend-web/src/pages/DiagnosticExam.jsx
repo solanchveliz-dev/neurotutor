@@ -1,24 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { diagnosticQuestions } from "../data/diagnosticQuestions";
-import { submitDiagnostic } from "../services/diagnosticService";
+import { getDiagnosticQuestions, submitDiagnosticV2 } from "../services/diagnosticService";
 import { getStudentId } from "../utils/auth";
 
 function DiagnosticExam() {
   const navigate = useNavigate();
+  const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const currentQuestion = diagnosticQuestions[currentIndex];
-  const selectedAnswer = answers[currentQuestion.id];
-  const progress = ((currentIndex + 1) / diagnosticQuestions.length) * 100;
+  useEffect(() => {
+    getDiagnosticQuestions()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setQuestions(
+            data.map((question) => ({
+              id: question.id,
+              textBeforeImage: question.text_before_image ?? question.textBeforeImage ?? "",
+              textAfterImage: question.text_after_image ?? question.textAfterImage ?? "",
+              image: question.image_url ?? question.imageUrl,
+              options: question.options ?? [],
+            }))
+          );
+        } else {
+          setQuestions([]);
+          setError("El diagnóstico todavía no tiene preguntas disponibles.");
+        }
+      })
+      .catch(() => {
+        setQuestions([]);
+        setError("No pudimos cargar el diagnóstico desde el servidor. Intenta nuevamente en unos minutos.");
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const currentQuestion = questions[currentIndex];
+  const selectedAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
+  const progress = questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0;
 
   const handleSelect = (optionIndex) => {
     setAnswers({
@@ -34,24 +60,10 @@ function DiagnosticExam() {
         : "border-nt-border"
     }`;
 
-  const calculateScore = (finalAnswers) => {
-    return diagnosticQuestions.reduce((score, question) => {
-      return finalAnswers[question.id] === question.correctAnswer
-        ? score + 1
-        : score;
-    }, 0);
-  };
-
-  const getLevel = (score) => {
-    if (score <= 4) return "Básico";
-    if (score <= 7) return "Intermedio";
-    return "Avanzado";
-  };
-
   const handleNext = async () => {
     if (selectedAnswer === undefined) return;
 
-    if (currentIndex < diagnosticQuestions.length - 1) {
+    if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
       return;
     }
@@ -63,28 +75,26 @@ function DiagnosticExam() {
       return;
     }
 
-    const labels = ["A", "B", "C", "D"];
-    const respuestas = diagnosticQuestions.map((question) => {
-      const answerIndex = answers[question.id];
-      return labels[answerIndex];
-    });
-
     try {
       setIsSubmitting(true);
       setError("");
 
-      const diagnosticResult = await submitDiagnostic(studentId, respuestas);
-      localStorage.setItem("diagnosticResult", JSON.stringify(diagnosticResult));
-
-      const score = calculateScore(answers);
-      const level = getLevel(score);
+      const diagnosticResult = await submitDiagnosticV2({
+        student_id: Number(studentId),
+        answers: questions.map((question) => ({
+          question_id: question.id,
+          selected_answer_index: answers[question.id],
+        })),
+      });
 
       navigate("/diagnostic-result", {
         state: {
-          score,
-          total: diagnosticQuestions.length,
-          level,
-          answers,
+          attemptId: diagnosticResult.attempt_id,
+          scorePercentage: diagnosticResult.score_percentage,
+          assignedLevel: diagnosticResult.assigned_level,
+          correctAnswers: diagnosticResult.correct_answers,
+          totalQuestions: diagnosticResult.total_questions,
+          message: diagnosticResult.message,
         },
       });
     } catch {
@@ -93,6 +103,30 @@ function DiagnosticExam() {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4 py-8 text-nt-text-primary">
+        <section className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
+        </section>
+      </main>
+    );
+  }
+
+  if (error || !currentQuestion) {
+    return (
+      <main className="relative grid min-h-screen place-items-center bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4 py-8 text-nt-text-primary">
+        <Card className="w-full max-w-xl rounded-[28px] border border-white/85 bg-white/92 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
+          <CardContent className="p-8">
+            <h1 className="text-2xl font-black">Diagnóstico no disponible</h1>
+            <p className="mt-3 text-sm font-semibold leading-6 text-nt-text-secondary">{error || "No encontramos preguntas disponibles."}</p>
+            <Button className="mt-6 rounded-[18px] bg-nt-blue px-5 text-white" onClick={() => window.location.reload()}>Reintentar</Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4 py-8 text-nt-text-primary">
@@ -122,7 +156,7 @@ function DiagnosticExam() {
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/82 px-4 py-2 text-xs font-black text-nt-text-primary shadow-sm">
               <CheckCircle2 className="size-4 text-nt-green" aria-hidden="true" />
-              Pregunta {currentIndex + 1} de {diagnosticQuestions.length}
+              Pregunta {currentIndex + 1} de {questions.length}
             </span>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/82 px-4 py-2 text-xs font-black text-amber-700 shadow-sm">
               <Clock className="size-4" aria-hidden="true" />
@@ -198,7 +232,7 @@ function DiagnosticExam() {
               onClick={handleNext}
             >
               <Sparkles className="size-4" aria-hidden="true" />
-              {currentIndex === diagnosticQuestions.length - 1
+              {currentIndex === questions.length - 1
                 ? "Finalizar diagnóstico"
                 : "Siguiente"}
             </Button>

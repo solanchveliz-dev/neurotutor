@@ -1,72 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Bell, LogOut, Search, Star } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Medal } from "lucide-react";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import PrimaryButton from "../components/student/PrimaryButton";
 import { getStudentDashboard } from "../services/dashboardService";
-import { clearAuthData, getStudentId } from "../utils/auth";
-
-const fallbackStudent = {
-  name: "Estudiante Demo",
-  grade: "6to grado",
-  section: "A",
-  level: "Intermedio",
-  points: 320,
-  gender: "female",
-};
-
-const fallbackModules = [
-  {
-    id: 1,
-    title: "Problemas de cantidad",
-    description: "Operaciones, numeros y situaciones de conteo.",
-    progress: 6,
-    total: 10,
-    unlocked: true,
-    active: true,
-  },
-  {
-    id: 2,
-    title: "Regularidad, equivalencia y cambio",
-    description: "Patrones, secuencias y relaciones.",
-    progress: 2,
-    total: 10,
-    unlocked: true,
-    active: false,
-  },
-  {
-    id: 3,
-    title: "Forma, movimiento y localizacion",
-    description: "Figuras, medidas y ubicacion espacial.",
-    progress: 0,
-    total: 10,
-    unlocked: false,
-    active: false,
-  },
-  {
-    id: 4,
-    title: "Gestion de datos e incertidumbre",
-    description: "Tablas, graficos y probabilidades.",
-    progress: 0,
-    total: 10,
-    unlocked: false,
-    active: false,
-  },
-];
-
-const recentActivitiesData = [
-  { title: "Fracciones basicas", detail: "Completaste una practica", image: "/assets/card-fracciones-basic.png", points: "+25 pts" },
-  { title: "Decimales", detail: "Repasaste ejercicios guiados", image: "/assets/card-decimales-basic.png", points: "+15 pts" },
-];
-
-const upcomingChallengesData = [
-  { title: "Resolver 5 fracciones", progress: 60, points: "30 pts" },
-  { title: "Practicar decimales", progress: 35, points: "20 pts" },
-  { title: "Revisar porcentajes", progress: 15, points: "25 pts" },
-];
-
-const badgesData = ["Constancia", "Rapidez", "Precision"];
+import { getStudentProfile } from "../services/profileService";
+import { getStudentProgress } from "../services/progressService";
+import { getStudentAchievements } from "../services/achievementService";
+import { getStudentId } from "../utils/auth";
 
 const normalizeText = (value = "") =>
   value
@@ -98,11 +40,11 @@ const normalizeLevel = (level) => {
 
 function StudentDashboard() {
   const navigate = useNavigate();
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [password, setPassword] = useState("");
-  const [student, setStudent] = useState(fallbackStudent);
-  const [modules, setModules] = useState(fallbackModules);
+  const [student, setStudent] = useState(null);
+  const [modules, setModules] = useState([]);
+  const [progressSummary, setProgressSummary] = useState(null);
+  const [achievements, setAchievements] = useState([]);
+  const [achievementError, setAchievementError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -110,47 +52,82 @@ function StudentDashboard() {
     const studentId = getStudentId();
 
     if (!studentId) {
+      setError(new Error("No se encontró la sesión del estudiante."));
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     setError(null);
+    setAchievementError("");
 
     try {
-      const profile = await getStudentDashboard(studentId);
-      const [grade = "", section = ""] = (profile.gradoSeccion || "").split(" ");
+      const [profile, progress, achievementData] = await Promise.all([
+        getStudentProfile(studentId),
+        getStudentProgress(studentId),
+        getStudentAchievements(studentId).catch(() => {
+          setAchievementError("No pudimos cargar tus logros ahora.");
+          return null;
+        }),
+      ]);
+      const legacyProfile = await getStudentDashboard(studentId).catch(() => null);
+      const [grade = "", section = ""] = (legacyProfile?.gradoSeccion || "").split(" ");
+
+      setProgressSummary(progress);
+      setAchievements(Array.isArray(achievementData?.unlocked) ? achievementData.unlocked : []);
 
       setStudent({
-        name: profile.nombreCompleto || fallbackStudent.name,
-        grade: grade || fallbackStudent.grade,
-        section: section || fallbackStudent.section,
-        level: profile.nivelActual || fallbackStudent.level,
-        points: profile.puntosTotales ?? fallbackStudent.points,
-        gender: profile.gender || profile.genero,
+        name: profile.name,
+        grade: profile.grade || grade,
+        section: profile.section || section,
+        level: profile.level,
+        points: profile.points ?? 0,
+        gender: profile?.gender || legacyProfile?.gender || legacyProfile?.genero,
+        avatarUrl: profile?.avatar_url,
       });
 
-      if (Array.isArray(profile.modulos) && profile.modulos.length > 0) {
+      const progressByModule = new Map(
+        (progress?.modules ?? []).map((item) => [String(item.module_id), item])
+      );
+
+      if (Array.isArray(legacyProfile?.modulos) && legacyProfile.modulos.length > 0) {
         setModules(
-          profile.modulos.map((module, index) => ({
-            id: module.id,
-            title: module.titulo,
-            description: "Modulo asignado segun tu nivel diagnostico.",
-            progress: module.ejerciciosCompletados ?? 0,
-            total: module.ejerciciosTotales ?? 0,
-            unlocked: module.estado !== "BLOQUEADO",
-            active: module.estado === "EN_CURSO" || index === 0,
-            levels: getModuleLevels(module).map(normalizeLevel).filter(Boolean),
+          legacyProfile.modulos.map((module, index) => {
+            const moduleProgress = progressByModule.get(String(module.id));
+            return {
+              id: module.id,
+              title: module.titulo,
+              description: "Modulo asignado segun tu nivel diagnostico.",
+              progress: moduleProgress?.progress_percentage ?? module.ejerciciosCompletados ?? 0,
+              total: module.ejerciciosTotales ?? 0,
+              unlocked: module.estado !== "BLOQUEADO",
+              active: module.estado === "EN_CURSO" || index === 0,
+              levels: getModuleLevels(module).map(normalizeLevel).filter(Boolean),
+            };
+          })
+        );
+      } else if (Array.isArray(progress?.modules) && progress.modules.length > 0) {
+        setModules(
+          progress.modules.map((module, index) => ({
+            id: module.module_id,
+            title: module.title,
+            description: "Progreso registrado en el servidor.",
+            progress: module.progress_percentage ?? 0,
+            total: 100,
+            unlocked: true,
+            active: index === 0,
+            levels: [],
           }))
         );
       } else {
-        setModules(fallbackModules);
+        setModules([]);
       }
     } catch (err) {
       console.error("Error fetching dashboard:", err);
       setError(err);
-      setStudent(fallbackStudent);
-      setModules(fallbackModules);
+      setStudent(null);
+      setModules([]);
+      setAchievements([]);
     } finally {
       setIsLoading(false);
     }
@@ -159,18 +136,6 @@ function StudentDashboard() {
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
-
-  const handleLogout = () => {
-    clearAuthData();
-    navigate("/login", { replace: true });
-  };
-
-  const handleDeleteAccount = () => {
-    if (!password.trim()) return;
-    clearAuthData();
-    setShowDeleteModal(false);
-    navigate("/login", { replace: true });
-  };
 
   const getFirstAvailableModule = () =>
     modules.find((module) => module?.unlocked) ?? modules[0] ?? null;
@@ -197,11 +162,6 @@ function StudentDashboard() {
     navigate(`/module/${selectedRealModule.id}`, { state: { module: selectedRealModule } });
   };
 
-  const handleOpenModule = (module) => {
-    if (!module?.unlocked) return;
-    navigate(`/module/${module.id}`, { state: { module } });
-  };
-
   const handleOpenLearningCard = (module) => {
     if (!module?.id) return;
 
@@ -217,9 +177,7 @@ function StudentDashboard() {
     navigate(`/module/${module.id}`, { state: { module } });
   };
 
-  const totalExercises = modules.reduce((sum, module) => sum + (module.total || 0), 0);
-  const completedExercises = modules.reduce((sum, module) => sum + (module.progress || 0), 0);
-  const overallProgress = totalExercises ? Math.round((completedExercises / totalExercises) * 100) : 0;
+  const overallProgress = progressSummary?.overall_progress ?? 0;
 
   const getModulePercentage = (module) => {
     if (!module?.total) return 0;
@@ -241,12 +199,9 @@ function StudentDashboard() {
     { label: "Porcentajes", image: "/assets/island-porcentajes.png", module: getIslandModule("Porcentajes", 2) },
   ];
 
-  const learningCards = [
+  const learningCardVisuals = [
     {
-      title: "Fracciones - Basico",
-      subtitle: "Que es una fraccion?",
       image: "/assets/card-fracciones-basic.png",
-      module: modules[0],
       tone: "bg-nt-green",
       gradient: "linear-gradient(135deg, #4A00E0 0%, #8E2DE2 100%)",
       glow: "shadow-violet-950/25",
@@ -254,10 +209,7 @@ function StudentDashboard() {
       progressTone: "bg-[#D9C5FF]",
     },
     {
-      title: "Decimales - Basico",
-      subtitle: "Introduccion a los decimales",
       image: "/assets/card-decimales-basic.png",
-      module: modules[1],
       tone: "bg-nt-yellow",
       gradient: "linear-gradient(135deg, #2948ff 0%, #396afc 100%)",
       glow: "shadow-blue-950/25",
@@ -265,19 +217,20 @@ function StudentDashboard() {
       progressTone: "bg-[#C7D4FF]",
     },
     {
-      title: "Porcentajes - Basico",
-      subtitle: "Porcentajes en la vida diaria",
       image: "/assets/card-porcentajes-basic.png",
-      module: modules[2],
       tone: "bg-nt-red",
       gradient: "linear-gradient(135deg, #2C7744 0%, #52c234 100%)",
       glow: "shadow-emerald-950/25",
       buttonTone: "bg-white/95 text-[#2C7744] hover:bg-white",
       progressTone: "bg-[#B9F58C]",
     },
-  ].map(card => ({
-    ...card,
-    percentage: getModulePercentage(card.module)
+  ];
+  const learningCards = modules.slice(0, 3).map((module, index) => ({
+    ...learningCardVisuals[index],
+    title: module.title,
+    subtitle: module.description,
+    module,
+    percentage: getModulePercentage(module),
   }));
 
   const subjectProgress = learningCards.map(card => ({
@@ -286,32 +239,22 @@ function StudentDashboard() {
     tone: card.tone,
   }));
 
-  const studentGender = (student.gender || student.genero || "").toLowerCase();
+  const studentGender = (student?.gender || student?.genero || "").toLowerCase();
   const avatarSrc = studentGender === "male" || studentGender === "masculino"
     ? "/assets/avatar-boy.png"
     : "/assets/avatar-girl.png";
-
-  const sidebarFooter = (
-    <button
-      type="button"
-      className="flex w-full items-center gap-3 rounded-nt-button px-3 py-3 text-sm font-extrabold text-nt-text-secondary transition hover:bg-nt-sky hover:text-nt-blue"
-      onClick={handleLogout}
-    >
-      <LogOut className="size-5" aria-hidden="true" />
-      <span>Cerrar sesion</span>
-    </button>
-  );
+  const profileAvatar = student?.avatarUrl || avatarSrc;
 
   const sidebarItems = [
     { label: "Inicio", active: true, onClick: () => navigate("/student-dashboard") },
     { label: "Módulos", onClick: () => openModuleFlow() },
-    { label: "Mis Logros", onClick: () => navigate("/student-dashboard") },
-    { label: "Perfil", onClick: () => setShowDeleteModal(true) },
+    { label: "Mis Logros", onClick: () => navigate("/achievements") },
+    { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 
   if (isLoading) {
     return (
-      <StudentLayout sidebar={<AppSidebar items={sidebarItems} footer={sidebarFooter} />}>
+      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
         <div className="flex min-h-[400px] items-center justify-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
         </div>
@@ -321,7 +264,7 @@ function StudentDashboard() {
 
   if (error) {
     return (
-      <StudentLayout sidebar={<AppSidebar items={sidebarItems} footer={sidebarFooter} />}>
+      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
         <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
           <p className="text-nt-red font-semibold">Error al cargar los datos</p>
           <PrimaryButton tone="blue" onClick={fetchDashboard}>
@@ -334,146 +277,82 @@ function StudentDashboard() {
 
   return (
     <StudentLayout
-      sidebar={<AppSidebar items={sidebarItems} footer={sidebarFooter} />}
-      topbar={
-        <header className="flex w-full flex-col gap-3 rounded-[28px] bg-white/35 px-3 py-2 backdrop-blur-sm md:flex-row md:items-center md:justify-between">
-          <label className="relative min-w-0 flex-1 md:max-w-lg">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-nt-text-secondary"
-              aria-hidden="true"
-            />
-            <span className="sr-only">Buscar</span>
-            <input
-              type="search"
-              placeholder="Buscar modulos o retos"
-              className="h-12 w-full rounded-nt-button border border-white/80 bg-white/90 pl-11 pr-4 text-sm font-semibold text-nt-text-primary shadow-sm outline-none transition placeholder:text-nt-text-secondary focus:border-nt-blue focus:ring-4 focus:ring-nt-blue-light/25"
-            />
-          </label>
-
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              className="grid size-12 place-items-center rounded-nt-button bg-white/90 text-nt-blue shadow-sm transition hover:bg-nt-blue hover:text-white"
-              aria-label="Notificaciones"
-            >
-              <Bell className="size-5" aria-hidden="true" />
-            </button>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex h-12 items-center gap-2 rounded-nt-button bg-white/90 p-1.5 pr-3 text-left shadow-sm transition hover:bg-white"
-              >
-                <img src={avatarSrc} alt="" className="size-9 rounded-full object-cover shadow-sm" />
-                <span className="hidden max-w-32 truncate text-sm font-extrabold text-nt-text-primary sm:block">
-                  {student.name}
-                </span>
-              </button>
-
-              {showUserMenu && (
-                <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-56 overflow-hidden rounded-[22px] border border-nt-border bg-white shadow-nt-soft">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm font-extrabold text-nt-text-primary transition hover:bg-nt-sky"
-                    onClick={handleLogout}
-                  >
-                    Cerrar sesion
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-sm font-extrabold text-nt-red transition hover:bg-red-50"
-                    onClick={() => {
-                      setShowDeleteModal(true);
-                      setShowUserMenu(false);
-                    }}
-                  >
-                    Eliminar cuenta
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-      }
+      sidebar={<AppSidebar items={sidebarItems} />}
       rightPanel={
-        <div className="rounded-nt-card border border-white/80 bg-white/95 p-5 shadow-nt-card">
-          <div className="text-center">
-            <img src={avatarSrc} alt="" className="mx-auto size-24 rounded-full object-cover shadow-nt-card" />
+        <div className="grid gap-4">
+          <section className="overflow-hidden rounded-nt-card border border-white/85 bg-white/95 p-5 text-center shadow-nt-card">
+            <div className="relative mx-auto size-28">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-nt-blue-light/35 to-nt-purple-light/35 blur-xl" />
+              <img src={profileAvatar} alt="" className="relative size-28 rounded-full border-4 border-white object-cover shadow-nt-card" />
+            </div>
             <h2 className="mt-3 text-xl font-black text-nt-text-primary">{student.name}</h2>
             <p className="text-sm font-extrabold text-nt-text-secondary">
               {student.grade} - Seccion {student.section}
             </p>
-            <div className="mt-4 rounded-[22px] bg-nt-sky/70 p-3 text-left">
+            <div className="mt-4 rounded-[24px] border border-white/80 bg-gradient-to-br from-nt-sky/85 to-white p-3 text-left shadow-sm">
               <div className="flex items-center justify-between text-sm font-black text-nt-text-primary">
                 <span>Nivel {student.level}</span>
                 <span>{overallProgress}%</span>
               </div>
-              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white">
-                <div className="h-full rounded-full bg-nt-blue" style={{ width: `${overallProgress}%` }} />
+              <div className="mt-2 h-3 overflow-hidden rounded-full bg-white shadow-inner">
+                <div className="h-full rounded-full bg-gradient-to-r from-nt-blue to-nt-purple" style={{ width: `${overallProgress}%` }} />
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="mt-5 border-t border-nt-border pt-5">
+          <section className="rounded-nt-card border border-white/85 bg-white/95 p-5 shadow-nt-card">
             <h2 className="text-lg font-black text-nt-text-primary">Progreso</h2>
-            <div className="mt-4 grid gap-3">
+            <div className="mt-4 grid gap-4">
               {subjectProgress.map((item) => (
-                <div key={item.label}>
-                  <div className="mb-1 flex items-center justify-between text-sm font-extrabold text-nt-text-primary">
+                <div key={item.label} className="rounded-[22px] bg-nt-sky/45 p-3">
+                  <div className="mb-2 flex items-center justify-between text-sm font-extrabold text-nt-text-primary">
                     <span>{item.label}</span>
                     <span>{item.percentage}%</span>
                   </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-nt-border">
+                  <div className="h-3 overflow-hidden rounded-full bg-white shadow-inner">
                     <div className={`h-full rounded-full ${item.tone}`} style={{ width: `${item.percentage}%` }} />
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div className="mt-5 border-t border-nt-border pt-5">
-            <h2 className="text-lg font-black text-nt-text-primary">Insignias recientes</h2>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {badgesData.map((badge) => (
-                <div key={badge} className="rounded-[18px] bg-nt-sky/70 p-2 text-center">
-                  <Star className="mx-auto size-5 fill-nt-yellow text-nt-yellow" />
-                  <p className="mt-1 truncate text-[11px] font-black text-nt-text-primary">{badge}</p>
-                </div>
-              ))}
+          <section className="rounded-nt-card border border-white/85 bg-white/90 p-5 shadow-nt-card">
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-[18px] bg-nt-blue/10 text-nt-blue">
+                <BookOpenCheck className="size-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-nt-text-primary">Cómo avanzas</h2>
+                <p className="text-xs font-bold text-nt-text-secondary">Progreso registrado por nivel</p>
+              </div>
             </div>
-          </div>
-
-          <div className="mt-5 border-t border-nt-border pt-5">
-            <h2 className="text-lg font-black text-nt-text-primary">Reto semanal</h2>
-            <p className="mt-1 text-sm font-semibold text-nt-text-secondary">Completa 10 ejercicios esta semana</p>
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-nt-border">
-              <div className="h-full rounded-full bg-nt-purple" style={{ width: `${Math.min(100, (completedExercises / 10) * 100)}%` }} />
-            </div>
-            <p className="mt-2 text-xs font-black text-nt-text-secondary">
-              {Math.min(completedExercises, 10)}/10 ejercicios completados
+            <p className="mt-4 text-sm font-semibold leading-6 text-nt-text-secondary">
+              Cada nivel suma 33% por teoría, 33% por práctica y 34% cuando apruebas el examen final.
             </p>
-          </div>
+          </section>
         </div>
       }
     >
-      <section className="relative isolate min-h-[560px] overflow-visible" aria-label="Islas principales de aprendizaje">
-        <div className="relative z-10 flex min-h-[520px] flex-col gap-1 px-1 py-3 sm:px-3 sm:py-4 lg:min-h-[540px] xl:min-h-[560px]">
+      <section className="relative isolate min-h-[500px] overflow-visible" aria-label="Islas principales de aprendizaje">
+        <div className="relative z-10 flex min-h-[470px] flex-col gap-0 px-1 py-0 sm:px-3 lg:min-h-[500px] xl:min-h-[520px]">
           <div className="flex items-start justify-between gap-4">
-            <div className="max-w-lg pt-1 text-nt-text-primary drop-shadow-[0_2px_0_rgba(255,255,255,0.75)]">
-              <span className="inline-flex rounded-full bg-nt-purple px-3 py-1 text-xs font-black text-white shadow-lg shadow-nt-purple/25">
-                Panel de aprendizaje
-              </span>
-              <h1 className="mt-2 text-2xl font-black leading-tight text-nt-text-primary md:text-3xl">
-                Hola, {student.name}
+            <div className="relative max-w-xl rounded-[32px] border border-white/50 bg-white/25 px-4 py-3 text-nt-text-primary shadow-[0_20px_44px_rgba(37,99,235,0.12)] backdrop-blur-sm">
+              <div className="pointer-events-none absolute -left-4 -top-4 size-24 rounded-full bg-white/45 blur-2xl" />
+              <h1 className="relative text-3xl font-black leading-tight text-nt-text-primary drop-shadow-[0_3px_0_rgba(255,255,255,0.8)] md:text-4xl">
+                Hola,{" "}
+                <span className="bg-gradient-to-r from-nt-blue to-nt-purple bg-clip-text text-transparent">
+                  {student.name}
+                </span>
               </h1>
-              <p className="mt-1 text-base font-black text-nt-blue md:text-lg">
+              <p className="relative mt-1 text-base font-black text-nt-blue drop-shadow-[0_2px_0_rgba(255,255,255,0.75)] md:text-xl">
                 Continua tu aventura matematica
               </p>
             </div>
             <img src="/assets/neo.png" alt="NEO" className="hidden h-36 w-auto shrink-0 translate-y-2 drop-shadow-[0_18px_30px_rgba(30,58,138,0.25)] md:block lg:h-48 xl:h-56" />
           </div>
 
-          <div className="-mt-10 grid gap-2 md:-mt-16 md:grid-cols-3 md:items-start lg:-mt-24">
+          <div className="-mt-14 grid gap-2 md:-mt-20 md:grid-cols-3 md:items-start lg:-mt-32">
             {islandCards.map((island) => (
               <div key={island.label} className="rounded-[34px] bg-transparent p-0 text-left">
                 <div className="relative">
@@ -565,72 +444,46 @@ function StudentDashboard() {
         </div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <article className="rounded-nt-card border border-white/80 bg-white/85 p-5 shadow-nt-card backdrop-blur">
-          <h2 className="text-lg font-black text-nt-text-primary">Actividad reciente</h2>
-          <p className="mb-4 text-sm font-semibold text-nt-text-secondary">Ultimo avance registrado</p>
-          <div className="grid gap-2">
-            {recentActivitiesData.map((activity) => (
-              <div key={activity.title} className="flex items-center gap-3 rounded-[18px] bg-white px-3 py-2 shadow-sm">
-                <img src={activity.image} alt="" className="size-11 rounded-[14px] object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-black text-nt-text-primary">{activity.title}</p>
-                  <p className="truncate text-xs font-semibold text-nt-text-secondary">{activity.detail}</p>
-                </div>
-                <span className="shrink-0 rounded-full bg-nt-green/15 px-2.5 py-1 text-xs font-black text-green-700">
-                  {activity.points}
-                </span>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="rounded-nt-card border border-white/80 bg-white/85 p-5 shadow-nt-card backdrop-blur">
-          <h2 className="text-lg font-black text-nt-text-primary">Proximos desafios</h2>
-          <p className="mb-4 text-sm font-semibold text-nt-text-secondary">Retos sugeridos para hoy</p>
-          <div className="grid gap-2">
-            {upcomingChallengesData.map((challenge) => (
-              <div key={challenge.title} className="rounded-[18px] bg-white px-3 py-2 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-extrabold text-nt-text-primary">{challenge.title}</span>
-                  <span className="shrink-0 rounded-full bg-nt-purple/10 px-2.5 py-1 text-xs font-black text-nt-purple">
-                    {challenge.points}
-                  </span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-nt-border">
-                  <div className="h-full rounded-full bg-nt-blue" style={{ width: `${challenge.progress}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-      </div>
-
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-5">
-          <div className="w-full max-w-md rounded-nt-card border border-white/80 bg-white p-6 shadow-nt-soft">
-            <h2 className="text-2xl font-black text-nt-text-primary">Estas seguro de eliminar tu cuenta?</h2>
-            <p className="mt-3 text-sm font-semibold leading-6 text-nt-text-secondary">
-              Esta accion eliminara tu acceso al sistema. Ingresa tu contrasena para confirmar.
-            </p>
-            <input
-              type="password"
-              placeholder="Ingresa tu contrasena"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-5 h-12 w-full rounded-nt-button border border-nt-border bg-white px-4 text-sm font-semibold text-nt-text-primary outline-none transition placeholder:text-nt-text-secondary focus:border-nt-blue focus:ring-4 focus:ring-nt-blue-light/25"
-            />
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <PrimaryButton tone="blue" className="bg-slate-100 text-nt-text-primary shadow-none hover:bg-slate-200" onClick={() => setShowDeleteModal(false)}>
-                Cancelar
-              </PrimaryButton>
-              <PrimaryButton tone="purple" onClick={handleDeleteAccount}>
-                Confirmar eliminacion
-              </PrimaryButton>
+      <section className="rounded-nt-card border border-white/80 bg-white/85 p-5 shadow-nt-card backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="grid size-12 place-items-center rounded-[20px] bg-nt-purple/12 text-nt-purple">
+              <Medal className="size-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-nt-text-primary">Mis Logros</h2>
+              <p className="text-sm font-semibold text-nt-text-secondary">Insignias obtenidas con tu progreso real.</p>
             </div>
           </div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-nt-button bg-nt-purple px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-nt-purple/20"
+            onClick={() => navigate("/achievements")}
+          >
+            Ver logros
+            <ArrowRight className="size-4" />
+          </button>
         </div>
-      )}
+
+        {achievementError ? (
+          <p className="mt-4 rounded-[18px] bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{achievementError}</p>
+        ) : achievements.length ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {achievements.slice(0, 3).map((achievement) => (
+              <div key={achievement.id} className="rounded-[22px] border border-white bg-gradient-to-br from-white to-nt-sky/70 p-4 shadow-sm">
+                <Medal className="size-7 text-nt-purple" />
+                <h3 className="mt-3 font-black text-nt-text-primary">{achievement.title}</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-nt-text-secondary">{achievement.description}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-[20px] bg-nt-sky/60 px-4 py-4 text-sm font-bold text-nt-text-secondary">
+            Completa actividades para desbloquear logros.
+          </p>
+        )}
+      </section>
+
     </StudentLayout>
   );
 }

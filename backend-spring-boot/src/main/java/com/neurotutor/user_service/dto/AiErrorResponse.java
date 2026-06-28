@@ -13,6 +13,10 @@ public class AiErrorResponse {
         return error;
     }
 
+    public String getMessage() {
+        return error;
+    }
+
     public void setError(String error) {
         this.error = error;
     }

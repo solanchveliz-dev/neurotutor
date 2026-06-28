@@ -31,7 +31,7 @@ function ForgotPassword() {
       setTimeout(() => {
         navigate('/reset-password', { state: { email: normalizedEmail } });
       }, 900);
-    } catch (err) {
+    } catch {
       // Por seguridad, mostramos el mismo mensaje aunque haya error
       setMessage('Te enviamos un enlace a tu correo si está registrado');
       setEmail('');

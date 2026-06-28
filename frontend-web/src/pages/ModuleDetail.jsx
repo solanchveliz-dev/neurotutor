@@ -1,13 +1,13 @@
-import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Search, Star } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowRight, CheckCircle2, Lock, Star } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
-import NeoCard from "../components/student/NeoCard";
 import PrimaryButton from "../components/student/PrimaryButton";
 import ProgressCard from "../components/student/ProgressCard";
-import { modulesData } from "../data/modulesData";
-import { getTopicRuta } from "../services/learningService";
+import BackButton from "../components/student/BackButton";
+import { getModuleDetails, getTopicRuta } from "../services/learningService";
+import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
 
 const moduleAssets = {
@@ -20,12 +20,6 @@ const moduleNumbers = {
   fracciones: "01",
   decimales: "02",
   porcentajes: "03",
-};
-
-const numericFallbackMap = {
-  1: "fracciones",
-  2: "decimales",
-  3: "porcentajes",
 };
 
 const levelVisuals = [
@@ -76,108 +70,93 @@ function getProgress(item) {
   return 0;
 }
 
-function normalizeBackendLevel(item, index) {
-  const visual = getLevelVisualByIndex(index, item.titulo);
-  const status = item.estado || "DISPONIBLE";
+function normalizeBackendLevel(metadata, routeItem, progress, index) {
+  const visual = getLevelVisualByIndex(index, metadata.level);
+  const status = routeItem.estado;
 
   return {
-    id: item.id,
+    id: metadata.id,
     name: visual.label,
-    backendTitle: item.titulo || visual.label,
-    description: "Contenido adaptado a tu progreso.",
+    backendTitle: metadata.title,
+    description: metadata.description,
     status,
-    progress: getProgress(item),
+    progress: progress?.progress_percentage ?? getProgress(routeItem),
     unlocked: status !== "BLOQUEADO",
     icon: visual.icon,
     image: visual.image,
+    lessonCount: metadata.lessons_count ?? 0,
   };
 }
 
-function normalizeFallbackLevel(item, index) {
-  const visual = getLevelVisualByIndex(index, item.name);
-
-  return {
-    id: item.id,
-    name: visual.label,
-    backendTitle: item.name || visual.label,
-    description: item.description || visual.description,
-    status: item.status || "Disponible",
-    progress: item.progress || 0,
-    unlocked: item.unlocked === true,
-    icon: visual.icon,
-    image: visual.image,
-  };
+function getModuleKey(title = "") {
+  const normalized = title.toLowerCase();
+  if (normalized.includes("decimal")) return "decimales";
+  if (normalized.includes("porcentaje")) return "porcentajes";
+  if (normalized.includes("fraccion") || normalized.includes("fracción")) return "fracciones";
+  return null;
 }
 
 function ModuleDetail() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { moduleId } = useParams();
+  const [module, setModule] = useState(null);
   const [levels, setLevels] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUsingFallback, setIsUsingFallback] = useState(false);
-
-  const dashboardModule = location.state?.module;
-  const fallbackId = numericFallbackMap[moduleId] ?? moduleId;
-  const fallbackModule = useMemo(
-    () =>
-      modulesData.find((item) => String(item.id) === String(fallbackId)) ??
-      modulesData[0],
-    [fallbackId]
-  );
-
-  const module = fallbackModule
-    ? {
-        ...fallbackModule,
-        id: moduleId,
-        title: dashboardModule?.title ?? fallbackModule.title,
-        description:
-          dashboardModule?.description ??
-          fallbackModule.description ??
-          "Elige un nivel para continuar tu aprendizaje.",
-      }
-    : null;
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     const studentId = getStudentId();
-    const fallbackLevels = (fallbackModule?.levels ?? []).map(normalizeFallbackLevel);
 
     setIsLoading(true);
-    setIsUsingFallback(false);
+    setLoadError("");
 
     if (!studentId) {
-      setLevels(fallbackLevels);
-      setIsUsingFallback(true);
+      setModule(null);
+      setLevels([]);
+      setLoadError("No pudimos identificar al estudiante conectado.");
       setIsLoading(false);
       return;
     }
 
-    getTopicRuta(moduleId, studentId)
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setLevels(data.map(normalizeBackendLevel));
-          setIsUsingFallback(false);
-        } else {
-          setLevels(fallbackLevels);
-          setIsUsingFallback(true);
+    Promise.all([getModuleDetails(moduleId), getTopicRuta(moduleId, studentId)])
+      .then(async ([moduleData, routeData]) => {
+        if (!Array.isArray(moduleData?.levels) || !Array.isArray(routeData)) {
+          throw new Error("Metadata incompleta");
         }
+
+        const routeById = new Map(routeData.map((item) => [String(item.id), item]));
+        const progressResults = await Promise.allSettled(
+          moduleData.levels.map((item) => getModuleProgress(studentId, item.id))
+        );
+        const normalizedLevels = moduleData.levels.map((metadata, index) => {
+          const routeItem = routeById.get(String(metadata.id));
+          if (!routeItem) throw new Error("Ruta académica incompleta");
+          const progressResult = progressResults[index];
+          const progress = progressResult.status === "fulfilled" ? progressResult.value : null;
+          return normalizeBackendLevel(metadata, routeItem, progress, index);
+        });
+
+        setModule(moduleData);
+        setLevels(normalizedLevels);
       })
       .catch(() => {
-        setLevels(fallbackLevels);
-        setIsUsingFallback(true);
+        setModule(null);
+        setLevels([]);
+        setLoadError("No pudimos cargar la información real del módulo.");
       })
       .finally(() => setIsLoading(false));
-  }, [moduleId, fallbackModule]);
+  }, [moduleId]);
 
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
-    { label: "Modulos", active: true, onClick: () => navigate("/learning-path") },
-    { label: "Mis logros", onClick: () => navigate("/learning-path") },
-    { label: "Perfil", onClick: () => navigate("/student-dashboard") },
+    { label: "Modulos", active: true, onClick: () => navigate("/student-dashboard") },
+    { label: "Mis logros", onClick: () => navigate("/achievements") },
+    { label: "Perfil", onClick: () => navigate("/profile") },
   ];
 
-  const moduleAsset = moduleAssets[fallbackId] ?? moduleAssets[fallbackModule?.id];
-  const moduleNumber = moduleNumbers[fallbackId] ?? "01";
+  const moduleKey = getModuleKey(module?.title);
+  const moduleAsset = moduleAssets[moduleKey];
+  const moduleNumber = moduleNumbers[moduleKey];
   const unlockedLevels = levels.filter((item) => item.unlocked).length;
   const averageProgress = levels.length
     ? Math.round(levels.reduce((sum, item) => sum + (item.progress || 0), 0) / levels.length)
@@ -191,19 +170,6 @@ function ModuleDetail() {
     });
   };
 
-  if (!module) {
-    return (
-      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />} topbar={<div />}>
-        <section className="rounded-nt-card border border-white/80 bg-white/90 p-6 text-center shadow-nt-card">
-          <h1 className="text-2xl font-black text-nt-text-primary">Modulo no encontrado</h1>
-          <PrimaryButton type="button" className="mt-5" onClick={() => navigate("/learning-path")}>
-            Volver a la ruta
-          </PrimaryButton>
-        </section>
-      </StudentLayout>
-    );
-  }
-
   if (isLoading) {
     return (
       <StudentLayout sidebar={<AppSidebar items={sidebarItems} />}>
@@ -214,32 +180,27 @@ function ModuleDetail() {
     );
   }
 
+  if (!module) {
+    return (
+      <StudentLayout sidebar={<AppSidebar items={sidebarItems} />} topbar={<div />}>
+        <section className="rounded-nt-card border border-white/80 bg-white/90 p-6 text-center shadow-nt-card">
+          <h1 className="text-2xl font-black text-nt-text-primary">Módulo no disponible</h1>
+          <p className="mt-3 text-sm font-semibold text-nt-text-secondary">{loadError}</p>
+          <PrimaryButton type="button" className="mt-5" onClick={() => navigate("/student-dashboard")}>
+            Volver a la ruta
+          </PrimaryButton>
+        </section>
+      </StudentLayout>
+    );
+  }
+
   return (
     <StudentLayout
       sidebar={<AppSidebar items={sidebarItems} />}
       topbar={
-        <header className="flex w-full flex-col gap-3 rounded-[28px] bg-white/40 px-3 py-2 backdrop-blur-sm md:flex-row md:items-center md:justify-between">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 text-sm font-black text-nt-blue transition hover:text-nt-purple"
-            onClick={() => navigate("/learning-path")}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver a modulos
-          </button>
-          <label className="relative min-w-0 flex-1 md:max-w-lg">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-nt-text-secondary"
-              aria-hidden="true"
-            />
-            <span className="sr-only">Buscar</span>
-            <input
-              type="search"
-              placeholder="Buscar nivel"
-              className="h-12 w-full rounded-nt-button border border-white/80 bg-white/90 pl-11 pr-4 text-sm font-semibold text-nt-text-primary shadow-sm outline-none transition placeholder:text-nt-text-secondary focus:border-nt-blue focus:ring-4 focus:ring-nt-blue-light/25"
-            />
-          </label>
-        </header>
+        <BackButton onClick={() => navigate("/student-dashboard")}>
+          Volver al inicio
+        </BackButton>
       }
       rightPanel={
         <div className="space-y-5">
@@ -247,7 +208,7 @@ function ModuleDetail() {
             title="Progreso del modulo"
             subtitle={`${unlockedLevels}/${levels.length} niveles disponibles`}
             value={averageProgress}
-            totalLabel={isUsingFallback ? "Vista temporal" : "Datos del servidor"}
+            totalLabel="Datos del servidor"
             tone="purple"
           />
 
@@ -285,12 +246,6 @@ function ModuleDetail() {
             </div>
           </div>
 
-          <NeoCard
-            title="Tip de NEO"
-            message="Elige un nivel disponible. Despues podras revisar teoria, practicar y rendir el examen final."
-            actionLabel="Volver al panel"
-            onAction={() => navigate("/student-dashboard")}
-          />
         </div>
       }
     >
@@ -304,23 +259,22 @@ function ModuleDetail() {
                 className="mx-auto h-64 w-full object-contain drop-shadow-[0_28px_40px_rgba(30,58,138,0.22)] lg:h-80"
               />
             ) : (
-              <div className="grid h-64 place-items-center text-7xl lg:h-80">{module.icon}</div>
+              <div className="grid h-64 place-items-center text-7xl font-black text-nt-blue lg:h-80">
+                {module.title?.charAt(0)}
+              </div>
             )}
           </div>
 
           <div>
             <span className="inline-flex rounded-full bg-nt-purple px-3 py-1 text-xs font-black text-white shadow-lg shadow-nt-purple/25">
-              Modulo {moduleNumber}
+              {moduleNumber ? `Módulo ${moduleNumber}` : "Módulo"}
             </span>
             <h1 className="mt-4 text-4xl font-black leading-tight text-nt-text-primary">
-              Modulo {moduleNumber} - {module.title}
+              {module.title}
             </h1>
-            <p className="mt-3 text-base font-semibold leading-7 text-nt-text-secondary">
-              {module.description}
-            </p>
-            {isUsingFallback && (
-              <p className="mt-4 rounded-[18px] bg-nt-yellow/25 px-4 py-3 text-sm font-bold text-amber-700">
-                Mostrando niveles temporales mientras se sincroniza con el servidor.
+            {module.description && (
+              <p className="mt-3 text-base font-semibold leading-7 text-nt-text-secondary">
+                {module.description}
               </p>
             )}
           </div>
@@ -408,7 +362,10 @@ function ModuleDetail() {
                         {item.backendTitle}
                       </p>
                       <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-nt-text-secondary">
-                        {item.description || "Contenido adaptado a tu progreso."}
+                        {item.description}
+                      </p>
+                      <p className="mt-2 text-xs font-black text-nt-purple">
+                        {item.lessonCount} lecciones de teoría
                       </p>
                     </div>
 

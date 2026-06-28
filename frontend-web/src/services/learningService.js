@@ -5,6 +5,26 @@ export const getLearningContent = async (moduloId) => {
   return response.data;
 };
 
+export const getModuleDetails = async (moduleId) => {
+  const response = await api.get(`/api/learning/modules/${moduleId}/details`);
+  return response.data;
+};
+
+export const getLevelDetails = async (levelId) => {
+  const response = await api.get(`/api/learning/levels/${levelId}`);
+  return response.data;
+};
+
+export const getTheoryLessons = async (levelId) => {
+  const response = await api.get(`/api/learning/modules/${levelId}/lessons`);
+  return response.data;
+};
+
+export const getTheoryLesson = async (lessonId) => {
+  const response = await api.get(`/api/learning/lessons/${lessonId}`);
+  return response.data;
+};
+
 export const getTopicRuta = async (moduloId, studentId) => {
   const response = await api.get(`/api/learning/topic-ruta/${moduloId}`, {
     params: { studentId },
@@ -14,6 +34,11 @@ export const getTopicRuta = async (moduloId, studentId) => {
 
 export const getFinalExam = async (moduloId) => {
   const response = await api.get(`/api/learning/exam/${moduloId}`);
+  return response.data;
+};
+
+export const submitFinalExamAttempt = async (payload) => {
+  const response = await api.post("/api/learning/exam-attempts", payload);
   return response.data;
 };
 

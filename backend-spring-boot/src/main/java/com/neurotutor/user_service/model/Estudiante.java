@@ -48,6 +48,34 @@ public class Estudiante {
     private int intentosFallidos = 0;
     private LocalDateTime bloqueadoHasta;
 
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    private String genero;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    private String telefonoTutor;
+    private String nombreTutor;
+
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     // --- GETTERS Y SETTERS ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -84,4 +112,22 @@ public class Estudiante {
 
     public LocalDateTime getBloqueadoHasta() { return bloqueadoHasta; }
     public void setBloqueadoHasta(LocalDateTime bloqueadoHasta) { this.bloqueadoHasta = bloqueadoHasta; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public String getGenero() { return genero; }
+    public void setGenero(String genero) { this.genero = genero; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getTelefonoTutor() { return telefonoTutor; }
+    public void setTelefonoTutor(String telefonoTutor) { this.telefonoTutor = telefonoTutor; }
+
+    public String getNombreTutor() { return nombreTutor; }
+    public void setNombreTutor(String nombreTutor) { this.nombreTutor = nombreTutor; }
 }

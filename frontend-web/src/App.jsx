@@ -12,11 +12,15 @@ import LearningPath from "./pages/LearningPath";
 import ModuleDetail from "./pages/ModuleDetail";
 import LevelActivities from "./pages/LevelActivities";
 import Theory from "./pages/Theory";
+import TheoryLesson from "./pages/TheoryLesson";
 import PracticeExercises from "./pages/PracticeExercises";
 import FinalExam from "./pages/FinalExam";
+import Profile from "./pages/Profile";
+import Achievements from "./pages/Achievements";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStudents from "./pages/admin/AdminStudents";
 import AdminStudentDetail from "./pages/admin/AdminStudentDetail";
+import AdminRoute from "./components/AdminRoute";
 
 function App() {
   const token = localStorage.getItem("token");
@@ -40,9 +44,9 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/students" element={<AdminStudents />} />
-        <Route path="/admin/students/:id" element={<AdminStudentDetail />} />
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />
+        <Route path="/admin/students/:id" element={<AdminRoute><AdminStudentDetail /></AdminRoute>} />
 
         <Route
           path="/diagnostic-exam"
@@ -99,6 +103,24 @@ function App() {
         />
 
         <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/achievements"
+          element={
+            <ProtectedRoute>
+              <Achievements />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/module/:moduleId/level/:levelId"
           element={
             <ProtectedRoute>
@@ -112,6 +134,33 @@ function App() {
           element={
             <ProtectedRoute>
               <Theory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/module/:moduleId/level/:levelId/theory/lesson/:lessonId"
+          element={
+            <ProtectedRoute>
+              <TheoryLesson />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/module/:moduleId/level/:levelId/theory/:lessonId"
+          element={
+            <ProtectedRoute>
+              <TheoryLesson />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/module/:moduleId/level/:levelId/practice"
+          element={
+            <ProtectedRoute>
+              <PracticeExercises />
             </ProtectedRoute>
           }
         />
