@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { diagnosticQuestions } from "../data/diagnosticQuestions";
 import { getDiagnosticReview, getLatestDiagnosticReview } from "../services/diagnosticService";
 import { getStudentId } from "../utils/auth";
 
@@ -25,41 +24,47 @@ function DiagnosticReview() {
   const location = useLocation();
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
   const [review, setReview] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [reviewError, setReviewError] = useState("");
+  const attemptId = location.state?.attemptId;
 
-  useEffect(() => {
-    if (location.state?.isFallback) return;
-
-    const attemptId = location.state?.attemptId;
+  const loadReview = useCallback(() => {
     const studentId = getStudentId();
-
-    if (!attemptId && !studentId) return;
 
     setIsLoading(true);
     setReviewError("");
+    setReview(null);
+    setSelectedQuestionIndex(0);
+
+    if (!attemptId && !studentId) {
+      setReviewError("No pudimos identificar el intento ni al estudiante conectado.");
+      setIsLoading(false);
+      return;
+    }
 
     const request = attemptId ? getDiagnosticReview(attemptId) : getLatestDiagnosticReview(studentId);
 
     request
       .then((data) => setReview(data))
-      .catch(() => setReviewError("No se pudo cargar la revision desde el servidor."))
+      .catch(() => setReviewError("No se pudo cargar la revisión desde el servidor."))
       .finally(() => setIsLoading(false));
-  }, [location.state]);
+  }, [attemptId]);
 
-  const backendQuestions = review?.questions?.map(normalizeReviewQuestion) ?? [];
-  const isBackendReview = backendQuestions.length > 0;
-  const questions = isBackendReview ? backendQuestions : diagnosticQuestions;
-  const answers = location.state?.answers ?? {};
-  const score = review?.correct_answers ?? location.state?.score ?? 0;
-  const total = review?.total_questions ?? location.state?.total ?? questions.length;
-  const percentage = total ? Math.round((score / total) * 100) : 0;
+  useEffect(() => {
+    loadReview();
+  }, [loadReview]);
+
+  const questions = Array.isArray(review?.questions)
+    ? review.questions.map(normalizeReviewQuestion)
+    : [];
+  const score = review?.correct_answers ?? 0;
+  const total = review?.total_questions ?? 0;
+  const percentage = review?.score_percentage ?? 0;
   const incorrectCount = total - score;
   const selectedQuestion = questions[selectedQuestionIndex] ?? questions[0];
-  const selectedIndex = isBackendReview ? selectedQuestion?.selectedAnswer : answers[selectedQuestion?.id];
-  const isCorrect = isBackendReview
-    ? selectedQuestion?.correct
-    : selectedIndex === selectedQuestion?.correctAnswer;
+  const selectedIndex = selectedQuestion?.selectedAnswer;
+  const isCorrect = selectedQuestion?.correct === true;
+  const assignedLevel = review?.assigned_level;
 
   const getOptionClass = (optionIndex) => {
     const isUserAnswer = selectedIndex === optionIndex;
@@ -70,6 +75,51 @@ function DiagnosticReview() {
     return "border-nt-border bg-white text-nt-text-primary";
   };
 
+  if (isLoading) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4">
+        <Card className="w-full max-w-lg rounded-[32px] border border-white/85 bg-white/90 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
+          <CardContent className="p-8">
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
+            <p className="mt-4 font-black text-nt-text-primary">Cargando tu revisión...</p>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (reviewError) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4">
+        <Card className="w-full max-w-lg rounded-[32px] border border-amber-200 bg-white/92 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
+          <CardContent className="p-8">
+            <h1 className="text-2xl font-black text-nt-text-primary">Revisión no disponible</h1>
+            <p className="mt-3 text-sm font-semibold text-nt-text-secondary">{reviewError}</p>
+            <Button type="button" className="mt-5 h-11 rounded-[18px] bg-nt-blue px-5 font-black text-white" onClick={loadReview}>
+              Reintentar
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center px-4">
+        <Card className="w-full max-w-lg rounded-[32px] border border-white/85 bg-white/92 p-0 text-center shadow-[0_24px_70px_rgba(37,99,235,0.18)]">
+          <CardContent className="p-8">
+            <h1 className="text-2xl font-black text-nt-text-primary">Sin respuestas para revisar</h1>
+            <p className="mt-3 text-sm font-semibold text-nt-text-secondary">El servidor no devolvió preguntas para este intento.</p>
+            <Button type="button" className="mt-5 h-11 rounded-[18px] bg-nt-blue px-5 font-black text-white" onClick={() => navigate("/student-dashboard")}>
+              Volver al dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center bg-no-repeat px-4 py-8 text-nt-text-primary">
       <div className="pointer-events-none absolute inset-0 bg-white/5" />
@@ -79,23 +129,16 @@ function DiagnosticReview() {
             Ver respuestas
           </h1>
           <p className="mt-2 text-sm font-bold text-nt-text-secondary sm:text-base">
-            {reviewError || "Revisa tus respuestas y aprende de cada pregunta."}
+            Revisa tus respuestas y aprende de cada pregunta.
           </p>
         </header>
-
-        {isLoading && (
-          <div className="mb-5 flex justify-center">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-nt-blue border-t-transparent" />
-          </div>
-        )}
 
         <div className="grid gap-5 lg:grid-cols-[88px_minmax(0,1fr)_280px] lg:items-start">
           <Card className="rounded-[30px] border border-white/80 bg-white/82 p-0 shadow-[0_18px_46px_rgba(37,99,235,0.14)] backdrop-blur-xl">
             <CardContent className="p-4">
               <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
                 {questions.map((question, index) => {
-                  const questionAnswer = isBackendReview ? question.selectedAnswer : answers[question.id];
-                  const questionCorrect = isBackendReview ? question.correct : questionAnswer === question.correctAnswer;
+                  const questionCorrect = question.correct;
                   const isSelected = selectedQuestionIndex === index;
 
                   return (
@@ -228,6 +271,11 @@ function DiagnosticReview() {
               <div className="text-center">
                 <p className="text-5xl font-black text-nt-blue">{percentage}%</p>
                 <p className="mt-1 text-sm font-black text-nt-text-primary">rendimiento</p>
+                {assignedLevel && (
+                  <p className="mt-3 rounded-full bg-nt-purple/10 px-3 py-1.5 text-xs font-black text-nt-purple">
+                    Nivel {assignedLevel}
+                  </p>
+                )}
               </div>
 
               <div className="mt-5 grid gap-3">

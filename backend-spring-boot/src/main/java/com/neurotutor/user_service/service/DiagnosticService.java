@@ -257,7 +257,7 @@ public class DiagnosticService {
 
     private DiagnosticReviewResponse toReviewResponse(DiagnosticAttempt attempt) {
         List<DiagnosticReviewResponse.QuestionReview> questionReviews = diagnosticAnswerRepository
-                .findByAttemptId(attempt.getId())
+                .findByAttemptIdOrderByQuestionOrderNumberAsc(attempt.getId())
                 .stream()
                 .map(answer -> {
                     DiagnosticQuestion question = answer.getQuestion();

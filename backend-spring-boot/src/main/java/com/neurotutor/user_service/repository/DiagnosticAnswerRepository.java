@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface DiagnosticAnswerRepository extends JpaRepository<DiagnosticAnswer, Long> {
-    List<DiagnosticAnswer> findByAttemptId(Long attemptId);
+    List<DiagnosticAnswer> findByAttemptIdOrderByQuestionOrderNumberAsc(Long attemptId);
 }
