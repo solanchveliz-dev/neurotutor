@@ -139,7 +139,8 @@ public class LearningService {
                 if (nivelEstudiante.equals("AVANZADO")) estado = "EN_CURSO";
             }
 
-            ruta.add(new ModuleItem(m.getId().toString(), m.getTitulo(), 0, m.getEjerciciosTotales(), estado));
+            ruta.add(new ModuleItem(m.getId().toString(), m.getTitulo(), 0, m.getEjerciciosTotales(), estado,m.getTema().getNombre(),
+                    m.getNivelRequerido()));
         }
         return ruta;
     }
@@ -160,7 +161,7 @@ public class LearningService {
         Modulo m = moduloRepository.findById(moduloId).get();
         List<Exercise> ejercicios = ejercicioRepository.findByModuloIdAndEsExamenFinal(moduloId, false)
                 .stream().map(e -> new Exercise(e.getId().toString(), e.getEnunciado(), e.getOpciones(),
-                        e.getRespuestaCorrectaIndex(), e.getExplicacionTutorIa(), e.getPuntos()))
+                        e.getRespuestaCorrectaIndex(), e.getExplicacionTutorIa(), e.getPuntos(), e.getSubtema()))
                 .collect(Collectors.toList());
         return new LearningContentResponse(m.getTeoriaHtml(), ejercicios);
     }
