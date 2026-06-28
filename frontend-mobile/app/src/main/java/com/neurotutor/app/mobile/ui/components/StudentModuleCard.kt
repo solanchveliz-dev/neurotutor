@@ -1,7 +1,6 @@
 package com.neurotutor.app.mobile.ui.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,15 +31,22 @@ fun StudentModuleCard(
 ) {
     val isBloqueado = modulo.estado == ModuleStatus.BLOQUEADO
     val isEnCurso = modulo.estado == ModuleStatus.EN_CURSO
-    
+
     // 🎨 ASIGNACIÓN DE ICONOS SEGÚN EL TEMA (HU-20)
     val iconRes = when {
-        modulo.titulo.contains("Fracciones", ignoreCase = true) -> R.drawable.imagen_pregunta4_frutas // Pizza/Frutas
-        modulo.titulo.contains("Decimales", ignoreCase = true) -> R.drawable.imagen_pregunta5_sogas // Gráfico
-        modulo.titulo.contains("Porcentajes", ignoreCase = true) -> R.drawable.imagen_pregunta10_jugonaranja // "100"
-        else -> R.drawable.ic_launcher_foreground
+        modulo.titulo.contains("Fracciones", ignoreCase = true) -> R.drawable.ic_fracciones
+        modulo.titulo.contains("Decimales", ignoreCase = true) -> R.drawable.ic_decimales
+        modulo.titulo.contains("Porcentajes", ignoreCase = true) -> R.drawable.ic_porcentajes
+        else -> R.drawable.ic_modulo_default
     }
 
+    Image(
+        painter = painterResource(id = iconRes),
+        contentDescription = modulo.titulo,
+        modifier = Modifier
+            .size(55.dp)
+            .padding(bottom = 8.dp)
+    )
     Card(
         modifier = Modifier
             .fillMaxWidth()

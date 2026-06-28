@@ -1,4 +1,5 @@
 package com.neurotutor.app.mobile.data.model.common
 
-class AiTutorResponse {
-}
+data class AiTutorResponse(
+    val answer: String
+)

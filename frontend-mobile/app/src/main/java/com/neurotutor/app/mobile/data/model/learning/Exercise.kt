@@ -6,5 +6,6 @@ data class Exercise(
     val options: List<String>,
     val correctAnswerIndex: Int,
     val tutorExplanation: String,
-    val points: Int = 10
+    val points: Int = 10,
+    val subtema:String
 )

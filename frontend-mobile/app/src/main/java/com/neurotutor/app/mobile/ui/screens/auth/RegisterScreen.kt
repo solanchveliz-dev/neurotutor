@@ -1,13 +1,17 @@
 package com.neurotutor.app.mobile.ui.screens.auth
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,14 +20,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.ui.theme.*
@@ -42,11 +51,22 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+    // Estados de visibilidad para las contraseñas
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
+
+    var expandedGrado by remember { mutableStateOf(false) }
+    var expandedSeccion by remember { mutableStateOf(false) }
+
+    val listaGrados = listOf("1ro", "2do", "3ro", "4to", "5to", "6to")
+    val listaSecciones = listOf("A", "B", "C", "D")
 
     fun isValidEmail(email: String): Boolean {
         val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$")
@@ -68,7 +88,7 @@ fun RegisterScreen(
     fun onPasswordChange(newPassword: String) {
         password = newPassword
         passwordError = when {
-            newPassword.isNotEmpty() && !isValidPassword(newPassword) -> "La contraseña debe tener mínimo 8 caracteres"
+            newPassword.isNotEmpty() && !isValidPassword(newPassword) -> "Mínimo 8 caracteres"
             else -> null
         }
         if (confirmPassword.isNotEmpty()) {
@@ -103,115 +123,91 @@ fun RegisterScreen(
         }
     }
 
-    val scrollState = rememberScrollState()
-    var expandedGrado by remember { mutableStateOf(false) }
-    var expandedSeccion by remember { mutableStateOf(false) }
-
-    val listaGrados = listOf("1ro", "2do", "3ro", "4to", "5to", "6to")
-    val listaSecciones = listOf("A", "B", "C", "D")
-
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(BackgroundLight)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFF8FAFC),
+                        Color(0xFFEDF4FF),
+                        Color(0xFFF5F3FF)
+                    )
+                )
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .zIndex(2f)
                 .verticalScroll(scrollState)
-                .padding(24.dp),
+                .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(44.dp))
 
+            // 🏷️ TÍTULO NEUROTUTOR COHERENTE
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = Color(0xFF0052FF), fontWeight = FontWeight.Black)) {
+                        append("NEURO")
+                    }
+                    withStyle(style = SpanStyle(color = Color(0xFF8B5CF6), fontWeight = FontWeight.Black)) {
+                        append("TUTOR")
+                    }
+                },
+                fontSize = 42.sp,
+                textAlign = TextAlign.Center,
+                letterSpacing = 0.5.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Crea tu cuenta y\ncomienza tu aventura",
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E293B),
+                textAlign = TextAlign.Center,
+                lineHeight = 26.sp
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 🤖 BOX DE LA MASCOTA ACTUALIZADO (Con neo_register y confetti)
             Box(
                 modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color(0xFF8E7CFE), Color(0xFF5E49B0))
-                        )
-                    ),
+                    .fillMaxWidth()
+                    .height(260.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = "Logo",
-                    modifier = Modifier.size(60.dp),
-                    tint = Color.White
+                Image(
+                    painter = painterResource(id = R.drawable.confetti_decorations),
+                    contentDescription = null,
+                    modifier = Modifier.size(220.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+                Image(
+                    painter = painterResource(id = R.drawable.neo_register),
+                    contentDescription = "Neo Registro",
+                    modifier = Modifier.size(280.dp),
+                    contentScale = ContentScale.Fit
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "NeuroTutor",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryPurple
-            )
-
-            Text(
-                text = "Aprende matemáticas de forma inteligente",
-                fontSize = 14.sp,
-                color = TextGray,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(TabUnselected)
-                    .padding(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = onNavigateToLogin,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = TextDark
-                    ),
-                    elevation = null
-                ) {
-                    Text("Iniciar Sesión", fontWeight = FontWeight.SemiBold)
-                }
-
-                Button(
-                    onClick = { },
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .shadow(2.dp, RoundedCornerShape(24.dp))
-                        .background(TabSelected, RoundedCornerShape(24.dp)),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = TabSelected,
-                        contentColor = TextDark
-                    ),
-                    elevation = null
-                ) {
-                    Text("Registrarse", fontWeight = FontWeight.SemiBold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
+            // 💳 TARJETA CONTENEDORA DE FORMULARIO MODERNA
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(8.dp, RoundedCornerShape(24.dp)),
+                    .shadow(4.dp, RoundedCornerShape(24.dp)),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp)
+                    modifier = Modifier.padding(20.dp)
                 ) {
                     FormLabel("Nombre Completo")
                     CustomTextField(
@@ -238,21 +234,21 @@ fun RegisterScreen(
                         expanded = expandedGrado,
                         onExpandedChange = { expandedGrado = !expandedGrado }
                     ) {
-                        TextField(
+                        OutlinedTextField(
                             value = grado,
                             onValueChange = {},
                             readOnly = true,
-                            placeholder = { Text("Selecciona tu grado", color = Color.LightGray) },
+                            placeholder = { Text("Selecciona tu grado", color = Color(0xFF94A3B8)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedGrado) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .clip(RoundedCornerShape(16.dp)),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = InputBackground,
-                                unfocusedContainerColor = InputBackground,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color(0xFFF8FAFC),
+                                unfocusedContainerColor = Color(0xFFF8FAFC),
+                                focusedBorderColor = Color(0xFF8B5CF6),
+                                unfocusedBorderColor = Color(0xFFE2E8F0)
                             )
                         )
                         ExposedDropdownMenu(
@@ -278,21 +274,21 @@ fun RegisterScreen(
                         expanded = expandedSeccion,
                         onExpandedChange = { expandedSeccion = !expandedSeccion }
                     ) {
-                        TextField(
+                        OutlinedTextField(
                             value = seccion,
                             onValueChange = {},
                             readOnly = true,
-                            placeholder = { Text("Selecciona tu sección", color = Color.LightGray) },
+                            placeholder = { Text("Selecciona tu sección", color = Color(0xFF94A3B8)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSeccion) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .clip(RoundedCornerShape(16.dp)),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = InputBackground,
-                                unfocusedContainerColor = InputBackground,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color(0xFFF8FAFC),
+                                unfocusedContainerColor = Color(0xFFF8FAFC),
+                                focusedBorderColor = Color(0xFF8B5CF6),
+                                unfocusedBorderColor = Color(0xFFE2E8F0)
                             )
                         )
                         ExposedDropdownMenu(
@@ -319,6 +315,8 @@ fun RegisterScreen(
                         onValueChange = { onPasswordChange(it) },
                         placeholder = "********",
                         isPassword = true,
+                        passwordVisible = passwordVisible,
+                        onVisibilityChange = { passwordVisible = !passwordVisible },
                         isError = passwordError != null,
                         errorText = passwordError,
                         successText = if (password.isNotEmpty() && passwordError == null) "✓ Contraseña válida" else null
@@ -332,13 +330,16 @@ fun RegisterScreen(
                         onValueChange = { onConfirmPasswordChange(it) },
                         placeholder = "********",
                         isPassword = true,
+                        passwordVisible = confirmPasswordVisible,
+                        onVisibilityChange = { confirmPasswordVisible = !confirmPasswordVisible },
                         isError = confirmPasswordError != null,
                         errorText = confirmPasswordError,
-                        successText = if (confirmPassword.isNotEmpty() && confirmPasswordError == null) "✓ Contraseñas coinciden" else null
+                        successText = if (confirmPassword.isNotEmpty() && confirmPasswordError == null) "✓ Las contraseñas coinciden" else null
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
 
+                    // 🟣 BOTÓN REGISTRARSE ESTILIZADO
                     Button(
                         onClick = {
                             authViewModel.performRegister(
@@ -353,39 +354,59 @@ fun RegisterScreen(
                         enabled = isFormValid && !authViewModel.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(28.dp),
+                            .height(56.dp)
+                            .shadow(2.dp, RoundedCornerShape(16.dp)),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormValid) PrimaryPurple else ButtonGray,
-                            contentColor = if (isFormValid) Color.White else TextDark
+                            containerColor = Color(0xFF7C3AED),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFFCBD5E1),
+                            disabledContentColor = Color(0xFF64748B)
                         )
                     ) {
                         if (authViewModel.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                         } else {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("Registrarse", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Text("Crear cuenta", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
 
                     if (authViewModel.errorMessage != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = authViewModel.errorMessage!!,
-                            color = Color.Red,
-                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 🔗 ENLACE DE RETORNO AL LOGIN
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = Color(0xFF475569), fontWeight = FontWeight.Medium)) {
+                        append("¿Ya tienes una cuenta? ")
+                    }
+                    withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
+                        append("Inicia sesión")
+                    }
+                },
+                fontSize = 15.sp,
+                modifier = Modifier.clickable { onNavigateToLogin() }
+            )
 
             Spacer(modifier = Modifier.height(40.dp))
         }
@@ -397,10 +418,10 @@ fun FormLabel(text: String) {
     Text(
         text = text,
         fontWeight = FontWeight.Bold,
-        color = TextDark,
-        fontSize = 14.sp
+        color = Color(0xFF1E293B),
+        fontSize = 14.sp,
+        modifier = Modifier.padding(start = 2.dp, bottom = 6.dp)
     )
-    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable
@@ -409,42 +430,57 @@ fun CustomTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     isPassword: Boolean = false,
+    passwordVisible: Boolean = false,
+    onVisibilityChange: () -> Unit = {},
     isError: Boolean = false,
     errorText: String? = null,
     successText: String? = null
 ) {
     Column {
-        TextField(
+        OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = Color.LightGray) },
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp)),
+            placeholder = { Text(placeholder, color = Color(0xFF94A3B8), fontSize = 15.sp) },
+            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = if (isPassword) {
+                {
+                    IconButton(onClick = onVisibilityChange) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = "Cambiar visibilidad",
+                            modifier = Modifier.size(22.dp),
+                            tint = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+            } else null,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
             isError = isError,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = InputBackground,
-                unfocusedContainerColor = InputBackground,
-                disabledContainerColor = InputBackground,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                errorIndicatorColor = Color.Transparent
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFF8FAFC),
+                unfocusedContainerColor = Color(0xFFF8FAFC),
+                focusedBorderColor = Color(0xFF8B5CF6),
+                unfocusedBorderColor = Color(0xFFE2E8F0),
+                errorBorderColor = Color(0xFFEF4444)
             )
         )
         if (isError && errorText != null) {
             Text(
                 text = errorText,
-                color = MaterialTheme.colorScheme.error,
+                color = Color(0xFFEF4444),
                 fontSize = 12.sp,
-                modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(start = 6.dp, top = 4.dp)
             )
         } else if (successText != null) {
             Text(
                 text = successText,
-                color = PrimaryPurple,
+                color = Color(0xFF10B981),
                 fontSize = 12.sp,
-                modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(start = 6.dp, top = 4.dp)
             )
         }
     }

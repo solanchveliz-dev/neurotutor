@@ -2,8 +2,8 @@ package com.neurotutor.app.mobile.ui.screens.diagnostic
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.neurotutor.app.mobile.data.model.auth.DiagnosticRequest
-import com.neurotutor.app.mobile.data.model.auth.DiagnosticResponse
+import com.neurotutor.app.mobile.data.model.diagnostic.DiagnosticRequest
+import com.neurotutor.app.mobile.data.model.diagnostic.DiagnosticResponse
 import com.neurotutor.app.mobile.data.model.common.QuestionResult
 import com.neurotutor.app.mobile.data.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,8 +71,7 @@ class DiagnosticResultsViewModel : ViewModel() {
                     ))
                 }
 
-                // Usamos el modelo importado de data/model/diagnostic
-                val request = com.neurotutor.app.mobile.data.model.diagnostic.DiagnosticRequest(studentId, respuestasAlumno)
+                val request = DiagnosticRequest(studentId, respuestasAlumno)
                 val response = RetrofitClient.apiService.submitDiagnostic(request)
 
                 if (response.isSuccessful && response.body() != null) {

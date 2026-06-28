@@ -1,10 +1,11 @@
 package com.neurotutor.app.mobile.ui.screens.dashboard
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.neurotutor.app.mobile.data.local.ProgressManager
 import com.neurotutor.app.mobile.data.model.learning.ModuleItem
-import com.neurotutor.app.mobile.data.model.learning.ModuleStatus
 import com.neurotutor.app.mobile.data.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,20 +25,20 @@ data class StudentDashboardUiState(
     val errorMessage: String? = null
 )
 
-class StudentDashboardViewModel : ViewModel() {
+class StudentDashboardViewModel(private val appContext: Context) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StudentDashboardUiState())
     val uiState: StateFlow<StudentDashboardUiState> = _uiState.asStateFlow()
 
+    private lateinit var progressManager: ProgressManager
+    private var hasClearedProgress = false
+
+    init {
+        progressManager = ProgressManager(appContext)
+    }
+
     fun cargarInformacionReal(studentId: String) {
         val cleanId = studentId.replace("\"", "").trim()
-        
-        Log.d("DashboardVM", "🚀 Intentando llamar a API con ID limpio: '$cleanId'")
-
-        if (cleanId.isEmpty() || cleanId == "null") {
-            _uiState.update { it.copy(isLoading = false, errorMessage = "Error: El usuario no inició sesión correctamente.") }
-            return
-        }
 
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
@@ -52,6 +53,21 @@ class StudentDashboardViewModel : ViewModel() {
                         else -> "Básico 🌱"
                     }
 
+                    // Limpiar progreso SOLO LA PRIMERA VEZ (para empezar desde 0)
+                    if (!hasClearedProgress) {
+                        progressManager.clearAllProgressForStudent(cleanId)
+                        hasClearedProgress = true
+                    }
+
+                    // Calcular progreso real basado en ejercicios completados localmente
+                    val modulosConProgreso = perfil.modulos.map { modulo ->
+                        val ejerciciosCompletados = progressManager.getCompletedExercisesCount(cleanId, modulo.id)
+                        Log.d("Progress", "Módulo ${modulo.id} - Completados: $ejerciciosCompletados de ${modulo.ejerciciosTotales}")
+                        modulo.copy(
+                            ejerciciosCompletados = ejerciciosCompletados
+                        )
+                    }
+
                     withContext(Dispatchers.Main) {
                         _uiState.update {
                             it.copy(
@@ -60,28 +76,29 @@ class StudentDashboardViewModel : ViewModel() {
                                 gradoSeccion = perfil.gradoSeccion,
                                 nivelActual = nivelEspanol,
                                 puntosTotales = perfil.puntosTotales,
-                                modulos = perfil.modulos
+                                modulos = modulosConProgreso
                             )
                         }
                     }
                 } else {
                     val code = response.code()
-                    val errorBody = response.errorBody()?.string() ?: "Sin detalle"
-                    Log.e("DashboardVM", "❌ Error $code: $errorBody")
-                    
                     withContext(Dispatchers.Main) {
-                        _uiState.update { 
-                            it.copy(isLoading = false, errorMessage = "Error $code: No se encontró tu perfil. Revisa que el ID exista en MySQL.") 
+                        _uiState.update {
+                            it.copy(isLoading = false, errorMessage = "Error $code: No se encontró el perfil.")
                         }
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = "Error de red: ${e.localizedMessage}")
+                        it.copy(isLoading = false, errorMessage = "Error de conexión: ${e.localizedMessage}")
                     }
                 }
             }
         }
+    }
+
+    fun refreshProgress(studentId: String) {
+        cargarInformacionReal(studentId)
     }
 }

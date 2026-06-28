@@ -1,7 +1,13 @@
 package com.neurotutor.app.mobile.ui.screens.diagnostic
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -11,13 +17,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neurotutor.app.mobile.R
+import kotlinx.coroutines.delay
 
 data class Question(
     val textBeforeImage: String,
@@ -54,75 +63,227 @@ fun DiagnosticScreen(
     val calificaciones = remember { mutableStateListOf<String>() }
     val labels = listOf("a", "b", "c", "d")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val currentQuestion = questions.getOrNull(currentQuestionIndex)
+    var showIntroOverlay by remember { mutableStateOf(true) }
 
-        if (currentQuestion != null) {
-            Text(text = "Evaluación de Diagnóstico", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), modifier = Modifier.padding(top = 8.dp))
-            Text(text = "Pregunta ${currentQuestionIndex + 1} de ${questions.size}", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 20.dp))
+    // Estados para controlar el overlay intermedio de análisis
+    var showAnalyzingOverlay by remember { mutableStateOf(false) }
+    var analyzingText by remember { mutableStateOf("Estoy analizando tus respuestas...") }
 
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(text = currentQuestion.textBeforeImage, fontSize = 17.sp, lineHeight = 24.sp, color = Color(0xFF334155))
+    // Animación de flotación vertical sutil compartida
+    val infiniteTransition = rememberInfiniteTransition(label = "NeoFloatingTransition")
+    val dy by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1300, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "NeoFloatingOffset"
+    )
 
-                    if (currentQuestion.imageRes != null) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Box(modifier = Modifier.fillMaxWidth().height(180.dp).border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                            Image(painter = painterResource(id = currentQuestion.imageRes), contentDescription = null, modifier = Modifier.padding(8.dp), contentScale = ContentScale.Fit)
+    // Controlador del tiempo y textos secuenciales del overlay de análisis (2 segundos totales)
+    LaunchedEffect(showAnalyzingOverlay) {
+        if (showAnalyzingOverlay) {
+            analyzingText = "Estoy analizando tus respuestas..."
+            delay(1000)
+            analyzingText = "Descubriendo tu nivel ideal..."
+            delay(1000)
+            showAnalyzingOverlay = false
+            onNavigateToAssignment(studentId, calificaciones.toList())
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val currentQuestion = questions.getOrNull(currentQuestionIndex)
+
+            if (currentQuestion != null) {
+                Text(text = "Evaluación de Diagnóstico", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), modifier = Modifier.padding(top = 8.dp))
+                Text(text = "Pregunta ${currentQuestionIndex + 1} de ${questions.size}", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 20.dp))
+
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(text = currentQuestion.textBeforeImage, fontSize = 17.sp, lineHeight = 24.sp, color = Color(0xFF334155))
+
+                        if (currentQuestion.imageRes != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(modifier = Modifier.fillMaxWidth().height(180.dp).border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                                Image(painter = painterResource(id = currentQuestion.imageRes), contentDescription = null, modifier = Modifier.padding(8.dp), contentScale = ContentScale.Fit)
+                            }
+                        }
+
+                        if (currentQuestion.textAfterImage != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(text = currentQuestion.textAfterImage, fontSize = 17.sp, lineHeight = 24.sp, color = Color(0xFF334155))
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        currentQuestion.options.forEachIndexed { index, option ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(selected = (selectedOption == index), onClick = { selectedOption = index })
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(selected = (selectedOption == index), onClick = { selectedOption = index })
+                                Text(text = "${labels[index]})  $option", fontSize = 16.sp, color = if (selectedOption == index) MaterialTheme.colorScheme.primary else Color(0xFF1E293B), fontWeight = if (selectedOption == index) FontWeight.SemiBold else FontWeight.Normal, modifier = Modifier.padding(start = 10.dp))
+                            }
                         }
                     }
+                }
 
-                    if (currentQuestion.textAfterImage != null) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(text = currentQuestion.textAfterImage, fontSize = 17.sp, lineHeight = 24.sp, color = Color(0xFF334155))
+                Spacer(modifier = Modifier.height(30.dp))
+
+                Button(
+                    onClick = {
+                        selectedOption?.let { idx ->
+                            calificaciones.add(labels[idx].uppercase())
+                        }
+
+                        if (currentQuestionIndex < questions.size - 1) {
+                            currentQuestionIndex++
+                            selectedOption = null
+                        } else {
+                            // En lugar de navegar directo, activamos la transición visual de análisis
+                            showAnalyzingOverlay = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(0.8f).height(48.dp),
+                    enabled = selectedOption != null
+                ) {
+                    Text(
+                        text = if (currentQuestionIndex < questions.size - 1) "Siguiente" else "Finalizar Examen",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // Overlay Introductorio inicial
+        AnimatedVisibility(
+            visible = showIntroOverlay,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xB30F172A))
+                    .clickable(enabled = true, onClick = {}),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .wrapContentHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(8.dp, RoundedCornerShape(20.dp))
+                            .background(Color.White, RoundedCornerShape(20.dp))
+                            .border(2.dp, Color(0xFFEDF4FF), RoundedCornerShape(20.dp))
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            text = "¡Hola! Vamos a descubrir tu nivel actual para ayudarte a aprender mejor.",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1E293B),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 22.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Image(
+                        painter = painterResource(id = R.drawable.neo_diagnostic_intro),
+                        contentDescription = "Asistente Neo",
+                        modifier = Modifier
+                            .size(220.dp)
+                            .offset(y = dy.dp),
+                        contentScale = ContentScale.Fit
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = { showIntroOverlay = false },
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .height(54.dp)
+                            .shadow(6.dp, RoundedCornerShape(16.dp)),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED), contentColor = Color.White)
+                    ) {
+                        Text(text = "Comenzar", fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                    }
+                }
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // OVERLAY TEMPORAL DE ANÁLISIS INTERMEDIO (NEO_ANALYZING)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        AnimatedVisibility(
+            visible = showAnalyzingOverlay,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xD90F172A)) // Atenúa y bloquea la pantalla trasera de forma sutil
+                    .clickable(enabled = true, onClick = {}),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    // Globo de diálogo superior dinámico
+                    Box(
+                        modifier = Modifier
+                            .wrapContentSize()
+                            .shadow(6.dp, RoundedCornerShape(16.dp))
+                            .background(Color.White, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = analyzingText,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                            textAlign = TextAlign.Center
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    currentQuestion.options.forEachIndexed { index, option ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(selected = (selectedOption == index), onClick = { selectedOption = index })
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(selected = (selectedOption == index), onClick = { selectedOption = index })
-                            Text(text = "${labels[index]})  $option", fontSize = 16.sp, color = if (selectedOption == index) MaterialTheme.colorScheme.primary else Color(0xFF1E293B), fontWeight = if (selectedOption == index) FontWeight.SemiBold else FontWeight.Normal, modifier = Modifier.padding(start = 10.dp))
-                        }
-                    }
+                    // Mascota Inteligente Libre (Con Lentes / Analizando)
+                    Image(
+                        painter = painterResource(id = R.drawable.neo_analyzing),
+                        contentDescription = "Neo Analizando respuestas",
+                        modifier = Modifier
+                            .size(200.dp)
+                            .offset(y = dy.dp),
+                        contentScale = ContentScale.Fit
+                    )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            Button(
-                onClick = {
-                    selectedOption?.let { idx ->
-                        calificaciones.add(labels[idx].uppercase())
-                    }
-
-                    if (currentQuestionIndex < questions.size - 1) {
-                        currentQuestionIndex++
-                        selectedOption = null
-                    } else {
-                        onNavigateToAssignment(studentId, calificaciones.toList())
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(0.8f).height(48.dp),
-                enabled = selectedOption != null
-            ) {
-                Text(
-                    text = if (currentQuestionIndex < questions.size - 1) "Siguiente" else "Finalizar Examen",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
     }
