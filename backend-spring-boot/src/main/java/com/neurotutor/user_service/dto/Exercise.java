@@ -9,15 +9,17 @@ public class Exercise {
     private int correctAnswerIndex;
     private String tutorExplanation;
     private int points;
+    private String subtema;
 
     public Exercise(String id, String question, List<String> options,
-                       int correctAnswerIndex, String tutorExplanation, int points) {
+                       int correctAnswerIndex, String tutorExplanation, int points,String subtema) {
         this.id = id;
         this.question = question;
         this.options = options;
         this.correctAnswerIndex = correctAnswerIndex;
         this.tutorExplanation = tutorExplanation;
         this.points = points;
+        this.subtema= subtema;
     }
 
     // Getters y Setters
@@ -38,4 +40,11 @@ public class Exercise {
 
     public int getPoints() { return points; }
     public void setPoints(int points) { this.points = points; }
+    public String getSubtema() {
+        return subtema;
+    }
+
+    public void setSubtema(String subtema) {
+        this.subtema = subtema;
+    }
 }

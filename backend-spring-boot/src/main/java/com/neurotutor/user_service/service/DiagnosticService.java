@@ -109,7 +109,9 @@ public class DiagnosticService {
                     m.getTitulo(),
                     0, // ejerciciosCompletados (inicial)
                     m.getEjerciciosTotales(),
-                    estadoModulo
+                    estadoModulo,
+                    m.getTema().getNombre(),
+                    m.getNivelRequerido()
             ));
         }
 
