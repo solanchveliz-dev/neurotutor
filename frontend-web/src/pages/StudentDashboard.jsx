@@ -9,13 +9,38 @@ import { getStudentProfile } from "../services/profileService";
 import { getStudentProgress } from "../services/progressService";
 import { getStudentAchievements } from "../services/achievementService";
 import { getStudentId } from "../utils/auth";
+import { getAchievementImage, sortAchievementsByUnlockedAt } from "../utils/achievementVisuals";
 
-const normalizeText = (value = "") =>
-  value
-    .toString()
+const normalizeText = (value) => {
+  if (value === null || value === undefined) return "";
+
+  return String(value)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+};
+
+const clampPercentage = (value) => Math.min(Math.max(Number(value) || 0, 0), 100);
+
+const achievementCardVisuals = {
+  FIRST_THEORY_COMPLETED: {
+    card: "border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-white",
+    glow: "bg-violet-400",
+  },
+  POINTS_100: {
+    card: "border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-white",
+    glow: "bg-amber-400",
+  },
+  DIAGNOSTIC_COMPLETED: {
+    card: "border-sky-200 bg-gradient-to-br from-sky-50 via-cyan-50 to-white",
+    glow: "bg-sky-400",
+  },
+};
+
+const defaultAchievementVisual = {
+  card: "border-blue-100 bg-gradient-to-br from-slate-50 via-blue-50 to-white",
+  glow: "bg-blue-400",
+};
 
 const getModuleLevels = (module) => {
   const rawLevels = module?.levels ?? module?.niveles ?? module?.topics ?? module?.ruta;
@@ -71,10 +96,12 @@ function StudentDashboard() {
         }),
       ]);
       const legacyProfile = await getStudentDashboard(studentId).catch(() => null);
-      const [grade = "", section = ""] = (legacyProfile?.gradoSeccion || "").split(" ");
+      const [grade = "", section = ""] = String(legacyProfile?.gradoSeccion ?? "").split(" ");
 
       setProgressSummary(progress);
-      setAchievements(Array.isArray(achievementData?.unlocked) ? achievementData.unlocked : []);
+      setAchievements(
+        Array.isArray(achievementData?.unlocked) ? achievementData.unlocked.filter(Boolean) : []
+      );
 
       setStudent({
         name: profile.name,
@@ -82,24 +109,25 @@ function StudentDashboard() {
         section: profile.section || section,
         level: profile.level,
         points: profile.points ?? 0,
-        gender: profile?.gender || legacyProfile?.gender || legacyProfile?.genero,
+        gender: profile?.gender,
         avatarUrl: profile?.avatar_url,
       });
 
+      const progressModules = Array.isArray(progress?.modules) ? progress.modules : [];
       const progressByModule = new Map(
-        (progress?.modules ?? []).map((item) => [String(item.module_id), item])
+        progressModules.map((item) => [String(item?.module_id), item])
       );
 
       if (Array.isArray(legacyProfile?.modulos) && legacyProfile.modulos.length > 0) {
         setModules(
-          legacyProfile.modulos.map((module, index) => {
+          legacyProfile.modulos.filter(Boolean).map((module, index) => {
             const moduleProgress = progressByModule.get(String(module.id));
             return {
               id: module.id,
               title: module.titulo,
               description: "Modulo asignado segun tu nivel diagnostico.",
               progress: moduleProgress?.progress_percentage ?? module.ejerciciosCompletados ?? 0,
-              total: module.ejerciciosTotales ?? 0,
+              total: moduleProgress ? 100 : module.ejerciciosTotales ?? 0,
               unlocked: module.estado !== "BLOQUEADO",
               active: module.estado === "EN_CURSO" || index === 0,
               levels: getModuleLevels(module).map(normalizeLevel).filter(Boolean),
@@ -108,7 +136,7 @@ function StudentDashboard() {
         );
       } else if (Array.isArray(progress?.modules) && progress.modules.length > 0) {
         setModules(
-          progress.modules.map((module, index) => ({
+          progress.modules.filter(Boolean).map((module, index) => ({
             id: module.module_id,
             title: module.title,
             description: "Progreso registrado en el servidor.",
@@ -177,11 +205,11 @@ function StudentDashboard() {
     navigate(`/module/${module.id}`, { state: { module } });
   };
 
-  const overallProgress = progressSummary?.overall_progress ?? 0;
+  const overallProgress = clampPercentage(progressSummary?.overall_progress);
 
   const getModulePercentage = (module) => {
     if (!module?.total) return 0;
-    return Math.round((module.progress / module.total) * 100);
+    return clampPercentage(Math.round((module.progress / module.total) * 100));
   };
 
   const getIslandModule = (label, index) => {
@@ -233,17 +261,50 @@ function StudentDashboard() {
     percentage: getModulePercentage(module),
   }));
 
-  const subjectProgress = learningCards.map(card => ({
-    label: card.title.split(" - ")[0],
-    percentage: card.percentage,
-    tone: card.tone,
-  }));
+  const progressModules = Array.isArray(progressSummary?.modules) ? progressSummary.modules : [];
+  const currentModuleProgress =
+    progressModules.find((item) => (item.progress_percentage ?? 0) < 100) ??
+    progressModules[0] ??
+    null;
+  const nextObjective = currentModuleProgress?.progress_percentage >= 100
+    ? { title: "¡Módulo completado!", detail: "Tu progreso está registrado al 100%." }
+    : !currentModuleProgress?.theory_completed
+      ? { title: "Completa la teoría", detail: "Revisa las lecciones del nivel para avanzar." }
+      : !currentModuleProgress?.practice_completed
+        ? { title: "Aprueba la práctica", detail: "Resuelve los ejercicios y alcanza el puntaje requerido." }
+        : !currentModuleProgress?.exam_passed
+          ? { title: "Aprueba el examen final", detail: "Demuestra lo aprendido para completar el nivel." }
+          : { title: "¡Módulo completado!", detail: "Tu progreso está registrado al 100%." };
+  const currentLearningCard = learningCards[0] ?? null;
+  const currentLearningTitle = currentModuleProgress?.title ?? currentLearningCard?.title;
+  const currentLearningLevel = currentModuleProgress?.level ?? student?.level;
+  const currentLearningPercentage =
+    clampPercentage(currentModuleProgress?.progress_percentage ?? currentLearningCard?.percentage);
+  const recentAchievements = sortAchievementsByUnlockedAt(achievements).slice(0, 3);
 
-  const studentGender = (student?.gender || student?.genero || "").toLowerCase();
-  const avatarSrc = studentGender === "male" || studentGender === "masculino"
-    ? "/assets/avatar-boy.png"
-    : "/assets/avatar-girl.png";
-  const profileAvatar = student?.avatarUrl || avatarSrc;
+  const studentName = typeof student?.name === "string" && student.name.trim()
+    ? student.name.trim()
+    : "Estudiante";
+  const studentGradeSection = [student?.grade, student?.section]
+    .filter((value) => typeof value === "string" && value.trim())
+    .map((value) => value.trim())
+    .join(" - ") || "Grado y sección no registrados";
+  const studentLevel = typeof student?.level === "string" && student.level.trim()
+    ? student.level.trim()
+    : "Pendiente";
+  const studentGender = normalizeText(student?.gender).trim();
+  const maleGenders = new Set(["masculino", "male", "m", "hombre"]);
+  const femaleGenders = new Set(["femenino", "female", "f", "mujer"]);
+  const storedAvatar = typeof student?.avatarUrl === "string" ? student.avatarUrl.trim() : "";
+  const profileAvatar = storedAvatar
+    || (maleGenders.has(studentGender) ? "/assets/avatar-boy.png" : null)
+    || (femaleGenders.has(studentGender) ? "/assets/avatar-girl.png" : null);
+  const studentInitials = (typeof student?.name === "string" ? student.name : "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "NT";
 
   const sidebarItems = [
     { label: "Inicio", active: true, onClick: () => navigate("/student-dashboard") },
@@ -280,44 +341,45 @@ function StudentDashboard() {
       sidebar={<AppSidebar items={sidebarItems} />}
       rightPanel={
         <div className="grid gap-4">
-          <section className="overflow-hidden rounded-nt-card border border-white/85 bg-white/95 p-5 text-center shadow-nt-card">
-            <div className="relative mx-auto size-28">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-nt-blue-light/35 to-nt-purple-light/35 blur-xl" />
-              <img src={profileAvatar} alt="" className="relative size-28 rounded-full border-4 border-white object-cover shadow-nt-card" />
-            </div>
-            <h2 className="mt-3 text-xl font-black text-nt-text-primary">{student.name}</h2>
-            <p className="text-sm font-extrabold text-nt-text-secondary">
-              {student.grade} - Seccion {student.section}
-            </p>
-            <div className="mt-4 rounded-[24px] border border-white/80 bg-gradient-to-br from-nt-sky/85 to-white p-3 text-left shadow-sm">
-              <div className="flex items-center justify-between text-sm font-black text-nt-text-primary">
-                <span>Nivel {student.level}</span>
-                <span>{overallProgress}%</span>
-              </div>
-              <div className="mt-2 h-3 overflow-hidden rounded-full bg-white shadow-inner">
-                <div className="h-full rounded-full bg-gradient-to-r from-nt-blue to-nt-purple" style={{ width: `${overallProgress}%` }} />
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-nt-card border border-white/85 bg-white/95 p-5 shadow-nt-card">
-            <h2 className="text-lg font-black text-nt-text-primary">Progreso</h2>
-            <div className="mt-4 grid gap-4">
-              {subjectProgress.map((item) => (
-                <div key={item.label} className="rounded-[22px] bg-nt-sky/45 p-3">
-                  <div className="mb-2 flex items-center justify-between text-sm font-extrabold text-nt-text-primary">
-                    <span>{item.label}</span>
-                    <span>{item.percentage}%</span>
+          <section className="rounded-nt-card border border-white/85 bg-gradient-to-br from-white via-blue-50/35 to-violet-50/45 p-4 shadow-nt-card">
+            <div className="flex items-center gap-4">
+              <div className="relative size-20 shrink-0">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-nt-blue-light/35 to-nt-purple-light/35 blur-lg" />
+                {profileAvatar ? (
+                  <img src={profileAvatar} alt="" className="relative size-20 rounded-full border-4 border-white object-cover shadow-md" />
+                ) : (
+                  <div className="relative grid size-20 place-items-center rounded-full border-4 border-white bg-gradient-to-br from-nt-blue to-nt-purple text-xl font-black text-white shadow-md">
+                    {studentInitials}
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-white shadow-inner">
-                    <div className={`h-full rounded-full ${item.tone}`} style={{ width: `${item.percentage}%` }} />
-                  </div>
+                )}
+              </div>
+              <div className="min-w-0 text-left">
+                <h2 className="truncate text-lg font-black text-nt-text-primary">{studentName}</h2>
+                <p className="mt-0.5 text-xs font-bold text-nt-text-secondary">
+                  {studentGradeSection}
+                </p>
+                <span className="mt-2 inline-flex max-w-full rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-black text-nt-purple">
+                  Nivel {studentLevel}
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 border-t border-blue-100 pt-4">
+              <h2 className="text-center text-base font-black text-nt-text-primary">Progreso general</h2>
+            <div className="mt-3 flex flex-col items-center">
+              <div
+                className="grid size-28 place-items-center rounded-full shadow-[0_14px_30px_rgba(37,99,235,0.15)]"
+                style={{ background: `conic-gradient(#2563EB 0deg, #7C3AED ${overallProgress * 3.6}deg, #DBEAFE ${overallProgress * 3.6}deg 360deg)` }}
+              >
+                <div className="grid size-20 place-items-center rounded-full bg-white shadow-inner">
+                  <span className="text-2xl font-black text-nt-text-primary">{overallProgress}%</span>
                 </div>
-              ))}
+              </div>
+              <p className="mt-2 text-xs font-black text-nt-blue">Avance registrado</p>
+            </div>
             </div>
           </section>
 
-          <section className="rounded-nt-card border border-white/85 bg-white/90 p-5 shadow-nt-card">
+          <section className="rounded-nt-card border border-blue-100 bg-gradient-to-br from-nt-sky/90 via-white to-violet-50/70 p-5 shadow-nt-card">
             <div className="flex items-center gap-3">
               <div className="grid size-11 place-items-center rounded-[18px] bg-nt-blue/10 text-nt-blue">
                 <BookOpenCheck className="size-5" />
@@ -327,9 +389,20 @@ function StudentDashboard() {
                 <p className="text-xs font-bold text-nt-text-secondary">Progreso registrado por nivel</p>
               </div>
             </div>
-            <p className="mt-4 text-sm font-semibold leading-6 text-nt-text-secondary">
-              Cada nivel suma 33% por teoría, 33% por práctica y 34% cuando apruebas el examen final.
-            </p>
+            <div className="mt-4 grid gap-2">
+              <div className="flex items-center justify-between rounded-[18px] border border-blue-100 bg-blue-50/85 p-3">
+                <span className="flex items-center gap-2 text-sm font-black text-nt-text-primary"><img src="/assets/icon_theory.webp" alt="" className="size-6 object-contain sm:size-8" />Teoría</span>
+                <span className="text-sm font-black text-nt-blue">33%</span>
+              </div>
+              <div className="flex items-center justify-between rounded-[18px] border border-green-100 bg-green-50/85 p-3">
+                <span className="flex items-center gap-2 text-sm font-black text-nt-text-primary"><img src="/assets/icon_practice.webp" alt="" className="size-6 object-contain sm:size-8" />Práctica</span>
+                <span className="text-sm font-black text-green-700">33%</span>
+              </div>
+              <div className="flex items-center justify-between rounded-[18px] border border-violet-100 bg-violet-50/85 p-3">
+                <span className="flex items-center gap-2 text-sm font-black text-nt-text-primary"><img src="/assets/icon_similar.webp" alt="" className="size-6 object-contain sm:size-8" />Examen final</span>
+                <span className="text-sm font-black text-nt-purple">34%</span>
+              </div>
+            </div>
           </section>
         </div>
       }
@@ -337,16 +410,15 @@ function StudentDashboard() {
       <section className="relative isolate min-h-[500px] overflow-visible" aria-label="Islas principales de aprendizaje">
         <div className="relative z-10 flex min-h-[470px] flex-col gap-0 px-1 py-0 sm:px-3 lg:min-h-[500px] xl:min-h-[520px]">
           <div className="flex items-start justify-between gap-4">
-            <div className="relative max-w-xl rounded-[32px] border border-white/50 bg-white/25 px-4 py-3 text-nt-text-primary shadow-[0_20px_44px_rgba(37,99,235,0.12)] backdrop-blur-sm">
-              <div className="pointer-events-none absolute -left-4 -top-4 size-24 rounded-full bg-white/45 blur-2xl" />
-              <h1 className="relative text-3xl font-black leading-tight text-nt-text-primary drop-shadow-[0_3px_0_rgba(255,255,255,0.8)] md:text-4xl">
+            <div className="max-w-xl px-1 py-2 text-nt-text-primary">
+              <h1 className="text-3xl font-black leading-tight text-nt-text-primary drop-shadow-[0_3px_2px_rgba(255,255,255,0.92)] md:text-4xl">
                 Hola,{" "}
                 <span className="bg-gradient-to-r from-nt-blue to-nt-purple bg-clip-text text-transparent">
-                  {student.name}
+                  {studentName}
                 </span>
               </h1>
-              <p className="relative mt-1 text-base font-black text-nt-blue drop-shadow-[0_2px_0_rgba(255,255,255,0.75)] md:text-xl">
-                Continua tu aventura matematica
+              <p className="mt-1 text-base font-black text-nt-blue drop-shadow-[0_2px_2px_rgba(255,255,255,0.9)] md:text-xl">
+                Continúa tu aventura matemática
               </p>
             </div>
             <img src="/assets/neo.png" alt="NEO" className="hidden h-36 w-auto shrink-0 translate-y-2 drop-shadow-[0_18px_30px_rgba(30,58,138,0.25)] md:block lg:h-48 xl:h-56" />
@@ -376,7 +448,12 @@ function StudentDashboard() {
 
       <section className="space-y-4 rounded-nt-card border border-white/80 bg-white/80 p-5 shadow-nt-card backdrop-blur">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-black text-nt-text-primary">Continua aprendiendo</h2>
+          <div className="flex items-center gap-2.5">
+            <div className="grid size-9 place-items-center rounded-[14px] bg-nt-blue/10 text-nt-blue">
+              <BookOpenCheck className="size-4.5" />
+            </div>
+            <h2 className="text-xl font-black text-nt-text-primary">Continúa aprendiendo</h2>
+          </div>
           <button
             type="button"
             className="inline-flex items-center gap-1 text-sm font-black text-nt-blue transition hover:text-nt-purple"
@@ -387,60 +464,97 @@ function StudentDashboard() {
           </button>
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-3">
-          {learningCards.map((card) => (
-            <button
-              key={card.title}
-              type="button"
-              className={`group relative min-h-[188px] overflow-hidden rounded-[24px] p-3 text-left shadow-xl ${card.glow} transition hover:-translate-y-1 hover:shadow-nt-soft focus:outline-none focus:ring-4 focus:ring-nt-blue-light/30`}
-              style={{ background: card.gradient }}
-              onClick={() => handleOpenLearningCard(card.module)}
-            >
-              <div className="pointer-events-none absolute -right-10 -top-14 size-32 rounded-full bg-white/15 blur-2xl" />
-              <div className="pointer-events-none absolute -bottom-16 left-8 size-36 rounded-full bg-white/10 blur-3xl" />
-
-              <div className="relative z-10 flex h-full flex-col gap-3">
-                <div className="grid gap-3 sm:grid-cols-[104px_minmax(0,1fr)] sm:items-center xl:grid-cols-1 2xl:grid-cols-[104px_minmax(0,1fr)]">
-                  <div className="relative mx-auto grid size-24 shrink-0 place-items-center rounded-[22px] bg-white/18 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_14px_26px_rgba(15,23,42,0.2)] backdrop-blur-sm sm:mx-0">
-                    <img
-                      src={card.image}
-                      alt=""
-                      className="h-full w-full rounded-[18px] object-cover drop-shadow-[0_12px_18px_rgba(15,23,42,0.22)] transition duration-300 group-hover:scale-105"
-                    />
-                  </div>
-
-                  <div className="min-w-0 text-white">
-                    <h3 className="text-lg font-black leading-tight text-white">
-                      {card.title}
-                    </h3>
-                    <p className="mt-1 text-xs font-bold leading-4 text-white/75">
-                      {card.subtitle}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-auto">
-                  <div className="mb-1.5 flex items-center justify-between text-[11px] font-black text-white/90">
-                    <span>Progreso</span>
-                    <span>{card.percentage}%</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/25">
-                    <div
-                      className={`h-full rounded-full ${card.progressTone} shadow-[0_0_10px_rgba(255,255,255,0.45)]`}
-                      style={{ width: `${card.percentage}%` }}
-                    />
-                  </div>
-
-                  <div className="mt-3 flex justify-end">
-                    <span className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-nt-button px-4 text-xs font-black shadow-md transition ${card.buttonTone}`}>
-                      Continuar
-                      <ArrowRight className="size-3.5" aria-hidden="true" />
-                    </span>
-                  </div>
-                </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <article className="flex min-h-[205px] flex-col rounded-[24px] border border-blue-200/80 bg-gradient-to-br from-blue-50 via-sky-50/85 to-white p-4 shadow-[0_12px_30px_rgba(37,99,235,0.12)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase text-nt-blue">Módulo actual</p>
+                <h3 className="mt-2 line-clamp-2 text-lg font-black leading-6 text-nt-text-primary">
+                  {currentLearningTitle || "Sin módulo disponible"}
+                </h3>
+                {currentLearningLevel && (
+                  <p className="mt-1 text-xs font-bold text-nt-text-secondary">Nivel {currentLearningLevel}</p>
+                )}
               </div>
+              {currentLearningCard?.image && (
+                <img src={currentLearningCard.image} alt="" className="size-16 shrink-0 rounded-[18px] object-cover shadow-sm" />
+              )}
+            </div>
+            <div className="mt-auto pt-4">
+              <div className="mb-2 flex items-center justify-between text-xs font-black text-nt-text-secondary">
+                <span>Progreso</span>
+                <span className="text-nt-blue">{currentLearningPercentage}%</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-white shadow-inner">
+                <div className="h-full rounded-full bg-gradient-to-r from-nt-blue to-nt-purple" style={{ width: `${currentLearningPercentage}%` }} />
+              </div>
+              <button
+                type="button"
+                className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-nt-blue to-nt-purple text-xs font-black text-white shadow-md shadow-nt-blue/15"
+                onClick={() => handleOpenLearningCard(currentLearningCard?.module)}
+                disabled={!currentLearningCard?.module}
+              >
+                Continuar
+                <ArrowRight className="size-3.5" />
+              </button>
+            </div>
+          </article>
+
+          <article className="relative min-h-[205px] overflow-hidden rounded-[24px] border border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-cyan-50/85 to-white p-4 shadow-[0_12px_30px_rgba(16,185,129,0.12)]">
+            <img
+              src="/assets/progreso.png"
+              alt=""
+              className="pointer-events-none absolute right-2 top-2 size-16 object-contain drop-shadow-[0_10px_16px_rgba(16,185,129,0.2)] sm:size-20 lg:size-24"
+            />
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="pr-16 sm:pr-20 lg:pr-24">
+                <h3 className="font-black text-nt-text-primary">Tu progreso hoy</h3>
+                <p className="text-xs font-semibold text-nt-text-secondary">Resumen real de tu cuenta</p>
+              </div>
+            </div>
+            <div className="relative z-10 mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-[15px] bg-white/80 p-2.5">
+                <p className="text-lg font-black text-nt-blue">{progressSummary?.points ?? student.points ?? 0}</p>
+                <p className="text-[10px] font-bold text-nt-text-secondary">Puntos</p>
+              </div>
+              <div className="rounded-[15px] bg-white/80 p-2.5">
+                <p className="text-lg font-black text-emerald-700">{overallProgress}%</p>
+                <p className="text-[10px] font-bold text-nt-text-secondary">Progreso general</p>
+              </div>
+              <div className="rounded-[15px] bg-white/80 p-2.5">
+                <p className="text-lg font-black text-nt-purple">{achievements.length}</p>
+                <p className="text-[10px] font-bold text-nt-text-secondary">Logros</p>
+              </div>
+              <div className="rounded-[15px] bg-white/80 p-2.5">
+                <p className="text-lg font-black text-nt-text-primary">{progressModules.length}</p>
+                <p className="text-[10px] font-bold text-nt-text-secondary">Con actividad</p>
+              </div>
+            </div>
+          </article>
+
+          <article className="relative flex min-h-[205px] flex-col overflow-hidden rounded-[24px] border border-orange-200/80 bg-gradient-to-br from-orange-50 via-amber-50/90 to-white p-4 shadow-[0_12px_30px_rgba(245,158,11,0.13)]">
+            <img
+              src="/assets/proximo_objetivo.png"
+              alt=""
+              className="pointer-events-none absolute right-1 top-1 size-[72px] object-contain drop-shadow-[0_10px_18px_rgba(245,158,11,0.22)] sm:size-20 lg:size-[104px]"
+            />
+            <div className="relative z-10 flex items-start gap-3">
+              <div className="min-w-0 pr-[72px] sm:pr-20 lg:pr-[104px]">
+                <p className="text-xs font-black uppercase text-orange-600">Próximo objetivo</p>
+                <h3 className="mt-2 text-lg font-black leading-6 text-nt-text-primary">{nextObjective.title}</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-nt-text-secondary">{nextObjective.detail}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="relative z-10 mt-auto inline-flex h-9 w-full items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-amber-400 to-orange-500 text-xs font-black text-white shadow-md shadow-orange-200 transition hover:from-amber-500 hover:to-orange-500"
+              onClick={() => openModuleFlow(currentLearningCard?.module)}
+              disabled={!currentLearningCard?.module}
+            >
+              Continuar aprendiendo
+              <ArrowRight className="size-3.5" />
             </button>
-          ))}
+          </article>
         </div>
       </section>
 
@@ -469,13 +583,30 @@ function StudentDashboard() {
           <p className="mt-4 rounded-[18px] bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{achievementError}</p>
         ) : achievements.length ? (
           <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {achievements.slice(0, 3).map((achievement) => (
-              <div key={achievement.id} className="rounded-[22px] border border-white bg-gradient-to-br from-white to-nt-sky/70 p-4 shadow-sm">
-                <Medal className="size-7 text-nt-purple" />
-                <h3 className="mt-3 font-black text-nt-text-primary">{achievement.title}</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-nt-text-secondary">{achievement.description}</p>
-              </div>
-            ))}
+            {recentAchievements.map((achievement) => {
+              const visual = achievementCardVisuals[achievement.code] ?? defaultAchievementVisual;
+              const image = getAchievementImage(achievement.code);
+
+              return (
+                <div
+                  key={achievement.id}
+                  className={`relative flex flex-col items-center overflow-hidden rounded-[24px] border px-4 py-4 text-center shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-lg ${visual.card}`}
+                >
+                  <span className={`pointer-events-none absolute top-6 size-20 rounded-full opacity-30 blur-xl sm:size-24 ${visual.glow}`} aria-hidden="true" />
+                  {image ? (
+                    <img
+                      src={image}
+                      alt=""
+                      className="relative z-10 mx-auto size-[72px] object-contain drop-shadow-[0_14px_20px_rgba(37,99,235,0.24)] sm:size-[88px] lg:size-[104px]"
+                    />
+                  ) : (
+                    <Medal className="relative z-10 mx-auto size-[72px] text-nt-purple drop-shadow-[0_12px_18px_rgba(124,58,237,0.24)] sm:size-[88px] lg:size-[104px]" />
+                  )}
+                  <h3 className="relative z-10 mt-3 font-black text-nt-text-primary">{achievement.title}</h3>
+                  <p className="relative z-10 mt-1 text-xs font-semibold leading-5 text-nt-text-secondary">{achievement.description}</p>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <p className="mt-4 rounded-[20px] bg-nt-sky/60 px-4 py-4 text-sm font-bold text-nt-text-secondary">
