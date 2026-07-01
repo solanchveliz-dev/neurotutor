@@ -39,6 +39,9 @@ public class LearningService {
     @Autowired
     private TheoryLessonRepository theoryLessonRepository;
 
+    @Autowired
+    private StudentModuleProgressRepository studentModuleProgressRepository;
+
     @Transactional(readOnly = true)
     public LearningModuleDetailsResponse getModuleDetails(Long moduleId) {
         Modulo requestedModule = findModule(moduleId);
@@ -122,27 +125,57 @@ public class LearningService {
         Estudiante estudiante = estudianteRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Estudiante no encontrado"));
 
-        List<Modulo> niveles = tema.getNiveles();
         List<ModuleItem> ruta = new ArrayList<>();
+        for (Modulo modulo : tema.getNiveles()) {
+            StudentModuleProgress progress = studentModuleProgressRepository
+                    .findByStudentIdAndModuloId(studentId, modulo.getId())
+                    .orElse(null);
+            boolean theoryCompleted = progress != null && progress.isTheoryCompleted();
+            boolean practiceCompleted = progress != null && progress.isPracticeCompleted();
+            boolean examPassed = progress != null && progress.isExamPassed();
+            boolean completed = theoryCompleted && practiceCompleted && examPassed;
+            boolean unlocked = levelRank(estudiante.getNivelDiagnostico())
+                    >= levelRank(modulo.getNivelRequerido());
+            int progressPercentage = calculateAcademicProgress(
+                    theoryCompleted, practiceCompleted, examPassed);
+            String estado = !unlocked
+                    ? "BLOQUEADO"
+                    : completed ? "COMPLETADO" : "EN_CURSO";
 
-        for (Modulo m : niveles) {
-            String estado = "BLOQUEADO";
-            String nivelEstudiante = estudiante.getNivelDiagnostico(); // BASICO, INTERMEDIO, AVANZADO
-
-            // Reglas de la Épica 3:
-            if (m.getNivelRequerido().equals("BASICO")) {
-                estado = (nivelEstudiante.equals("BASICO")) ? "EN_CURSO" : "COMPLETADO";
-            } else if (m.getNivelRequerido().equals("INTERMEDIO")) {
-                if (nivelEstudiante.equals("INTERMEDIO")) estado = "EN_CURSO";
-                if (nivelEstudiante.equals("AVANZADO")) estado = "COMPLETADO";
-            } else if (m.getNivelRequerido().equals("AVANZADO")) {
-                if (nivelEstudiante.equals("AVANZADO")) estado = "EN_CURSO";
-            }
-
-            ruta.add(new ModuleItem(m.getId().toString(), m.getTitulo(), 0, m.getEjerciciosTotales(), estado,m.getTema().getNombre(),
-                    m.getNivelRequerido()));
+            ruta.add(new ModuleItem(
+                    modulo.getId().toString(),
+                    modulo.getTitulo(),
+                    progress == null ? 0 : progress.getPracticeCompletedCount(),
+                    modulo.getEjerciciosTotales(),
+                    estado,
+                    modulo.getTema().getNombre(),
+                    modulo.getNivelRequerido(),
+                    progressPercentage,
+                    theoryCompleted,
+                    practiceCompleted,
+                    examPassed
+            ));
         }
         return ruta;
+    }
+
+    private int levelRank(String level) {
+        return switch (level == null ? "" : level) {
+            case "BASICO", "B" -> 0;
+            case "INTERMEDIO", "I" -> 1;
+            case "AVANZADO", "A" -> 2;
+            default -> -1;
+        };
+    }
+
+    private int calculateAcademicProgress(boolean theoryCompleted,
+                                          boolean practiceCompleted,
+                                          boolean examPassed) {
+        int percentage = 0;
+        if (theoryCompleted) percentage += 33;
+        if (practiceCompleted) percentage += 33;
+        if (examPassed) percentage += 34;
+        return percentage;
     }
 
     /**
