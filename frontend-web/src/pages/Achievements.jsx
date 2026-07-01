@@ -7,6 +7,7 @@ import BackButton from "../components/student/BackButton";
 import PrimaryButton from "../components/student/PrimaryButton";
 import { getStudentAchievements } from "../services/achievementService";
 import { getStudentId } from "../utils/auth";
+import { getAchievementImage, sortAchievementsByUnlockedAt } from "../utils/achievementVisuals";
 
 const iconMap = {
   "clipboard-check": ClipboardCheck,
@@ -25,11 +26,25 @@ const formatDate = (value) => {
 
 function AchievementCard({ achievement, unlocked }) {
   const Icon = iconMap[achievement.icon] ?? Award;
+  const achievementImage = getAchievementImage(achievement.code);
 
   return (
     <article className={`relative overflow-hidden rounded-nt-card border p-5 shadow-nt-card ${unlocked ? "border-white/90 bg-white/95" : "border-slate-200 bg-white/75"}`}>
-      <div className={`grid size-16 place-items-center rounded-[22px] ${unlocked ? "bg-gradient-to-br from-nt-purple to-nt-blue text-white shadow-lg shadow-nt-purple/20" : "bg-slate-100 text-slate-400"}`}>
-        {unlocked ? <Icon className="size-8" /> : <LockKeyhole className="size-7" />}
+      <div className={`relative grid size-20 place-items-center rounded-[24px] ${unlocked ? "bg-gradient-to-br from-blue-50 to-violet-50 shadow-lg shadow-nt-purple/15" : "bg-slate-100 text-slate-400"}`}>
+        {achievementImage ? (
+          <img
+            src={achievementImage}
+            alt=""
+            className={`size-[72px] object-contain ${unlocked ? "" : "grayscale opacity-45"}`}
+          />
+        ) : (
+          <Icon className={`size-9 ${unlocked ? "text-nt-purple" : "text-slate-400"}`} />
+        )}
+        {!unlocked && (
+          <span className="absolute -bottom-1 -right-1 grid size-7 place-items-center rounded-full border-2 border-white bg-slate-500 text-white shadow-sm">
+            <LockKeyhole className="size-3.5" />
+          </span>
+        )}
       </div>
       <div className="mt-4 flex items-start justify-between gap-3">
         <div>
@@ -78,7 +93,9 @@ function Achievements() {
     try {
       const response = await getStudentAchievements(studentId);
       setData({
-        unlocked: Array.isArray(response?.unlocked) ? response.unlocked : [],
+        unlocked: Array.isArray(response?.unlocked)
+          ? sortAchievementsByUnlockedAt(response.unlocked)
+          : [],
         locked: Array.isArray(response?.locked) ? response.locked : [],
       });
     } catch {
