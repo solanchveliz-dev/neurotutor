@@ -472,6 +472,14 @@ fun FinalExamCelebrationScreen(
                 )
             }
 
+            levelCompletionAchievement(state.unlockedAchievementCodes)?.let { achievementName ->
+                RewardItemCard(
+                    iconRes = R.drawable.icon_trophy,
+                    label = "Logro desbloqueado: $achievementName",
+                    iconTint = primaryColor
+                )
+            }
+
             if (state.moduleProgress == 100) {
                 RewardItemCard(
                     iconVector = Icons.Default.CheckCircle,
@@ -501,6 +509,13 @@ fun FinalExamCelebrationScreen(
             }
         }
     }
+}
+
+private fun levelCompletionAchievement(codes: List<String>): String? = when {
+    "BASIC_LEVEL_COMPLETED" in codes -> "Nivel Básico completado"
+    "INTERMEDIATE_LEVEL_COMPLETED" in codes -> "Nivel Intermedio completado"
+    "ADVANCED_LEVEL_COMPLETED" in codes -> "Nivel Avanzado completado"
+    else -> null
 }
 
 @Composable

@@ -1,6 +1,7 @@
 package com.neurotutor.user_service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
 public class SubmitFinalExamAttemptResponse {
     private final Long attemptId;
@@ -11,10 +12,13 @@ public class SubmitFinalExamAttemptResponse {
     private final int pointsEarned;
     private final String message;
     private final int moduleProgress;
+    private final String unlockedBadgeId;
+    private final List<String> unlockedAchievementCodes;
 
     public SubmitFinalExamAttemptResponse(Long attemptId, int correctAnswers, int totalQuestions,
                                           int scorePercentage, boolean passed, int pointsEarned,
-                                          String message, int moduleProgress) {
+                                          String message, int moduleProgress, String unlockedBadgeId,
+                                          List<String> unlockedAchievementCodes) {
         this.attemptId = attemptId;
         this.correctAnswers = correctAnswers;
         this.totalQuestions = totalQuestions;
@@ -23,6 +27,8 @@ public class SubmitFinalExamAttemptResponse {
         this.pointsEarned = pointsEarned;
         this.message = message;
         this.moduleProgress = moduleProgress;
+        this.unlockedBadgeId = unlockedBadgeId;
+        this.unlockedAchievementCodes = unlockedAchievementCodes;
     }
 
     @JsonProperty("attempt_id")
@@ -39,4 +45,8 @@ public class SubmitFinalExamAttemptResponse {
     public String getMessage() { return message; }
     @JsonProperty("module_progress")
     public int getModuleProgress() { return moduleProgress; }
+    @JsonProperty("unlocked_badge_id")
+    public String getUnlockedBadgeId() { return unlockedBadgeId; }
+    @JsonProperty("unlocked_achievement_codes")
+    public List<String> getUnlockedAchievementCodes() { return unlockedAchievementCodes; }
 }

@@ -66,7 +66,13 @@ fun AchievementsCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Image(
-                            painter = painterResource(R.drawable.general_medal),
+                            painter = painterResource(
+                                if (achievement.icon == "icon_trophy") {
+                                    R.drawable.icon_trophy
+                                } else {
+                                    R.drawable.general_medal
+                                }
+                            ),
                             contentDescription = achievement.description,
                             modifier = Modifier.size(42.dp)
                         )

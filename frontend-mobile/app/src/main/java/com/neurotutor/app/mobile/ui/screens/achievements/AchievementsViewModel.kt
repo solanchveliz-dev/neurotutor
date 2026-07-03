@@ -109,6 +109,9 @@ class AchievementsViewModel : ViewModel() {
             "FIRST_PRACTICE_PASSED" -> "Aprobaste tu primera práctica."
             "FIRST_EXAM_PASSED" -> "Aprobaste tu primer examen final."
             "FIRST_MODULE_COMPLETED" -> "Completaste tu primer módulo."
+            "BASIC_LEVEL_COMPLETED" -> "Completaste el nivel Básico."
+            "INTERMEDIATE_LEVEL_COMPLETED" -> "Completaste el nivel Intermedio."
+            "ADVANCED_LEVEL_COMPLETED" -> "Completaste el nivel Avanzado."
             "POINTS_100" -> "Alcanzaste tus primeros 100 puntos."
             else -> fallback
         }
