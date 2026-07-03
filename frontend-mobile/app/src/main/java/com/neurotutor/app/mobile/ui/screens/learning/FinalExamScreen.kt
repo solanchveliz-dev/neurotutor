@@ -1,6 +1,14 @@
 package com.neurotutor.app.mobile.ui.screens.learning
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,7 +24,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -30,7 +37,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
-import com.neurotutor.app.mobile.ui.theme.*
+import com.neurotutor.app.mobile.ui.components.BadgeMapper
+import com.neurotutor.app.mobile.ui.theme.NeuroBlue
+import com.neurotutor.app.mobile.ui.theme.NeuroGreen
+import com.neurotutor.app.mobile.ui.theme.NeuroOrange
+import com.neurotutor.app.mobile.ui.theme.NeuroPurple
+import com.neurotutor.app.mobile.ui.theme.NeuroRed
+import com.neurotutor.app.mobile.ui.theme.NeuroSky
+import com.neurotutor.app.mobile.ui.theme.TextGray
+import com.neurotutor.app.mobile.ui.theme.TextoBase
 import nl.dionsegijn.konfetti.compose.KonfettiView
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -270,17 +285,15 @@ fun FinalExamCelebrationScreen(
     onContinue: () -> Unit
 ) {
     val scrollState = rememberScrollState()
-    val totalQuestions = state.questions.size
-    val correctAnswers = state.questions.indices.count { 
-        state.answers.getOrNull(it) == state.questions[it].correctAnswerIndex 
-    }
+    val totalQuestions = state.totalQuestions
+    val correctAnswers = state.correctAnswers
+    val unlockedBadge = state.unlockedBadgeId?.let(BadgeMapper::resolveById)
 
     // 🎨 CONFIGURACIÓN TEMÁTICA SEGÚN EL NIVEL
     val primaryColor: Color
     val bgColor: Color
     val ribbonColor: Color
     val assetRes: Int
-    val achievementName: String
     val tagline: String
     val levelLabel: String
 
@@ -290,7 +303,6 @@ fun FinalExamCelebrationScreen(
             bgColor = Color(0xFFF0FDF4)
             ribbonColor = Color(0xFF16A34A)
             assetRes = R.drawable.final_exam_basic
-            achievementName = "Primer Maestro"
             tagline = "¡Sigue así, vas por más!"
             levelLabel = "Básico"
         }
@@ -299,7 +311,6 @@ fun FinalExamCelebrationScreen(
             bgColor = Color(0xFFF5F3FF)
             ribbonColor = Color(0xFF7C3AED)
             assetRes = R.drawable.final_exam_intermediate
-            achievementName = "Dominador"
             tagline = "¡Sigue así, vas por más!"
             levelLabel = "Intermedio"
         }
@@ -308,7 +319,6 @@ fun FinalExamCelebrationScreen(
             bgColor = Color(0xFFE0F2FE)
             ribbonColor = Color(0xFF2563EB)
             assetRes = R.drawable.final_exam_advanced
-            achievementName = "Maestro Supremo"
             tagline = "¡Sigue así, eres imparable!"
             levelLabel = "Avanzado"
         }
@@ -317,7 +327,6 @@ fun FinalExamCelebrationScreen(
             bgColor = Color.White
             ribbonColor = NeuroBlue
             assetRes = R.drawable.final_exam_basic
-            achievementName = "Experto"
             tagline = "¡Buen trabajo!"
             levelLabel = examLevel
         }
@@ -440,23 +449,36 @@ fun FinalExamCelebrationScreen(
                     .padding(start = 8.dp, bottom = 12.dp)
             )
 
-            RewardItemCard(
-                iconRes = R.drawable.icon_star,
-                label = "+${state.pointsEarned} puntos",
-                iconTint = NeuroOrange
-            )
-            
-            RewardItemCard(
-                iconRes = R.drawable.general_medal,
-                label = "Logro desbloqueado: $achievementName",
-                iconTint = primaryColor
-            )
-            
-            RewardItemCard(
-                iconVector = Icons.Default.CheckCircle,
-                label = "Nivel $levelLabel completado",
-                iconTint = NeuroGreen
-            )
+            if (state.pointsEarned > 0) {
+                RewardItemCard(
+                    iconRes = R.drawable.icon_star,
+                    label = "+${state.pointsEarned} puntos",
+                    iconTint = NeuroOrange
+                )
+            }
+
+            unlockedBadge?.let { badge ->
+                RewardItemCard(
+                    iconRes = badge.iconRes,
+                    label = "Insignia desbloqueada: ${badge.name}",
+                    iconTint = primaryColor
+                )
+            }
+
+            if ("FIRST_EXAM_PASSED" in state.unlockedAchievementCodes) {
+                SecondaryAchievementCard(
+                    label = "También desbloqueaste: Primer examen aprobado",
+                    color = primaryColor
+                )
+            }
+
+            if (state.moduleProgress == 100) {
+                RewardItemCard(
+                    iconVector = Icons.Default.CheckCircle,
+                    label = "Nivel $levelLabel completado",
+                    iconTint = NeuroGreen
+                )
+            }
 
             Spacer(modifier = Modifier.height(40.dp))
 
@@ -478,6 +500,24 @@ fun FinalExamCelebrationScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SecondaryAchievementCard(label: String, color: Color) {
+    Surface(
+        color = color.copy(alpha = 0.05f),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = TextoBase,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        )
     }
 }
 

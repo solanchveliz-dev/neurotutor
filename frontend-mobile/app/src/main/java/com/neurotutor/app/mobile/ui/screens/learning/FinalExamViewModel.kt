@@ -3,14 +3,15 @@ package com.neurotutor.app.mobile.ui.screens.learning
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.neurotutor.app.mobile.data.model.learning.Exercise
-import com.neurotutor.app.mobile.data.model.learning.SubmitExamRequest
+import com.neurotutor.app.mobile.data.model.learning.FinalExamAnswerRequest
+import com.neurotutor.app.mobile.data.model.learning.SubmitFinalExamAttemptRequest
 import com.neurotutor.app.mobile.data.network.RetrofitClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 data class FinalExamUiState(
@@ -20,13 +21,17 @@ data class FinalExamUiState(
     val answers: MutableList<Int?> = mutableListOf(),
     val isFinished: Boolean = false,
     val score: Int = 0,
+    val correctAnswers: Int = 0,
+    val totalQuestions: Int = 0,
     val isPassed: Boolean = false,
-    // 🆕 Nuevos campos
     val pointsEarned: Int = 0,
     val levelUp: Boolean = false,
     val newLevel: String? = null,
     val topicCompleted: Boolean = false,
     val alreadyPassedBefore: Boolean = false,
+    val moduleProgress: Int = 0,
+    val unlockedBadgeId: String? = null,
+    val unlockedAchievementCodes: List<String> = emptyList(),
     val showResultDialog: Boolean = false,
     val errorMessage: String? = null
 )
@@ -43,24 +48,20 @@ class FinalExamViewModel : ViewModel() {
                 val response = RetrofitClient.apiService.getFinalExam(moduleId)
                 if (response.isSuccessful && response.body() != null) {
                     val examQuestions = response.body()!!
-                    withContext(Dispatchers.Main) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                questions = examQuestions,
-                                answers = MutableList(examQuestions.size) { null }
-                            )
-                        }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            questions = examQuestions,
+                            answers = MutableList(examQuestions.size) { null }
+                        )
                     }
                 } else {
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { it.copy(isLoading = false, errorMessage = "Error al cargar el examen.") }
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = "Error al cargar el examen.")
                     }
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
-                }
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
@@ -74,96 +75,59 @@ class FinalExamViewModel : ViewModel() {
     fun nextQuestion() {
         if (_uiState.value.currentQuestionIndex < _uiState.value.questions.size - 1) {
             _uiState.update { it.copy(currentQuestionIndex = it.currentQuestionIndex + 1) }
-        } else {
-            // Terminó el examen, pero aún no enviamos al backend
         }
     }
 
-    // 🆕 Nuevo método que maneja toda la lógica de puntos y desbloqueo
     fun submitExam(studentId: String, moduleId: String, level: String) {
         val state = _uiState.value
-        var correctCount = 0
-        state.questions.forEachIndexed { index, question ->
-            if (state.answers[index] == question.correctAnswerIndex) {
-                correctCount++
-            }
-        }
-
-        val passThreshold = 0.7f
-        val currentScore = (correctCount.toFloat() / state.questions.size * 100).toInt()
-        val passed = (correctCount.toFloat() / state.questions.size) >= passThreshold
-
-        if (!passed) {
-            // ❌ No aprobó - mostrar resultado sin puntos
+        if (state.answers.any { it == null }) {
             _uiState.update {
-                it.copy(
-                    isFinished = true,
-                    isPassed = false,
-                    score = currentScore,
-                    pointsEarned = 0,
-                    levelUp = false,
-                    showResultDialog = true
-                )
+                it.copy(errorMessage = "Responde todas las preguntas antes de enviar.")
             }
             return
         }
 
-        // ✅ Aprobó - llamar al backend para procesar
-        _uiState.update { it.copy(isLoading = true) }
-
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val cleanId = studentId.replace("\"", "").trim()
-
-                // Usar el nuevo endpoint V2
-                val request = SubmitExamRequest(
-                    studentId = cleanId,
-                    moduloId = moduleId,
-                    level = level,
-                    score = currentScore
+                val request = SubmitFinalExamAttemptRequest(
+                    studentId = studentId.replace("\"", "").trim().toLong(),
+                    moduleId = moduleId.toLong(),
+                    answers = state.questions.mapIndexed { index, question ->
+                        FinalExamAnswerRequest(
+                            questionId = question.id.toLong(),
+                            selectedAnswerIndex = state.answers[index]!!
+                        )
+                    }
                 )
-
-                val response = RetrofitClient.apiService.submitExamV2(request)
-
-                if (response.isSuccessful && response.body() != null) {
-                    val result = response.body()!!
-
-                    if (result.success) {
-                        withContext(Dispatchers.Main) {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    isFinished = true,
-                                    isPassed = true,
-                                    score = currentScore,
-                                    pointsEarned = result.pointsEarned,
-                                    levelUp = result.levelUp,
-                                    newLevel = result.newLevel,
-                                    topicCompleted = result.topicCompleted,
-                                    alreadyPassedBefore = result.pointsEarned == 0,
-                                    showResultDialog = true,
-                                    errorMessage = null
-                                )
-                            }
-                        }
-                    } else {
-                        showSubmissionError(
-                            message = result.message.ifBlank {
-                                "El servidor no confirmó la aprobación del examen."
-                            },
-                            score = currentScore
+                val response = RetrofitClient.apiService.submitFinalExamAttempt(request)
+                val result = response.body()
+                if (response.isSuccessful && result != null) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isFinished = true,
+                            score = result.scorePercentage,
+                            correctAnswers = result.correctAnswers,
+                            totalQuestions = result.totalQuestions,
+                            isPassed = result.passed,
+                            pointsEarned = result.pointsEarned,
+                            alreadyPassedBefore = result.passed && result.unlockedBadgeId == null,
+                            moduleProgress = result.moduleProgress,
+                            unlockedBadgeId = result.unlockedBadgeId,
+                            unlockedAchievementCodes = result.unlockedAchievementCodes,
+                            showResultDialog = true,
+                            errorMessage = null
                         )
                     }
                 } else {
                     showSubmissionError(
-                        message = "No se pudo guardar el resultado del examen. Inténtalo nuevamente.",
-                        score = currentScore
+                        "No se pudo guardar el resultado del examen. Inténtalo nuevamente."
                     )
                 }
             } catch (e: Exception) {
                 showSubmissionError(
-                    message = "No se pudo conectar con el servidor. Verifica tu conexión e inténtalo nuevamente.",
-                    score = currentScore
+                    "No se pudo conectar con el servidor. Verifica tu conexión e inténtalo nuevamente."
                 )
             }
         }
@@ -177,19 +141,24 @@ class FinalExamViewModel : ViewModel() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    private suspend fun showSubmissionError(message: String, score: Int) {
+    private suspend fun showSubmissionError(message: String) {
         withContext(Dispatchers.Main) {
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     isFinished = false,
                     isPassed = false,
-                    score = score,
+                    score = 0,
+                    correctAnswers = 0,
+                    totalQuestions = 0,
                     pointsEarned = 0,
                     levelUp = false,
                     newLevel = null,
                     topicCompleted = false,
                     alreadyPassedBefore = false,
+                    moduleProgress = 0,
+                    unlockedBadgeId = null,
+                    unlockedAchievementCodes = emptyList(),
                     showResultDialog = false,
                     errorMessage = message
                 )

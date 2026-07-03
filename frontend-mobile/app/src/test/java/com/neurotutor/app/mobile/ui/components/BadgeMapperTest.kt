@@ -2,6 +2,7 @@ package com.neurotutor.app.mobile.ui.components
 
 import com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 class BadgeMapperTest {
@@ -23,6 +24,22 @@ class BadgeMapperTest {
             listOf("Explorador", "Practicante", "Primer Maestro"),
             names
         )
+    }
+
+    @Test
+    fun officialExamBadgeIdsResolveToApprovedNamesAndResources() {
+        val expected = mapOf(
+            "basic_3" to "Primer Maestro",
+            "intermediate_3" to "Dominador",
+            "advanced_3" to "Maestro Supremo"
+        )
+
+        expected.forEach { (id, name) ->
+            val badge = BadgeMapper.resolveById(id)
+            assertNotNull(badge)
+            assertEquals(name, badge?.name)
+            assertEquals("EXAM", badge?.trigger)
+        }
     }
 
     private fun unlockedCount(

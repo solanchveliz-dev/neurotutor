@@ -25,6 +25,8 @@ import com.neurotutor.app.mobile.data.model.learning.SubmitExamRequest
 import com.neurotutor.app.mobile.data.model.learning.SubmitExamResponse
 import com.neurotutor.app.mobile.data.model.learning.SubmitPracticeAttemptRequest
 import com.neurotutor.app.mobile.data.model.learning.SubmitPracticeAttemptResponse
+import com.neurotutor.app.mobile.data.model.learning.SubmitFinalExamAttemptRequest
+import com.neurotutor.app.mobile.data.model.learning.SubmitFinalExamAttemptResponse
 import retrofit2.http.*
 import retrofit2.Response
 
@@ -135,6 +137,10 @@ interface ApiService {
         @Body request: SubmitExamRequest
     ): Response<SubmitExamResponse>
 
+    @POST("api/learning/exam-attempts")
+    suspend fun submitFinalExamAttempt(
+        @Body request: SubmitFinalExamAttemptRequest
+    ): Response<SubmitFinalExamAttemptResponse>
 
     @POST("api/ai/tutor")
     suspend fun askTutor(
