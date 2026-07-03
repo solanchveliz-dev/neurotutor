@@ -32,7 +32,7 @@ object ProgressMapper {
                             id = it.moduleId,
                             title = it.title,
                             progress = it.progressPercentage,
-                            isCompleted = it.examPassed
+                            isCompleted = it.progressPercentage >= 100
                         )
                     }
 

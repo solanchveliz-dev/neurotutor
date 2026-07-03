@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -19,6 +20,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.ui.components.DashboardBottomBar
 import com.neurotutor.app.mobile.ui.screens.profile.components.*
@@ -33,9 +37,24 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    var showEditProfileDialog by rememberSaveable { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(studentId) {
-        viewModel.loadProfileData(studentId)
+    DisposableEffect(lifecycleOwner, studentId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadProfileData(studentId)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(uiState.updateSucceeded) {
+        if (uiState.updateSucceeded) {
+            showEditProfileDialog = false
+            viewModel.clearUpdateStatus()
+        }
     }
 
     // Cielo continuo unificado
@@ -53,14 +72,33 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(brush = backgroundGradient)
     ) {
-        // AJUSTE: Control de carga para eliminar el parpadeo inicial ("?" y nivel vacío)
-        if (uiState.isLoading || uiState.name.isEmpty()) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = Color.White
-            )
-        } else {
-            Column(
+        when {
+            uiState.isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.White
+                )
+            }
+
+            uiState.errorMessage != null -> {
+                ProfileUnavailableState(
+                    message = uiState.errorMessage ?: "No se pudo cargar el perfil",
+                    actionLabel = "Reintentar",
+                    onAction = { viewModel.loadProfileData(studentId) },
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            uiState.name.isEmpty() -> {
+                ProfileUnavailableState(
+                    message = "No encontramos información disponible para este perfil.",
+                    actionLabel = "Volver a intentar",
+                    onAction = { viewModel.loadProfileData(studentId) },
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            else -> Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
@@ -134,7 +172,10 @@ fun ProfileScreen(
                     name = uiState.name,
                     email = uiState.email,
                     level = uiState.level,
-                    onEditProfile = { /* Navegar a editar */ }
+                    onEditProfile = {
+                        viewModel.clearUpdateStatus()
+                        showEditProfileDialog = true
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -143,12 +184,14 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                InsigniasCard(
-                    insignias = uiState.earnedBadges,
-                    onSeeAll = { onNavigateToTab("logros") }
-                )
+                if (uiState.earnedBadges.isNotEmpty()) {
+                    InsigniasCard(
+                        insignias = uiState.earnedBadges,
+                        onSeeAll = { onNavigateToTab("logros") }
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
                 AccountActionsCard(
                     onLogout = { viewModel.logout { onNavigateToTab("login") } },
@@ -165,6 +208,183 @@ fun ProfileScreen(
             )
         }
     }
+
+    if (showEditProfileDialog) {
+        EditProfileDialog(
+            name = uiState.name,
+            email = uiState.email,
+            grade = uiState.grade,
+            section = uiState.section,
+            avatarUrl = uiState.avatarUrl.orEmpty(),
+            gender = uiState.gender,
+            isSaving = uiState.isUpdating,
+            errorMessage = uiState.updateErrorMessage,
+            onDismiss = {
+                if (!uiState.isUpdating) {
+                    showEditProfileDialog = false
+                    viewModel.clearUpdateStatus()
+                }
+            },
+            onSave = { name, grade, section, avatarUrl, gender ->
+                viewModel.updateProfile(
+                    studentId = studentId,
+                    name = name,
+                    grade = grade,
+                    section = section,
+                    avatarUrl = avatarUrl,
+                    gender = gender
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun ProfileUnavailableState(
+    message: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = message,
+                color = Color(0xFF475569),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.SemiBold
+            )
+            Button(
+                onClick = onAction,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
+            ) {
+                Text(actionLabel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditProfileDialog(
+    name: String,
+    email: String,
+    grade: String,
+    section: String,
+    avatarUrl: String,
+    gender: String,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String, String) -> Unit
+) {
+    var editedName by remember(name) { mutableStateOf(name) }
+    var editedGrade by remember(grade) { mutableStateOf(grade) }
+    var editedSection by remember(section) { mutableStateOf(section) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = "Editar perfil",
+                fontWeight = FontWeight.Black,
+                color = Color(0xFF1E293B)
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = editedName,
+                    onValueChange = { editedName = it },
+                    label = { Text("Nombre") },
+                    singleLine = true,
+                    enabled = !isSaving,
+                    isError = editedName.isBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = {},
+                    label = { Text("Correo electrónico") },
+                    singleLine = true,
+                    readOnly = true,
+                    enabled = !isSaving,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = editedGrade,
+                    onValueChange = { editedGrade = it },
+                    label = { Text("Grado") },
+                    singleLine = true,
+                    enabled = !isSaving,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = editedSection,
+                    onValueChange = { editedSection = it },
+                    label = { Text("Sección") },
+                    singleLine = true,
+                    enabled = !isSaving,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(
+                        editedName,
+                        editedGrade,
+                        editedSection,
+                        avatarUrl,
+                        gender
+                    )
+                },
+                enabled = editedName.isNotBlank() && !isSaving,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Guardar")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSaving) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Composable

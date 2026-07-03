@@ -13,11 +13,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.neurotutor.app.mobile.ui.screens.dashboard.DashboardBadgeUiModel
+import com.neurotutor.app.mobile.ui.components.LearningBadgeUiModel
 
 @Composable
 fun InsigniasCard(
-    insignias: List<DashboardBadgeUiModel>,
+    insignias: List<LearningBadgeUiModel>,
     onSeeAll: () -> Unit
 ) {
     Card(
@@ -35,7 +35,7 @@ fun InsigniasCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Mis últimas insignias",
+                    text = "Insignias obtenidas",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B)
@@ -45,7 +45,7 @@ fun InsigniasCard(
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Text(
-                        text = "Ver mis logros >",
+                        text = "Ver colección",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF6366F1)
@@ -54,7 +54,7 @@ fun InsigniasCard(
             }
 
             Text(
-                text = "Supera los exámenes de cada nivel para obtenerlas.",
+                text = "Tus avances en teoría, práctica y examen.",
                 fontSize = 12.sp,
                 color = Color(0xFF64748B),
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -80,7 +80,7 @@ fun InsigniasCard(
 
 @Composable
 private fun ProfileBadgeItem(
-    badge: DashboardBadgeUiModel,
+    badge: LearningBadgeUiModel,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -88,13 +88,13 @@ private fun ProfileBadgeItem(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
-            painter = painterResource(id = badge.badgeRes),
-            contentDescription = "${badge.topic} ${badge.level}",
+            painter = painterResource(id = badge.iconRes),
+            contentDescription = badge.name,
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = badge.topic,
+            text = badge.name,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF1E293B),
@@ -102,7 +102,7 @@ private fun ProfileBadgeItem(
             maxLines = 2
         )
         Text(
-            text = badge.level,
+            text = badge.levelName,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             color = Color(0xFF6366F1),

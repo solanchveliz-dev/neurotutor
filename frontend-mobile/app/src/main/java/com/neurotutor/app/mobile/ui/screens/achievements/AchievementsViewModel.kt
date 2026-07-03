@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.data.network.RetrofitClient
+import com.neurotutor.app.mobile.ui.components.BadgeMapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,16 +22,29 @@ class AchievementsViewModel : ViewModel() {
 
     fun loadAchievements(studentId: String) {
         val cleanId = studentId.replace("\"", "").trim()
-        val shouldShowLoading = _uiState.value.themes.isEmpty()
+        val shouldShowLoading = _uiState.value.themes.isEmpty() &&
+                _uiState.value.achievementHistory.isEmpty()
 
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = shouldShowLoading, errorMessage = null) }
 
             try {
                 val response = RetrofitClient.apiService.getStudentProgress(cleanId)
+                val achievementsResponse =
+                    RetrofitClient.apiService.getStudentAchievements(cleanId)
 
                 if (response.isSuccessful && response.body() != null) {
                     val progress = response.body()!!
+                    val achievementHistory = achievementsResponse.body()
+                        ?.unlocked
+                        .orEmpty()
+                        .map { achievement ->
+                            AchievementHistoryItem(
+                                id = achievement.id,
+                                action = achievementAction(achievement.code, achievement.description),
+                                completedAt = achievement.unlockedAt?.let(::formatDate)
+                            )
+                        }
                     
                     // 🚀 NORMALIZACIÓN: Unificar todos los niveles de un tema en un solo grupo
                     // Elimina la división de "Fracciones I", "Fracciones II", etc.
@@ -66,6 +80,7 @@ class AchievementsViewModel : ViewModel() {
                             it.copy(
                                 isLoading = false,
                                 themes = sortedThemes,
+                                achievementHistory = achievementHistory,
                                 errorMessage = null
                             )
                         }
@@ -86,6 +101,17 @@ class AchievementsViewModel : ViewModel() {
             }
         }
     }
+
+    private fun achievementAction(code: String, fallback: String): String =
+        when (code) {
+            "DIAGNOSTIC_COMPLETED" -> "Completaste tu evaluación diagnóstica."
+            "FIRST_THEORY_COMPLETED" -> "Completaste tu primera teoría."
+            "FIRST_PRACTICE_PASSED" -> "Aprobaste tu primera práctica."
+            "FIRST_EXAM_PASSED" -> "Aprobaste tu primer examen final."
+            "FIRST_MODULE_COMPLETED" -> "Completaste tu primer módulo."
+            "POINTS_100" -> "Alcanzaste tus primeros 100 puntos."
+            else -> fallback
+        }
 
     /**
      * Identifica el tema raíz basándose en el título para agrupar niveles académicos.
@@ -143,24 +169,15 @@ class AchievementsViewModel : ViewModel() {
         }
         
         // Mapear los hitos basados en la Opción A (9 insignias por tema)
-        val milestones = when (levelName) {
-            "Básico" -> listOf(
-                MilestoneUiModel("Explorador", item?.theoryCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
-                MilestoneUiModel("Practicante", item?.practiceCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
-                MilestoneUiModel("Primer Maestro", item?.examPassed ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) })
-            )
-            "Intermedio" -> listOf(
-                MilestoneUiModel("Investigador", item?.theoryCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
-                MilestoneUiModel("Estratega", item?.practiceCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
-                MilestoneUiModel("Dominador", item?.examPassed ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) })
-            )
-            "Avanzado" -> listOf(
-                MilestoneUiModel("Experto", item?.theoryCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
-                MilestoneUiModel("Preciso", item?.practiceCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
-                MilestoneUiModel("Maestro Supremo", item?.examPassed ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) })
-            )
-            else -> emptyList()
-        }
+        val milestones = BadgeMapper
+            .badgesForLevel(level = levelName, module = item)
+            .map { badge ->
+                MilestoneUiModel(
+                    name = badge.name,
+                    isUnlocked = badge.isUnlocked,
+                    badgeRes = badge.iconRes
+                )
+            }
         
         return LevelGroupUiModel(
             levelName = levelName,

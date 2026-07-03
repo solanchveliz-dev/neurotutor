@@ -4,9 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.neurotutor.app.mobile.data.model.learning.ModuleItem
+import com.neurotutor.app.mobile.data.model.auth.AchievementResponse
 import com.neurotutor.app.mobile.data.network.RetrofitClient
 import com.neurotutor.app.mobile.domain.mapper.ProgressMapper
-import com.neurotutor.app.mobile.ui.components.BadgeMapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +24,7 @@ data class StudentDashboardUiState(
     val puntosTotales: Int = 0,
     val overallProgress: Int = 0,
     val modulos: List<ModuleItem> = emptyList(),
-    val earnedBadges: List<DashboardBadgeUiModel> = emptyList(),
+    val unlockedAchievements: List<AchievementResponse> = emptyList(),
     val errorMessage: String? = null
 )
 
@@ -41,9 +41,13 @@ class StudentDashboardViewModel(application: Application) : AndroidViewModel(app
             try {
                 val profileDeferred = async { RetrofitClient.apiService.getStudentProfile(cleanId) }
                 val progressDeferred = async { RetrofitClient.apiService.getStudentProgress(cleanId) }
+                val achievementsDeferred = async {
+                    RetrofitClient.apiService.getStudentAchievements(cleanId)
+                }
 
                 val profileResponse = profileDeferred.await()
                 val progressResponse = progressDeferred.await()
+                val achievementsResponse = achievementsDeferred.await()
 
                 if (profileResponse.isSuccessful && profileResponse.body() != null) {
                     val perfil = profileResponse.body()!!
@@ -61,7 +65,7 @@ class StudentDashboardViewModel(application: Application) : AndroidViewModel(app
                         liveProgress = progressData?.modules.orEmpty()
                     )
 
-                    val earnedBadges = BadgeMapper.fromModules(progressData?.modules.orEmpty())
+                    val unlockedAchievements = achievementsResponse.body()?.unlocked.orEmpty()
 
                     withContext(Dispatchers.Main) {
                         _uiState.update {
@@ -73,7 +77,7 @@ class StudentDashboardViewModel(application: Application) : AndroidViewModel(app
                                 puntosTotales = perfil.puntosTotales,
                                 overallProgress = progressData?.overallProgress ?: 0,
                                 modulos = modulosSincronizados,
-                                earnedBadges = earnedBadges
+                                unlockedAchievements = unlockedAchievements
                             )
                         }
                     }

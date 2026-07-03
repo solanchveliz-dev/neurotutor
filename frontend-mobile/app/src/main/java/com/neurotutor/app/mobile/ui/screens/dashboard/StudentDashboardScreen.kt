@@ -38,6 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.data.model.learning.ModuleItem
 import com.neurotutor.app.mobile.ui.components.DashboardBottomBar
+import com.neurotutor.app.mobile.ui.components.AchievementsCard
 import com.neurotutor.app.mobile.ui.theme.MoradoActivo
 import com.neurotutor.app.mobile.ui.theme.TextoBase
 import kotlinx.coroutines.delay
@@ -260,48 +261,10 @@ fun StudentDashboardScreen(
                         }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 24.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Últimos logros", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                        Text("Ver todos >", fontSize = 14.sp, color = MoradoActivo, fontWeight = FontWeight.Bold)
-                    }
-
-                    val latestBadges = state.earnedBadges.take(2)
-                    if (latestBadges.isEmpty()) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 12.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Text(
-                                text = "Aprueba un examen para obtener tu primera insignia",
-                                modifier = Modifier.padding(16.dp),
-                                fontSize = 13.sp,
-                                color = Color(0xFF64748B),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            latestBadges.forEach { badge ->
-                                DashboardBadgeCard(
-                                    badge = badge,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
+                    AchievementsCard(
+                        achievements = state.unlockedAchievements,
+                        onSeeAll = { onNavigateToTab("logros") }
+                    )
                 }
             }
         }
@@ -467,45 +430,6 @@ fun QuickActionItem(modifier: Modifier, title: String, icon: Int, bgColor: Color
             Image(painter = painterResource(id = icon), contentDescription = null, modifier = Modifier.size(42.dp))
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-        }
-    }
-}
-
-@Composable
-private fun DashboardBadgeCard(
-    badge: DashboardBadgeUiModel,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = badge.badgeRes),
-                contentDescription = "${badge.topic} ${badge.level}",
-                modifier = Modifier.size(42.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = badge.topic,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
-                )
-                Text(
-                    text = badge.level,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MoradoActivo
-                )
-            }
         }
     }
 }

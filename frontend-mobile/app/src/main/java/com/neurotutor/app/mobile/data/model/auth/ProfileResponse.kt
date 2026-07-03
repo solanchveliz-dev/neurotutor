@@ -12,7 +12,7 @@ data class ProfileResponse(
     val points: Int,
     @SerializedName("avatar_url")
     val avatarUrl: String?,
-    val gender: String,
+    val gender: String?,
     @SerializedName("diagnostic_completed")
     val diagnosticCompleted: Boolean,
     @SerializedName("created_at")

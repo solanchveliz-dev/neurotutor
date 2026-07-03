@@ -155,32 +155,10 @@ class FinalExamViewModel : ViewModel() {
                         )
                     }
                 } else {
-                    // Fallback al endpoint antiguo si el nuevo no existe
-                    val oldResponse = RetrofitClient.apiService.submitExam(cleanId, moduleId, currentScore)
-                    if (oldResponse.isSuccessful && !oldResponse.body().isNullOrBlank()) {
-                        withContext(Dispatchers.Main) {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    isFinished = true,
-                                    isPassed = true,
-                                    score = currentScore,
-                                    pointsEarned = 0,
-                                    levelUp = false,
-                                    newLevel = null,
-                                    topicCompleted = false,
-                                    alreadyPassedBefore = false,
-                                    showResultDialog = true,
-                                    errorMessage = null
-                                )
-                            }
-                        }
-                    } else {
-                        showSubmissionError(
-                            message = "No se pudo guardar el resultado del examen. Inténtalo nuevamente.",
-                            score = currentScore
-                        )
-                    }
+                    showSubmissionError(
+                        message = "No se pudo guardar el resultado del examen. Inténtalo nuevamente.",
+                        score = currentScore
+                    )
                 }
             } catch (e: Exception) {
                 showSubmissionError(

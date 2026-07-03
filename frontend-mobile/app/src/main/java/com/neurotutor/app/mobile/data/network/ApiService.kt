@@ -7,9 +7,10 @@ import com.neurotutor.app.mobile.data.model.auth.RegisterRequest
 import com.neurotutor.app.mobile.data.model.auth.ResetPasswordRequest
 import com.neurotutor.app.mobile.data.model.auth.StudentProfileResponse
 import com.neurotutor.app.mobile.data.model.auth.ProfileResponse
+import com.neurotutor.app.mobile.data.model.auth.UpdateProfileRequest
 import com.neurotutor.app.mobile.data.model.auth.StudentProgressResponse
 import com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse
-import com.neurotutor.app.mobile.data.model.auth.AchievementResponse
+import com.neurotutor.app.mobile.data.model.auth.StudentAchievementsResponse
 import com.neurotutor.app.mobile.data.model.common.AiTutorRequest
 import com.neurotutor.app.mobile.data.model.common.AiTutorResponse
 import com.neurotutor.app.mobile.data.model.common.MessageResponse
@@ -22,6 +23,8 @@ import com.neurotutor.app.mobile.data.model.learning.ModuleItem
 import com.neurotutor.app.mobile.data.model.learning.ExamPassedResponse
 import com.neurotutor.app.mobile.data.model.learning.SubmitExamRequest
 import com.neurotutor.app.mobile.data.model.learning.SubmitExamResponse
+import com.neurotutor.app.mobile.data.model.learning.SubmitPracticeAttemptRequest
+import com.neurotutor.app.mobile.data.model.learning.SubmitPracticeAttemptResponse
 import retrofit2.http.*
 import retrofit2.Response
 
@@ -60,7 +63,10 @@ interface ApiService {
     suspend fun getUserProfile(@Path("studentId") studentId: String): Response<ProfileResponse>
 
     @PUT("api/students/{studentId}/profile")
-    suspend fun updateUserProfile(@Path("studentId") studentId: String, @Body profile: ProfileResponse): Response<ProfileResponse>
+    suspend fun updateUserProfile(
+        @Path("studentId") studentId: String,
+        @Body request: UpdateProfileRequest
+    ): Response<ProfileResponse>
 
     @GET("api/students/{studentId}/progress")
     suspend fun getStudentProgress(@Path("studentId") studentId: String): Response<StudentProgressResponse>
@@ -71,8 +77,15 @@ interface ApiService {
         @Path("moduloId") moduloId: String
     ): Response<ModuleProgressResponse>
 
+    @POST("api/practice/attempts")
+    suspend fun submitPracticeAttempt(
+        @Body request: SubmitPracticeAttemptRequest
+    ): Response<SubmitPracticeAttemptResponse>
+
     @GET("api/students/{studentId}/achievements")
-    suspend fun getStudentAchievements(@Path("studentId") studentId: String): Response<List<AchievementResponse>>
+    suspend fun getStudentAchievements(
+        @Path("studentId") studentId: String
+    ): Response<StudentAchievementsResponse>
 
     // ==================== ÉPICA 3: CONTENIDOS DE APRENDIZAJE ====================
 

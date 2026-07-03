@@ -3,7 +3,14 @@ package com.neurotutor.app.mobile.ui.screens.achievements
 data class AchievementsUiState(
     val isLoading: Boolean = true,
     val themes: List<ThemeAchievementUiModel> = emptyList(),
+    val achievementHistory: List<AchievementHistoryItem> = emptyList(),
     val errorMessage: String? = null
+)
+
+data class AchievementHistoryItem(
+    val id: String,
+    val action: String,
+    val completedAt: String?
 )
 
 data class ThemeAchievementUiModel(

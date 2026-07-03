@@ -1,5 +1,6 @@
 package com.neurotutor.app.mobile.ui.screens.achievements
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,9 +11,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -89,52 +93,37 @@ fun AchievementsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 100.dp) 
             ) {
-                // 1. Cálculo dinámico de la colección: Solo módulos reales (isComingSoon = false)
-                val (realThemes, comingSoon) = uiState.themes.partition { !it.isComingSoon }
-                
-                val allRealMilestones = realThemes
+                val realThemes = uiState.themes.filterNot { it.isComingSoon }
+                val milestones = realThemes
                     .flatMap { it.levelGroups }
                     .flatMap { it.milestones }
-                
-                val unlockedCount = allRealMilestones.count { it.isUnlocked }
-                val totalCount = allRealMilestones.size
+                val unlockedCount = milestones.count { it.isUnlocked }
 
                 AchievementsHeader(
-                    onBack = onBack, 
-                    totalBadges = unlockedCount,
-                    totalPossible = totalCount,
-                    themeTitle = realThemes.firstOrNull()?.title ?: "Fracciones"
-                )
-                
-                CollectionProgressCard(unlocked = unlockedCount, total = totalCount)
-
-                Text(
-                    text = "Tus Colecciones 🏆",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color(0xFF1E293B),
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 12.dp)
+                    onBack = onBack,
+                    totalBadges = unlockedCount
                 )
 
-                // 2. Secciones del Álbum (Temas reales con estructura 3x3)
-                realThemes.forEach { theme ->
-                    AlbumThemeSection(theme)
-                }
+                CollectionProgressCard(
+                    unlocked = unlockedCount,
+                    total = milestones.size
+                )
 
-                // 3. Próximamente (Contenido futuro)
-                if (comingSoon.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        text = "Próximamente 🚀",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF64748B),
-                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp)
-                    )
-                    comingSoon.forEach { theme ->
-                        ComingSoonThemeSection(theme)
+                AchievementSectionTitle(
+                    title = "Insignias",
+                    subtitle = "Completa teoría, práctica y examen para llenar tu colección"
+                )
+                if (realThemes.isEmpty()) {
+                    EmptyCollectionCard("Tu colección de insignias aparecerá aquí.")
+                } else {
+                    realThemes.forEach { theme ->
+                        AlbumThemeSection(theme)
                     }
                 }
+
+                CollapsibleAchievementHistory(
+                    history = uiState.achievementHistory
+                )
 
                 Spacer(modifier = Modifier.height(20.dp))
             }
@@ -151,12 +140,192 @@ fun AchievementsScreen(
 }
 
 @Composable
+private fun AchievementSectionTitle(
+    title: String,
+    subtitle: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp)
+    ) {
+        Text(
+            text = title,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Black,
+            color = Color(0xFF1E293B)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = subtitle,
+            fontSize = 13.sp,
+            color = Color(0xFF64748B),
+            lineHeight = 18.sp
+        )
+    }
+}
+
+@Composable
+private fun CollapsibleAchievementHistory(history: List<AchievementHistoryItem>) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Spacer(modifier = Modifier.height(20.dp))
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            TextButton(
+                onClick = { expanded = !expanded },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp)
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = "Historial de logros",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B)
+                    )
+                    Text(
+                        text = "${history.size} acciones completadas",
+                        fontSize = 12.sp,
+                        color = Color(0xFF64748B)
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) {
+                        Icons.Default.KeyboardArrowUp
+                    } else {
+                        Icons.Default.KeyboardArrowDown
+                    },
+                    contentDescription = if (expanded) {
+                        "Contraer historial"
+                    } else {
+                        "Expandir historial"
+                    },
+                    tint = MoradoActivo
+                )
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column {
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
+                    AchievementHistoryList(
+                        history = history,
+                        embedded = true
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AchievementHistoryList(
+    history: List<AchievementHistoryItem>,
+    embedded: Boolean
+) {
+    if (history.isEmpty()) {
+        if (embedded) {
+            Text(
+                text = "Tus acciones completadas aparecerán aquí.",
+                modifier = Modifier.padding(18.dp),
+                fontSize = 14.sp,
+                color = Color(0xFF64748B)
+            )
+        } else {
+            EmptyCollectionCard("Tus acciones completadas aparecerán aquí.")
+        }
+        return
+    }
+
+    Card(
+        modifier = if (embedded) Modifier.fillMaxWidth() else {
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+        },
+        shape = if (embedded) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (embedded) 0.dp else 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            history.forEachIndexed { index, item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 14.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 5.dp)
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(MoradoActivo)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.action,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1E293B),
+                            lineHeight = 20.sp
+                        )
+                        item.completedAt?.let { date ->
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = date,
+                                fontSize = 12.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+                }
+                if (index < history.lastIndex) {
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyCollectionCard(message: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(20.dp),
+            fontSize = 14.sp,
+            color = Color(0xFF64748B),
+            lineHeight = 20.sp,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
 fun AchievementsHeader(
     onBack: () -> Unit, 
     title: String = "Mis logros", 
-    totalBadges: Int = 0,
-    totalPossible: Int = 0,
-    themeTitle: String = ""
+    totalBadges: Int = 0
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
@@ -179,14 +348,18 @@ fun AchievementsHeader(
             Column(modifier = Modifier.weight(1f)) {
                 if (title == "Mis logros") {
                     Text(
-                        text = if(totalPossible > 0) "¡Ya tienes $totalBadges / $totalPossible trofeos de $themeTitle! 🦸‍♂️" else "¡Empieza a coleccionar tus trofeos matemáticos!",
+                        text = if (totalBadges > 0) {
+                            "¡Ya desbloqueaste $totalBadges insignias!"
+                        } else {
+                            "¡Empieza a construir tu colección!"
+                        },
                         fontSize = 16.sp, 
                         fontWeight = FontWeight.Bold, 
                         color = Color.White, 
                         lineHeight = 22.sp
                     )
                     Text(
-                        text = "Cada examen aprobado es una nueva medalla.",
+                        text = "Tus avances importantes quedan guardados aquí.",
                         fontSize = 13.sp,
                         color = Color.White.copy(alpha = 0.85f)
                     )

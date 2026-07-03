@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.neurotutor.app.mobile.data.local.ProgressManager
 import com.neurotutor.app.mobile.data.model.learning.Exercise
+import com.neurotutor.app.mobile.data.model.learning.PracticeAnswerRequest
+import com.neurotutor.app.mobile.data.model.learning.SubmitPracticeAttemptRequest
 import com.neurotutor.app.mobile.data.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +26,8 @@ data class ExerciseUiState(
     val tutorMessage: String = "",
     val isTutorLoading: Boolean = false,
     val totalPointsEarned: Int = 0,
+    val selectedAnswers: Map<String, Int> = emptyMap(),
+    val isSubmitting: Boolean = false,
     val isFinished: Boolean = false,
     val errorMessage: String? = null
 )
@@ -35,13 +39,13 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
 
     private val progressManager = ProgressManager(getApplication())
     private var currentModuleId: String = ""
-    private var currentLevel: String = ""
 
-    fun loadExercises(moduleId: String, level: String) {
+    fun loadExercises(moduleId: String) {
         currentModuleId = moduleId
-        currentLevel = level
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update {
+                ExerciseUiState(isLoading = true)
+            }
             try {
                 val response = RetrofitClient.apiService.getLevelContent(moduleId)
 
@@ -90,12 +94,11 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
             _uiState.update {
                 it.copy(
                     totalPointsEarned = it.totalPointsEarned + currentExercise.points,
+                    selectedAnswers = it.selectedAnswers + (currentExercise.id to selectedIndex),
                     isTutorVisible = false,
                     tutorMessage = ""
                 )
             }
-
-            goToNextExercise(studentId)
         } else {
             // ❌ Respuesta Incorrecta
             val explanation = if (!currentExercise.tutorExplanation.isNullOrBlank()) {
@@ -126,32 +129,82 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
                 )
             }
         } else {
-            viewModelScope.launch(Dispatchers.IO) {
-                try {
-                    val cleanStudentId = studentId.replace("\"", "").trim()
-                    
-                    // ✅ VALIDACIÓN: Evitar puntos duplicados
-                    val alreadyClaimed = progressManager.isRewardClaimed(cleanStudentId, currentModuleId, currentLevel)
-                    
-                    if (!alreadyClaimed) {
-                        Log.d("REWARD", "Otorgando puntos por primera vez para nivel $currentLevel")
-                        RetrofitClient.apiService.addPoints(cleanStudentId, currentState.totalPointsEarned)
-                        progressManager.markRewardAsClaimed(cleanStudentId, currentModuleId, currentLevel)
-                    } else {
-                        Log.d("REWARD", "Recompensa ya reclamada para este nivel. Omitiendo addPoints.")
-                    }
+            submitPracticeAttempt(studentId, currentState)
+        }
+    }
 
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { it.copy(isFinished = true) }
-                    }
-                } catch (e: Exception) {
-                    Log.e("ExerciseViewModel", "Error al procesar finalización: ${e.message}")
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { it.copy(isFinished = true) }
-                    }
+    private fun submitPracticeAttempt(studentId: String, currentState: ExerciseUiState) {
+        val cleanStudentId = studentId.replace("\"", "").trim().toLongOrNull()
+        val cleanModuleId = currentModuleId.trim().toLongOrNull()
+        if (cleanStudentId == null || cleanModuleId == null) {
+            _uiState.update {
+                it.copy(errorMessage = "No se pudo identificar al estudiante o al módulo.")
+            }
+            return
+        }
+
+        val answers = currentState.exercises.mapNotNull { exercise ->
+            currentState.selectedAnswers[exercise.id]?.let { selectedIndex ->
+                exercise.id.toLongOrNull()?.let { exerciseId ->
+                    PracticeAnswerRequest(
+                        exerciseId = exerciseId,
+                        selectedAnswerIndex = selectedIndex
+                    )
                 }
             }
         }
+        if (answers.size != currentState.exercises.size) {
+            _uiState.update {
+                it.copy(errorMessage = "Faltan respuestas válidas para registrar la práctica.")
+            }
+            return
+        }
+
+        _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.apiService.submitPracticeAttempt(
+                    SubmitPracticeAttemptRequest(
+                        studentId = cleanStudentId,
+                        moduloId = cleanModuleId,
+                        answers = answers
+                    )
+                )
+
+                val result = response.body()
+                if (response.isSuccessful && result != null) {
+                    withContext(Dispatchers.Main) {
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                totalPointsEarned = result.pointsEarned,
+                                isFinished = true
+                            )
+                        }
+                    }
+                } else {
+                    showPracticeSubmissionError()
+                }
+            } catch (e: Exception) {
+                Log.e("ExerciseViewModel", "Error al registrar práctica", e)
+                showPracticeSubmissionError()
+            }
+        }
+    }
+
+    private suspend fun showPracticeSubmissionError() {
+        withContext(Dispatchers.Main) {
+            _uiState.update {
+                it.copy(
+                    isSubmitting = false,
+                    errorMessage = "No se pudo guardar la práctica. Inténtalo nuevamente."
+                )
+            }
+        }
+    }
+
+    fun clearSubmissionError() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 
     fun hideTutor() {

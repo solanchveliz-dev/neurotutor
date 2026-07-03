@@ -1,5 +1,7 @@
 package com.neurotutor.app.mobile.data.model.auth
 
+import com.google.gson.annotations.SerializedName
+
 data class AchievementResponse(
     val id: String,
     val code: String,
@@ -7,6 +9,13 @@ data class AchievementResponse(
     val description: String,
     val icon: String,
     val category: String,
-    val pointsRequired: Int,
+    @SerializedName("points_required")
+    val pointsRequired: Int?,
+    @SerializedName("unlocked_at")
     val unlockedAt: String?
+)
+
+data class StudentAchievementsResponse(
+    val unlocked: List<AchievementResponse>,
+    val locked: List<AchievementResponse>
 )
