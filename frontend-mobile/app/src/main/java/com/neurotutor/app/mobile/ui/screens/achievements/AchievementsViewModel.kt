@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.Job
+import android.os.SystemClock
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -19,19 +22,30 @@ class AchievementsViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(AchievementsUiState())
     val uiState: StateFlow<AchievementsUiState> = _uiState.asStateFlow()
+    private var loadJob: Job? = null
+    private var lastLoadedAt = 0L
 
-    fun loadAchievements(studentId: String) {
+    fun loadAchievements(studentId: String, force: Boolean = false) {
         val cleanId = studentId.replace("\"", "").trim()
         val shouldShowLoading = _uiState.value.themes.isEmpty() &&
                 _uiState.value.achievementHistory.isEmpty()
+        val hasFreshData = !shouldShowLoading &&
+                SystemClock.elapsedRealtime() - lastLoadedAt < CACHE_TTL_MS
+        if (!force && hasFreshData) return
+        if (loadJob?.isActive == true) return
 
-        viewModelScope.launch(Dispatchers.IO) {
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = shouldShowLoading, errorMessage = null) }
 
             try {
-                val response = RetrofitClient.apiService.getStudentProgress(cleanId)
-                val achievementsResponse =
+                val progressDeferred = async {
+                    RetrofitClient.apiService.getStudentProgress(cleanId)
+                }
+                val achievementsDeferred = async {
                     RetrofitClient.apiService.getStudentAchievements(cleanId)
+                }
+                val response = progressDeferred.await()
+                val achievementsResponse = achievementsDeferred.await()
 
                 if (response.isSuccessful && response.body() != null) {
                     val progress = response.body()!!
@@ -74,6 +88,7 @@ class AchievementsViewModel : ViewModel() {
                         compareBy<ThemeAchievementUiModel> { it.isComingSoon }
                             .thenBy { it.title }
                     )
+                    lastLoadedAt = SystemClock.elapsedRealtime()
 
                     withContext(Dispatchers.Main) {
                         _uiState.update {
@@ -197,5 +212,9 @@ class AchievementsViewModel : ViewModel() {
         } catch (e: Exception) {
             dateStr
         }
+    }
+
+    companion object {
+        private const val CACHE_TTL_MS = 30_000L
     }
 }

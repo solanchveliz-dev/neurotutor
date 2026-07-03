@@ -19,6 +19,7 @@ import com.neurotutor.app.mobile.ui.theme.MoradoActivo
 @Composable
 fun AchievementsCard(
     achievements: List<AchievementResponse>,
+    latestAcademicBadge: LearningBadgeUiModel? = null,
     onSeeAll: () -> Unit,
     showSeeAll: Boolean = true,
     modifier: Modifier = Modifier
@@ -50,7 +51,7 @@ fun AchievementsCard(
                 }
             }
 
-            if (achievements.isEmpty()) {
+            if (achievements.isEmpty() && latestAcademicBadge == null) {
                 Text(
                     text = "Completa actividades para obtener tu primer logro.",
                     modifier = Modifier.padding(vertical = 12.dp),
@@ -58,7 +59,9 @@ fun AchievementsCard(
                     color = Color(0xFF64748B)
                 )
             } else {
-                achievements.take(2).forEach { achievement ->
+                val achievementsToShow =
+                    if (latestAcademicBadge != null) achievements.take(1) else achievements.take(2)
+                achievementsToShow.forEach { achievement ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -78,7 +81,34 @@ fun AchievementsCard(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = achievement.description,
+                            text = if (achievement.code in LEVEL_COMPLETION_CODES) {
+                                achievement.title
+                            } else {
+                                achievement.description
+                            },
+                            modifier = Modifier.weight(1f),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            lineHeight = 18.sp,
+                            color = Color(0xFF334155)
+                        )
+                    }
+                }
+                latestAcademicBadge?.let { badge ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = painterResource(badge.iconRes),
+                            contentDescription = badge.name,
+                            modifier = Modifier.size(42.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = badge.name,
                             modifier = Modifier.weight(1f),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -91,3 +121,9 @@ fun AchievementsCard(
         }
     }
 }
+
+private val LEVEL_COMPLETION_CODES = setOf(
+    "BASIC_LEVEL_COMPLETED",
+    "INTERMEDIATE_LEVEL_COMPLETED",
+    "ADVANCED_LEVEL_COMPLETED"
+)

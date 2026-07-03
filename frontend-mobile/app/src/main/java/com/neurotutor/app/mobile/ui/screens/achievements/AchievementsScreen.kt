@@ -41,6 +41,9 @@ import com.neurotutor.app.mobile.ui.components.DashboardBottomBar
 import com.neurotutor.app.mobile.ui.theme.MoradoActivo
 import com.neurotutor.app.mobile.ui.theme.NeuroWhite
 import com.valentinilk.shimmer.shimmer
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AchievementsScreen(
@@ -53,6 +56,13 @@ fun AchievementsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+    val achievementNeoModel = remember(context) {
+        ImageRequest.Builder(context)
+            .data(R.drawable.neo_achievement)
+            .crossfade(true)
+            .build()
+    }
 
     // 🔄 SINCRONIZACIÓN EN TIEMPO REAL: Refresca al volver a la pantalla
     DisposableEffect(lifecycleOwner, studentId) {
@@ -85,7 +95,9 @@ fun AchievementsScreen(
                 AchievementsSkeleton()
             }
         } else if (uiState.errorMessage != null) {
-            ErrorState(uiState.errorMessage!!) { viewModel.loadAchievements(studentId) }
+            ErrorState(uiState.errorMessage!!) {
+                viewModel.loadAchievements(studentId, force = true)
+            }
         } else {
             Column(
                 modifier = Modifier
@@ -101,7 +113,8 @@ fun AchievementsScreen(
 
                 AchievementsHeader(
                     onBack = onBack,
-                    totalBadges = unlockedCount
+                    totalBadges = unlockedCount,
+                    neoModel = achievementNeoModel
                 )
 
                 CollectionProgressCard(
@@ -325,7 +338,8 @@ private fun EmptyCollectionCard(message: String) {
 fun AchievementsHeader(
     onBack: () -> Unit, 
     title: String = "Mis logros", 
-    totalBadges: Int = 0
+    totalBadges: Int = 0,
+    neoModel: Any? = null
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
@@ -365,7 +379,12 @@ fun AchievementsHeader(
                     )
                 }
             }
-            Image(painter = painterResource(id = R.drawable.neo_achievement), contentDescription = null, modifier = Modifier.size(110.dp), contentScale = ContentScale.Fit)
+            AsyncImage(
+                model = neoModel ?: R.drawable.neo_achievement,
+                contentDescription = null,
+                modifier = Modifier.size(110.dp),
+                contentScale = ContentScale.Fit
+            )
         }
     }
 }

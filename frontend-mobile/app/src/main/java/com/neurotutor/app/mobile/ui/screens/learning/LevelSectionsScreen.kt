@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.ui.theme.*
 
@@ -54,7 +55,7 @@ fun LevelSectionsScreen(
         factory = LevelSectionsViewModelFactory(context, studentId, moduleId)
     )
 
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.loadProgress()

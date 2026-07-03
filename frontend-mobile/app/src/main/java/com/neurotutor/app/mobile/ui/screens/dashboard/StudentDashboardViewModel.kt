@@ -7,6 +7,8 @@ import com.neurotutor.app.mobile.data.model.learning.ModuleItem
 import com.neurotutor.app.mobile.data.model.auth.AchievementResponse
 import com.neurotutor.app.mobile.data.network.RetrofitClient
 import com.neurotutor.app.mobile.domain.mapper.ProgressMapper
+import com.neurotutor.app.mobile.ui.components.BadgeMapper
+import com.neurotutor.app.mobile.ui.components.LearningBadgeUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +17,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import android.os.SystemClock
 
 data class StudentDashboardUiState(
     val isLoading: Boolean = true,
@@ -25,6 +29,7 @@ data class StudentDashboardUiState(
     val overallProgress: Int = 0,
     val modulos: List<ModuleItem> = emptyList(),
     val unlockedAchievements: List<AchievementResponse> = emptyList(),
+    val latestAcademicBadge: LearningBadgeUiModel? = null,
     val errorMessage: String? = null
 )
 
@@ -32,12 +37,20 @@ class StudentDashboardViewModel(application: Application) : AndroidViewModel(app
 
     private val _uiState = MutableStateFlow(StudentDashboardUiState())
     val uiState: StateFlow<StudentDashboardUiState> = _uiState.asStateFlow()
+    private var loadJob: Job? = null
+    private var lastLoadedAt = 0L
 
-    fun cargarInformacionReal(studentId: String) {
+    fun cargarInformacionReal(studentId: String, force: Boolean = false) {
         val cleanId = studentId.replace("\"", "").trim()
+        val hasFreshData = _uiState.value.nombreEstudiante.isNotBlank() &&
+                SystemClock.elapsedRealtime() - lastLoadedAt < CACHE_TTL_MS
+        if (!force && hasFreshData) return
+        if (loadJob?.isActive == true) return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update {
+                it.copy(isLoading = it.nombreEstudiante.isBlank(), errorMessage = null)
+            }
             try {
                 val profileDeferred = async { RetrofitClient.apiService.getStudentProfile(cleanId) }
                 val progressDeferred = async { RetrofitClient.apiService.getStudentProgress(cleanId) }
@@ -65,7 +78,23 @@ class StudentDashboardViewModel(application: Application) : AndroidViewModel(app
                         liveProgress = progressData?.modules.orEmpty()
                     )
 
-                    val unlockedAchievements = achievementsResponse.body()?.unlocked.orEmpty()
+                    val allAchievements = achievementsResponse.body()?.unlocked.orEmpty()
+                    val hasLevelCompletion = allAchievements.any {
+                        it.code in LEVEL_COMPLETION_CODES
+                    }
+                    val unlockedAchievements = allAchievements.filterNot {
+                        hasLevelCompletion && it.code == "FIRST_MODULE_COMPLETED"
+                    }
+                    val latestAcademicBadge = unlockedAchievements
+                        .firstOrNull()
+                        ?.takeIf { it.code in LEVEL_COMPLETION_CODES }
+                        ?.let { achievement ->
+                            examBadgeForLevelCompletion(
+                                achievementCode = achievement.code,
+                                modules = progressData?.modules.orEmpty()
+                            )
+                        }
+                    lastLoadedAt = SystemClock.elapsedRealtime()
 
                     withContext(Dispatchers.Main) {
                         _uiState.update {
@@ -77,7 +106,8 @@ class StudentDashboardViewModel(application: Application) : AndroidViewModel(app
                                 puntosTotales = perfil.puntosTotales,
                                 overallProgress = progressData?.overallProgress ?: 0,
                                 modulos = modulosSincronizados,
-                                unlockedAchievements = unlockedAchievements
+                                unlockedAchievements = unlockedAchievements,
+                                latestAcademicBadge = latestAcademicBadge
                             )
                         }
                     }
@@ -92,5 +122,31 @@ class StudentDashboardViewModel(application: Application) : AndroidViewModel(app
 
     fun refreshProgress(studentId: String) {
         cargarInformacionReal(studentId)
+    }
+
+    private fun examBadgeForLevelCompletion(
+        achievementCode: String,
+        modules: List<com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse>
+    ): LearningBadgeUiModel? {
+        val level = when (achievementCode) {
+            "BASIC_LEVEL_COMPLETED" -> "B"
+            "INTERMEDIATE_LEVEL_COMPLETED" -> "I"
+            "ADVANCED_LEVEL_COMPLETED" -> "A"
+            else -> return null
+        }
+        val module = modules.firstOrNull {
+            it.examPassed && it.level.startsWith(level, ignoreCase = true)
+        }
+        return BadgeMapper.badgesForLevel(level, module)
+            .firstOrNull { it.trigger == "EXAM" && it.isUnlocked }
+    }
+
+    companion object {
+        private const val CACHE_TTL_MS = 30_000L
+        private val LEVEL_COMPLETION_CODES = setOf(
+            "BASIC_LEVEL_COMPLETED",
+            "INTERMEDIATE_LEVEL_COMPLETED",
+            "ADVANCED_LEVEL_COMPLETED"
+        )
     }
 }

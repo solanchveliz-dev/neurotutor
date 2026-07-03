@@ -13,15 +13,26 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import android.os.SystemClock
 
 class ProfileViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+    private var loadJob: Job? = null
+    private var lastLoadedAt = 0L
 
-    fun loadProfileData(studentId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+    fun loadProfileData(studentId: String, force: Boolean = false) {
+        val hasFreshData = _uiState.value.name.isNotBlank() &&
+                SystemClock.elapsedRealtime() - lastLoadedAt < CACHE_TTL_MS
+        if (!force && hasFreshData) return
+        if (loadJob?.isActive == true) return
+
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update {
+                it.copy(isLoading = it.name.isBlank(), errorMessage = null)
+            }
             try {
                 // Fetch in parallel
                 val profileJob = launch { fetchProfile(studentId) }
@@ -29,6 +40,9 @@ class ProfileViewModel : ViewModel() {
                 
                 profileJob.join()
                 progressJob.join()
+                if (_uiState.value.name.isNotBlank() && _uiState.value.errorMessage == null) {
+                    lastLoadedAt = SystemClock.elapsedRealtime()
+                }
                 
                 withContext(Dispatchers.Main) {
                     _uiState.update { it.copy(isLoading = false) }
@@ -189,5 +203,9 @@ class ProfileViewModel : ViewModel() {
         _uiState.update {
             it.copy(updateErrorMessage = null, updateSucceeded = false)
         }
+    }
+
+    companion object {
+        private const val CACHE_TTL_MS = 30_000L
     }
 }

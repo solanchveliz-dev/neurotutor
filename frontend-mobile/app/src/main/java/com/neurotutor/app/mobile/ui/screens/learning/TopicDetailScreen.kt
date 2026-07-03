@@ -39,6 +39,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.data.model.learning.ModuleStatus
 import com.neurotutor.app.mobile.ui.theme.*
@@ -53,8 +57,15 @@ fun TopicDetailScreen(
     onLevelSelected: (String, String, String) -> Unit,
     onBack: () -> Unit
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+    val neoCloudModel = remember(context) {
+        ImageRequest.Builder(context)
+            .data(R.drawable.neo_cloud)
+            .crossfade(true)
+            .build()
+    }
 
     DisposableEffect(lifecycleOwner, studentId, moduleId) {
         val observer = LifecycleEventObserver { _, event ->
@@ -178,8 +189,8 @@ fun TopicDetailScreen(
                         }
 
                         // Neo sobre nube
-                        Image(
-                            painter = painterResource(id = R.drawable.neo_cloud),
+                        AsyncImage(
+                            model = neoCloudModel,
                             contentDescription = null,
                             modifier = Modifier.size(180.dp),
                             contentScale = ContentScale.Fit
@@ -327,10 +338,14 @@ fun LevelCard(
                         .fillMaxHeight(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = islandRes),
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(islandRes)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
+                        error = painterResource(R.drawable.ic_modulo_default),
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(8.dp)

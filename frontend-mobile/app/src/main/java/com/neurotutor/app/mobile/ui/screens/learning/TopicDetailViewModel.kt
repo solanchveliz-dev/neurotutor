@@ -1,16 +1,17 @@
 package com.neurotutor.app.mobile.ui.screens.learning
 
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.neurotutor.app.mobile.data.model.learning.ModuleStatus
 import com.neurotutor.app.mobile.data.network.RetrofitClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 data class LevelItem(
     val levelId: String,
@@ -32,50 +33,69 @@ class TopicDetailViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(TopicDetailUiState())
     val uiState: StateFlow<TopicDetailUiState> = _uiState.asStateFlow()
 
-    fun loadTopicDetails(studentId: String, moduleId: String) {
+    private var loadJob: Job? = null
+    private var lastLoadedAt = 0L
+    private var lastRequestKey: String? = null
+
+    fun loadTopicDetails(studentId: String, moduleId: String, force: Boolean = false) {
         val cleanStudentId = studentId.replace("\"", "").trim()
+        val requestKey = "$cleanStudentId:$moduleId"
+        val hasFreshData = lastRequestKey == requestKey &&
+                _uiState.value.levels.isNotEmpty() &&
+                SystemClock.elapsedRealtime() - lastLoadedAt < CACHE_TTL_MS
 
-        viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        if (!force && hasFreshData) return
+        if (loadJob?.isActive == true) return
+
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update {
+                it.copy(isLoading = it.levels.isEmpty(), errorMessage = null)
+            }
             try {
-                // 🚀 CONSUMO DE RUTA CON PROGRESO OFICIAL (33/66/100)
                 val response = RetrofitClient.apiService.getTopicRuta(moduleId, cleanStudentId)
+                val body = response.body()
 
-                if (response.isSuccessful && response.body() != null) {
-                    val levelsFromApi = response.body()!!.map { moduleItem ->
+                if (response.isSuccessful && body != null) {
+                    val levelsFromApi = body.map { moduleItem ->
                         LevelItem(
                             levelId = moduleItem.id,
                             name = moduleItem.titulo,
                             description = "Contenido adaptado a tu progreso",
                             status = moduleItem.estado,
-                            // Sincronización con la única fuente de verdad: ProgressService
                             progress = moduleItem.progressPercentage / 100f
                         )
                     }
 
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { 
-                            it.copy(
-                                isLoading = false, 
-                                topicTitle = "Ruta de Aprendizaje",
-                                levels = levelsFromApi
-                            ) 
-                        }
+                    lastRequestKey = requestKey
+                    lastLoadedAt = SystemClock.elapsedRealtime()
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            topicTitle = "Ruta de Aprendizaje",
+                            levels = levelsFromApi,
+                            errorMessage = null
+                        )
                     }
                 } else {
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { 
-                            it.copy(isLoading = false, errorMessage = "Error al cargar niveles: ${response.code()}") 
-                        }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Error al cargar niveles: ${response.code()}"
+                        )
                     }
                 }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    _uiState.update { 
-                        it.copy(isLoading = false, errorMessage = "Fallo de conexión: ${e.message}")
-                    }
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Fallo de conexión: ${error.localizedMessage}"
+                    )
                 }
             }
         }
+    }
+
+    companion object {
+        private const val CACHE_TTL_MS = 30_000L
     }
 }

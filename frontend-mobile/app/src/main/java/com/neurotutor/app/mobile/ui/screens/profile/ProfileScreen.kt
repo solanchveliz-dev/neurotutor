@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.ui.components.DashboardBottomBar
 import com.neurotutor.app.mobile.ui.screens.profile.components.*
@@ -35,7 +36,7 @@ fun ProfileScreen(
     onNavigateToTab: (String) -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     var showEditProfileDialog by rememberSaveable { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -84,7 +85,7 @@ fun ProfileScreen(
                 ProfileUnavailableState(
                     message = uiState.errorMessage ?: "No se pudo cargar el perfil",
                     actionLabel = "Reintentar",
-                    onAction = { viewModel.loadProfileData(studentId) },
+                    onAction = { viewModel.loadProfileData(studentId, force = true) },
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
@@ -93,7 +94,7 @@ fun ProfileScreen(
                 ProfileUnavailableState(
                     message = "No encontramos información disponible para este perfil.",
                     actionLabel = "Volver a intentar",
-                    onAction = { viewModel.loadProfileData(studentId) },
+                    onAction = { viewModel.loadProfileData(studentId, force = true) },
                     modifier = Modifier.align(Alignment.Center)
                 )
             }

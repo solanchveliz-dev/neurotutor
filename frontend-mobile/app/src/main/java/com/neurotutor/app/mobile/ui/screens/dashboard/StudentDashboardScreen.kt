@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.data.model.learning.ModuleItem
@@ -41,6 +42,8 @@ import com.neurotutor.app.mobile.ui.components.DashboardBottomBar
 import com.neurotutor.app.mobile.ui.components.AchievementsCard
 import com.neurotutor.app.mobile.ui.theme.MoradoActivo
 import com.neurotutor.app.mobile.ui.theme.TextoBase
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -53,8 +56,15 @@ fun StudentDashboardScreen(
     onNavigateToTutor: (String, String) -> Unit = { _, _ -> }
 ) {
     val dashboardViewModel: StudentDashboardViewModel = viewModel()
-    val state by dashboardViewModel.uiState.collectAsState()
+    val state by dashboardViewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+    val dashboardNeoModel = remember(context) {
+        ImageRequest.Builder(context)
+            .data(R.drawable.neo_dashboard2)
+            .crossfade(true)
+            .build()
+    }
 
     var yaSeMostroBienvenida by rememberSaveable { mutableStateOf(false) }
     var mostrarNeoOverlay by remember { mutableStateOf(!yaSeMostroBienvenida) }
@@ -112,7 +122,7 @@ fun StudentDashboardScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(text = state.errorMessage!!, color = MoradoActivo)
-                    TextButton(onClick = { dashboardViewModel.cargarInformacionReal(studentId) }) {
+                    TextButton(onClick = { dashboardViewModel.cargarInformacionReal(studentId, force = true) }) {
                         Text("Reintentar")
                     }
                 }
@@ -150,8 +160,8 @@ fun StudentDashboardScreen(
                                     color = Color.White.copy(alpha = 0.9f)
                                 )
                             }
-                            Image(
-                                painter = painterResource(id = R.drawable.neo_dashboard2),
+                            AsyncImage(
+                                model = dashboardNeoModel,
                                 contentDescription = null,
                                 modifier = Modifier.size(140.dp),
                                 contentScale = ContentScale.Fit
@@ -263,6 +273,7 @@ fun StudentDashboardScreen(
 
                     AchievementsCard(
                         achievements = state.unlockedAchievements,
+                        latestAcademicBadge = state.latestAcademicBadge,
                         onSeeAll = { onNavigateToTab("logros") }
                     )
                 }
@@ -294,7 +305,7 @@ fun StudentDashboardScreen(
                 ) {
                     Box(modifier = Modifier.size(260.dp).offset { IntOffset(x = 0, y = offsetY.roundToInt()) }, contentAlignment = Alignment.Center) {
                         Box(modifier = Modifier.size(220.dp).background(Brush.radialGradient(colors = listOf(Color(0xFF60A5FA).copy(alpha = 0.6f), Color.Transparent)), RoundedCornerShape(110.dp)))
-                        Image(painter = painterResource(id = R.drawable.neo_dashboard2), contentDescription = "Mentor Neo", modifier = Modifier.size(240.dp), contentScale = ContentScale.Fit)
+                        AsyncImage(model = dashboardNeoModel, contentDescription = "Mentor Neo", modifier = Modifier.size(240.dp), contentScale = ContentScale.Fit)
                     }
                     Spacer(modifier = Modifier.height(28.dp))
                     Card(modifier = Modifier.fillMaxWidth(0.9f), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
