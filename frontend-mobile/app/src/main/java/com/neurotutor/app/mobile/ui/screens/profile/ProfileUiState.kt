@@ -1,6 +1,8 @@
 package com.neurotutor.app.mobile.ui.screens.profile
 
-import com.neurotutor.app.mobile.data.model.learning.ModuleItem
+import com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse
+import com.neurotutor.app.mobile.domain.mapper.ThemeProgress
+import com.neurotutor.app.mobile.ui.screens.dashboard.DashboardBadgeUiModel
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -11,6 +13,7 @@ data class ProfileUiState(
     val modulesCompleted: Int = 0,
     val medalsCount: Int = 0,
     val avatarUrl: String? = null,
-    val modules: List<ModuleItem> = emptyList(),
+    val thematicProgress: List<ThemeProgress> = emptyList(),
+    val earnedBadges: List<DashboardBadgeUiModel> = emptyList(),
     val errorMessage: String? = null
 )

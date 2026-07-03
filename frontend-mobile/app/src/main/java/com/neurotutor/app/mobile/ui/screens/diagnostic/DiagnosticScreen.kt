@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neurotutor.app.mobile.R
+import com.neurotutor.app.mobile.data.network.RetrofitClient
 import kotlinx.coroutines.delay
 
 data class Question(
@@ -41,7 +42,7 @@ fun DiagnosticScreen(
     studentId: String,
     onNavigateToAssignment: (String, List<String>) -> Unit
 ) {
-    val questions = remember {
+    val localQuestions = remember {
         listOf(
             Question("Como parte de una campaña de reciclaje, los estudiantes de secundaria de una escuela recolectaron 1826 botellas de plástico. Ellos recolectaron 478 botellas de plástico menos que los estudiantes de primaria. ¿Cuántas botellas de plástico recolectaron los estudiantes de primaria?", options = listOf("478 botellas de plástico.", "1348 botellas de plástico.", "2294 botellas de plástico.", "2304 botellas de plástico."), correctAnswer = 2),
             Question("Mariana recibió 8 cajas con latas de pintura para su ferretería. En cada caja, hay media docena de latas de pintura. Ella venderá cada lata a S/20. ¿Cuánto dinero recibirá Mariana por la venta de todas las latas de pintura?", options = listOf("S/34", "S/160", "S/960", "S/1920"), correctAnswer = 2),
@@ -54,6 +55,38 @@ fun DiagnosticScreen(
             Question("Eloísa preparó 56 bizcochos. Luego, los colocó en 4 cajas con igual cantidad de bizcochos en cada una. Al terminar de guardarlos, le sobraron 8 bizcochos. ¿Cuántos bizcochos colocó en cada caja?", options = listOf("12 bizcochos", "14 bizcochos", "16 bizcochos", "22 bizcochos"), correctAnswer = 2),
             Question("Cuatro amigos quieren tomar un vaso de jugo de naranja cada uno, pero tienen diferentes cantidades de dinero. Mario tiene S/5, Eliana tiene S/7, José tiene S/8 y Lucía tiene S/4. Todos están de acuerdo en prestarse dinero entre ellos...", imageRes = R.drawable.imagen_pregunta10_jugonaranja, textAfterImage = "¿Cuál es el mayor precio que podrán pagar los cuatro amigos por cada vaso de jugo de naranja?", options = listOf("S/3", "S/4", "S/5", "S/6"), correctAnswer = 3)
         )
+    }
+    var questions by remember { mutableStateOf(localQuestions) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.apiService.getDiagnosticQuestions()
+            val remoteQuestions = response.body()
+
+            if (response.isSuccessful && remoteQuestions?.size == localQuestions.size) {
+                questions = remoteQuestions
+                    .sortedBy { it.order }
+                    .mapIndexed { index, question ->
+                        Question(
+                            textBeforeImage = question.textBeforeImage.orEmpty(),
+                            imageRes = when (question.order) {
+                                4 -> R.drawable.imagen_pregunta4_frutas
+                                5 -> R.drawable.imagen_pregunta5_sogas
+                                6 -> R.drawable.imagen_pregunta6_ecuacion
+                                7 -> R.drawable.imagen_pregunta7_terreno
+                                8 -> R.drawable.imagen_pregunta8_tabla
+                                10 -> R.drawable.imagen_pregunta10_jugonaranja
+                                else -> null
+                            },
+                            textAfterImage = question.textAfterImage,
+                            options = question.options,
+                            correctAnswer = localQuestions[index].correctAnswer
+                        )
+                    }
+            }
+        } catch (_: Exception) {
+            // Se conserva el contenido local para no interrumpir el flujo existente.
+        }
     }
 
     var currentQuestionIndex by remember { mutableIntStateOf(0) }

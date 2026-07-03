@@ -3,6 +3,8 @@ package com.neurotutor.app.mobile.ui.screens.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.neurotutor.app.mobile.data.network.RetrofitClient
+import com.neurotutor.app.mobile.domain.mapper.ProgressMapper
+import com.neurotutor.app.mobile.ui.components.BadgeMapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,11 +22,16 @@ class ProfileViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val profileDeferred = launch { fetchProfile(studentId) }
-                val progressDeferred = launch { fetchProgress(studentId) }
-                val achievementsDeferred = launch { fetchAchievements(studentId) }
+                // Fetch in parallel
+                val profileJob = launch { fetchProfile(studentId) }
+                val progressJob = launch { fetchProgress(studentId) }
                 
-                // Wait for all to finish if needed, but launch starts them in parallel
+                profileJob.join()
+                progressJob.join()
+                
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
@@ -45,15 +52,13 @@ class ProfileViewModel : ViewModel() {
                             email = profile.email,
                             level = profile.level,
                             points = profile.points,
-                            avatarUrl = profile.avatarUrl,
-                            modulesCompleted = profile.modulesCompleted,
-                            medalsCount = profile.medalsCount
+                            avatarUrl = profile.avatarUrl
                         )
                     }
                 }
             }
         } catch (e: Exception) {
-            // Log error
+            // Error handling
         }
     }
 
@@ -62,22 +67,29 @@ class ProfileViewModel : ViewModel() {
             val response = RetrofitClient.apiService.getStudentProgress(studentId)
             if (response.isSuccessful && response.body() != null) {
                 val progress = response.body()!!
+                val completedCount = progress.modules.count { it.examPassed }
+                val earnedBadges = BadgeMapper.fromModules(progress.modules)
+                
+                // 🚀 Única lógica de cálculo para Perfil
+                val mappedThemes = ProgressMapper.fromProgressResponse(progress.modules)
+                
                 withContext(Dispatchers.Main) {
-                    _uiState.update { it.copy(modules = progress.modules) }
+                    _uiState.update { 
+                        it.copy(
+                            thematicProgress = mappedThemes,
+                            modulesCompleted = completedCount,
+                            earnedBadges = earnedBadges,
+                            medalsCount = earnedBadges.size
+                        ) 
+                    }
                 }
             }
         } catch (e: Exception) {
-            // Log error
+            // Error handling
         }
     }
 
-    private suspend fun fetchAchievements(studentId: String) {
-        // Implementation for achievements if needed, currently state holds count
-        // and Screen might need the list for MedalsCard
-    }
-
     fun logout(onSuccess: () -> Unit) {
-        // Clear local session logic here
         onSuccess()
     }
 }

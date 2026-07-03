@@ -35,9 +35,11 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
 
     private val progressManager = ProgressManager(getApplication())
     private var currentModuleId: String = ""
+    private var currentLevel: String = ""
 
-    fun loadExercises(moduleId: String) {
+    fun loadExercises(moduleId: String, level: String) {
         currentModuleId = moduleId
+        currentLevel = level
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
@@ -46,7 +48,7 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
                 if (response.isSuccessful && response.body() != null) {
                     val data = response.body()!!
 
-                    // ✅ LOG DE VERIFICACIÓN: Confirmamos que cada ejercicio trae su subtema real
+                    // ✅ LOG DE VERIFICACIÓN
                     data.ejercicios.forEachIndexed { index, exercise ->
                         Log.d("DEBUG_SUBTEMA", "Ejercicio [$index] ID: ${exercise.id} -> Subtema recibido: ${exercise.subtema}")
                     }
@@ -96,7 +98,6 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
             goToNextExercise(studentId)
         } else {
             // ❌ Respuesta Incorrecta
-            // Se muestra directamente la explicación del tutor configurada en el ejercicio
             val explanation = if (!currentExercise.tutorExplanation.isNullOrBlank()) {
                 currentExercise.tutorExplanation
             } else {
@@ -128,12 +129,23 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
             viewModelScope.launch(Dispatchers.IO) {
                 try {
                     val cleanStudentId = studentId.replace("\"", "").trim()
-                    RetrofitClient.apiService.addPoints(cleanStudentId, currentState.totalPointsEarned)
+                    
+                    // ✅ VALIDACIÓN: Evitar puntos duplicados
+                    val alreadyClaimed = progressManager.isRewardClaimed(cleanStudentId, currentModuleId, currentLevel)
+                    
+                    if (!alreadyClaimed) {
+                        Log.d("REWARD", "Otorgando puntos por primera vez para nivel $currentLevel")
+                        RetrofitClient.apiService.addPoints(cleanStudentId, currentState.totalPointsEarned)
+                        progressManager.markRewardAsClaimed(cleanStudentId, currentModuleId, currentLevel)
+                    } else {
+                        Log.d("REWARD", "Recompensa ya reclamada para este nivel. Omitiendo addPoints.")
+                    }
+
                     withContext(Dispatchers.Main) {
                         _uiState.update { it.copy(isFinished = true) }
                     }
                 } catch (e: Exception) {
-                    Log.e("ExerciseViewModel", "Error al guardar puntos: ${e.message}")
+                    Log.e("ExerciseViewModel", "Error al procesar finalización: ${e.message}")
                     withContext(Dispatchers.Main) {
                         _uiState.update { it.copy(isFinished = true) }
                     }

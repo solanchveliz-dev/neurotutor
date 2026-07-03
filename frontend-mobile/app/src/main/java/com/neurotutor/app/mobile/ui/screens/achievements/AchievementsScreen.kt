@@ -2,19 +2,15 @@ package com.neurotutor.app.mobile.ui.screens.achievements
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,21 +18,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
+import com.neurotutor.app.mobile.ui.components.AchievementBadge
 import com.neurotutor.app.mobile.ui.components.DashboardBottomBar
 import com.neurotutor.app.mobile.ui.theme.MoradoActivo
+import com.neurotutor.app.mobile.ui.theme.NeuroWhite
 import com.valentinilk.shimmer.shimmer
 
 @Composable
@@ -49,315 +48,256 @@ fun AchievementsScreen(
     viewModel: AchievementsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Insignias, 1: Certificaciones
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(studentId) {
-        viewModel.loadAchievements(studentId)
+    // 🔄 SINCRONIZACIÓN EN TIEMPO REAL: Refresca al volver a la pantalla
+    DisposableEffect(lifecycleOwner, studentId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadAchievements(studentId)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    Scaffold(
-        modifier = modifier,
-        bottomBar = {
+    val backgroundGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF007AFF),
+            Color(0xFF5AC8FA),
+            Color(0xFFF1F5F9),
+            Color(0xFFF8FAFC)
+        )
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(brush = backgroundGradient)
+    ) {
+        if (uiState.isLoading) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                AchievementsHeader(onBack = onBack, title = "Cargando...")
+                AchievementsSkeleton()
+            }
+        } else if (uiState.errorMessage != null) {
+            ErrorState(uiState.errorMessage!!) { viewModel.loadAchievements(studentId) }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 100.dp) 
+            ) {
+                // 1. Cálculo dinámico de la colección: Solo módulos reales (isComingSoon = false)
+                val (realThemes, comingSoon) = uiState.themes.partition { !it.isComingSoon }
+                
+                val allRealMilestones = realThemes
+                    .flatMap { it.levelGroups }
+                    .flatMap { it.milestones }
+                
+                val unlockedCount = allRealMilestones.count { it.isUnlocked }
+                val totalCount = allRealMilestones.size
+
+                AchievementsHeader(
+                    onBack = onBack, 
+                    totalBadges = unlockedCount,
+                    totalPossible = totalCount,
+                    themeTitle = realThemes.firstOrNull()?.title ?: "Fracciones"
+                )
+                
+                CollectionProgressCard(unlocked = unlockedCount, total = totalCount)
+
+                Text(
+                    text = "Tus Colecciones 🏆",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF1E293B),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 12.dp)
+                )
+
+                // 2. Secciones del Álbum (Temas reales con estructura 3x3)
+                realThemes.forEach { theme ->
+                    AlbumThemeSection(theme)
+                }
+
+                // 3. Próximamente (Contenido futuro)
+                if (comingSoon.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Próximamente 🚀",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF64748B),
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp)
+                    )
+                    comingSoon.forEach { theme ->
+                        ComingSoonThemeSection(theme)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+        }
+
+        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
             DashboardBottomBar(
                 selectedTab = "logros",
                 onTabClick = onNavigateToTab,
                 onNeoClick = onNavigateToTutor
             )
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF8FAFC))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                // --- HERO HEADER ---
-                AchievementsHeader(onBack = onBack)
-
-                // --- TABS ---
-                AchievementsTabs(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it }
-                )
-
-                if (uiState.isLoading) {
-                    AchievementsSkeleton()
-                } else if (uiState.errorMessage != null) {
-                    ErrorState(uiState.errorMessage!!) { viewModel.loadAchievements(studentId) }
-                } else {
-                    // --- INFO CARD ---
-                    InfoCard()
-
-                    Text(
-                        text = "Módulos y niveles",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B),
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
-                    )
-
-                    // --- MODULE SECTIONS ---
-                    uiState.modules.forEach { module ->
-                        ModuleAchievementSection(module)
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-                }
-            }
-        }
     }
 }
 
 @Composable
-fun AchievementsHeader(onBack: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(240.dp)
+fun AchievementsHeader(
+    onBack: () -> Unit, 
+    title: String = "Mis logros", 
+    totalBadges: Int = 0,
+    totalPossible: Int = 0,
+    themeTitle: String = ""
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Fondo con gradiente azul
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.85f)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF007AFF), Color(0xFF5AC8FA))
-                    )
-                )
-        )
-
-        // Botón volver
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .padding(top = 40.dp, start = 16.dp)
-                .size(40.dp)
-                .background(Color.White.copy(alpha = 0.2f), CircleShape)
+        Row(
+            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp), 
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Volver", tint = Color.White, modifier = Modifier.size(20.dp))
+            IconButton(onClick = onBack) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = NeuroWhite, modifier = Modifier.size(26.dp))
+            }
+            Text(text = title, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = NeuroWhite, textAlign = TextAlign.Center, modifier = Modifier.weight(1f).padding(end = 48.dp))
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 0.dp, bottom = 0.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Mis logros",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Cada logro es una muestra\nde tu esfuerzo y dedicación.",
-                    fontSize = 16.sp,
-                    color = Color.White.copy(alpha = 0.9f),
-                    lineHeight = 22.sp
-                )
-            }
-            Image(
-                painter = painterResource(id = R.drawable.neo_achievement),
-                contentDescription = null,
-                modifier = Modifier.size(160.dp),
-                contentScale = ContentScale.Fit
-            )
-        }
-    }
-}
-
-@Composable
-fun AchievementsTabs(selectedTab: Int, onTabSelected: (Int) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .height(56.dp)
-            .background(Color.White, RoundedCornerShape(16.dp))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        TabItem(
-            label = "Insignias",
-            icon = Icons.Default.EmojiEvents,
-            selected = selectedTab == 0,
-            modifier = Modifier.weight(1f),
-            onClick = { onTabSelected(0) }
-        )
-        TabItem(
-            label = "Certificados",
-            icon = Icons.Default.WorkspacePremium,
-            selected = selectedTab == 1,
-            isComingSoon = true,
-            modifier = Modifier.weight(1f),
-            onClick = { /* No hacer nada por ahora */ }
-        )
-    }
-}
-
-@Composable
-fun TabItem(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean,
-    isComingSoon: Boolean = false,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val bgColor = if (selected) MoradoActivo else Color.Transparent
-    val contentColor = if (selected) Color.White else Color(0xFF64748B)
-
-    Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = label,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor
-                )
-                if (isComingSoon) {
+                if (title == "Mis logros") {
                     Text(
-                        text = "Próximamente",
-                        fontSize = 9.sp,
-                        color = contentColor.copy(alpha = 0.7f)
+                        text = if(totalPossible > 0) "¡Ya tienes $totalBadges / $totalPossible trofeos de $themeTitle! 🦸‍♂️" else "¡Empieza a coleccionar tus trofeos matemáticos!",
+                        fontSize = 16.sp, 
+                        fontWeight = FontWeight.Bold, 
+                        color = Color.White, 
+                        lineHeight = 22.sp
+                    )
+                    Text(
+                        text = "Cada examen aprobado es una nueva medalla.",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.85f)
                     )
                 }
             }
+            Image(painter = painterResource(id = R.drawable.neo_achievement), contentDescription = null, modifier = Modifier.size(110.dp), contentScale = ContentScale.Fit)
         }
     }
 }
 
 @Composable
-fun InfoCard() {
+fun CollectionProgressCard(unlocked: Int, total: Int) {
+    val progress = if (total > 0) unlocked.toFloat() / total.toFloat() else 0f
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(20.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F3FF)),
-        elevation = CardDefaults.cardElevation(0.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp)
+            .shadow(4.dp, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.EmojiEvents,
-                contentDescription = null,
-                tint = MoradoActivo,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "¡Obtén insignias aprobando los exámenes finales de cada módulo y nivel!",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = MoradoActivo,
-                lineHeight = 18.sp
-            )
+            Box(
+                modifier = Modifier.size(50.dp).clip(CircleShape).background(Color(0xFFFEF3C7)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(28.dp))
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Maestría Global", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                    Text(text = "$unlocked / $total", fontSize = 16.sp, fontWeight = FontWeight.Black, color = MoradoActivo)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
+                    color = MoradoActivo,
+                    trackColor = Color(0xFFF1F5F9)
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ModuleAchievementSection(module: ModuleAchievementUiModel) {
-    var expanded by remember { mutableStateOf(module.title == "Fracciones") }
-
+fun AlbumThemeSection(theme: ThemeAchievementUiModel) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 10.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { if (!module.isComingSoon) expanded = !expanded },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF1F5F9)),
-                    contentAlignment = Alignment.Center
+            // Cabecera del Tema (FRACCIONES)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFF1F5F9)
                 ) {
-                    Image(
-                        painter = painterResource(id = module.iconRes),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .alpha(if (module.isComingSoon) 0.4f else 1f)
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = module.title,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (module.isComingSoon) Color.Gray else Color(0xFF1E293B)
-                    )
-                    Text(
-                        text = module.description,
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B),
-                        maxLines = 2
-                    )
-                }
-                if (module.isComingSoon) {
-                    Icon(Icons.Default.ExpandMore, null, tint = Color.LightGray)
-                } else {
-                    Icon(
-                        if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = MoradoActivo
-                    )
-                }
-            }
-
-            if (expanded && !module.isComingSoon) {
-                Spacer(modifier = Modifier.height(20.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    module.levels.forEach { level ->
-                        BadgeItem(level)
+                    Box(contentAlignment = Alignment.Center) {
+                        Image(painter = painterResource(id = theme.iconRes), contentDescription = null, modifier = Modifier.size(28.dp))
                     }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(text = theme.title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1E293B))
+                    Text(text = theme.description, fontSize = 11.sp, color = Color.Gray, maxLines = 1)
                 }
             }
             
-            if (module.isComingSoon) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    BadgeSkeleton()
-                    BadgeSkeleton()
-                    BadgeSkeleton()
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // 🎨 ÁLBUM 3x3: Grupos de Nivel (Básico, Intermedio, Avanzado)
+            theme.levelGroups.forEachIndexed { index, levelGroup ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "NIVEL ${levelGroup.levelName.uppercase()}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF94A3B8),
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        levelGroup.milestones.forEach { milestone ->
+                            AchievementBadge(milestone = milestone, showLabel = true)
+                        }
+                    }
+                }
+                
+                if (index < theme.levelGroups.size - 1) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -365,112 +305,50 @@ fun ModuleAchievementSection(module: ModuleAchievementUiModel) {
 }
 
 @Composable
-fun BadgeItem(level: LevelAchievementUiModel) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(90.dp)
+fun ComingSoonThemeSection(theme: ThemeAchievementUiModel) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 6.dp, bottom = 6.dp).alpha(0.7f),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.6f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Image(
-                painter = painterResource(id = level.badgeRes),
-                contentDescription = level.levelName,
-                modifier = Modifier.size(70.dp),
-                colorFilter = if (level.isUnlocked) null else ColorFilter.tint(Color.Gray, BlendMode.SrcIn),
-                alpha = if (level.isUnlocked) 1f else 0.4f
-            )
-            if (!level.isUnlocked) {
-                Icon(
-                    painter = painterResource(id = R.drawable.icon_question),
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(Color(0xFFF8FAFC)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(text = theme.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                Text(text = "Mundo en construcción...", fontSize = 12.sp, color = Color(0xFF94A3B8))
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = level.levelName,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (level.isUnlocked) Color(0xFF1E293B) else Color.Gray
-        )
-        
-        Surface(
-            modifier = Modifier.padding(top = 4.dp),
-            shape = RoundedCornerShape(10.dp),
-            color = if (level.isUnlocked) Color(0xFFECFDF5) else Color(0xFFF1F5F9)
-        ) {
-            Text(
-                text = if (level.isUnlocked) "Obtenida" else "Bloqueada",
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (level.isUnlocked) Color(0xFF10B981) else Color(0xFF94A3B8)
-            )
-        }
-        
-        if (level.isUnlocked && level.unlockedDate != null) {
-            Text(
-                text = level.unlockedDate,
-                fontSize = 10.sp,
-                color = Color(0xFF64748B),
-                modifier = Modifier.padding(top = 2.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun BadgeSkeleton() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(90.dp).shimmer()
-    ) {
-        Box(
-            modifier = Modifier
-                .size(70.dp)
-                .background(Color(0xFFE2E8F0), CircleShape)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Box(
-            modifier = Modifier
-                .width(60.dp)
-                .height(14.dp)
-                .background(Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .width(50.dp)
-                .height(18.dp)
-                .background(Color(0xFFE2E8F0), RoundedCornerShape(10.dp))
-        )
     }
 }
 
 @Composable
 fun AchievementsSkeleton() {
     Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-        Box(modifier = Modifier.fillMaxWidth().height(80.dp).shimmer().background(Color(0xFFE2E8F0), RoundedCornerShape(16.dp)))
+        Box(modifier = Modifier.fillMaxWidth().height(80.dp).shimmer().background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(20.dp)))
         Spacer(modifier = Modifier.height(24.dp))
-        repeat(3) {
-            Box(modifier = Modifier.fillMaxWidth().height(120.dp).shimmer().padding(vertical = 8.dp).background(Color(0xFFE2E8F0), RoundedCornerShape(24.dp)))
+        repeat(1) {
+            Box(modifier = Modifier.fillMaxWidth().height(300.dp).shimmer().padding(top = 8.dp, bottom = 8.dp).background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(24.dp)))
         }
     }
 }
 
 @Composable
 fun ErrorState(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Oops!", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MoradoActivo)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = message, textAlign = TextAlign.Center, color = Color.Gray)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = MoradoActivo)) {
-            Text("Reintentar")
+    Column(modifier = Modifier.fillMaxSize().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text(text = "Oops!", fontSize = 20.sp, fontWeight = FontWeight.Black, color = NeuroWhite)
+        Spacer(modifier = Modifier.height(8.dp)); Text(text = message, textAlign = TextAlign.Center, color = NeuroWhite.copy(alpha = 0.8f))
+        Spacer(modifier = Modifier.height(24.dp)); Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = Color.White), shape = RoundedCornerShape(12.dp)) {
+            Text("Reintentar", color = MoradoActivo, fontWeight = FontWeight.Bold)
         }
     }
 }

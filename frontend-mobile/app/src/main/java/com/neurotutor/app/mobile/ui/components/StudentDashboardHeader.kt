@@ -76,7 +76,7 @@ fun StudentDashboardHeader(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "Tu nivel actual:", fontSize = 13.sp, color = Color.Gray)
+                    Text(text = "Nivel recomendado:", fontSize = 13.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = nivelActual,

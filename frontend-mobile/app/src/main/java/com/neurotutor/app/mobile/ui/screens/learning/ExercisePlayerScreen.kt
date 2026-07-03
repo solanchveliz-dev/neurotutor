@@ -54,8 +54,8 @@ fun ExercisePlayerScreen(
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(moduleId) {
-        viewModel.loadExercises(moduleId)
+    LaunchedEffect(moduleId, level) {
+        viewModel.loadExercises(moduleId, level)
         answerSubmitted = false
         lastAnswerWasCorrect = false
         selectedOption = null

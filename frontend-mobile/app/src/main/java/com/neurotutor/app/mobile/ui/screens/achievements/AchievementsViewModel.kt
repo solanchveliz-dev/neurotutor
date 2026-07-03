@@ -21,122 +21,155 @@ class AchievementsViewModel : ViewModel() {
 
     fun loadAchievements(studentId: String) {
         val cleanId = studentId.replace("\"", "").trim()
+        val shouldShowLoading = _uiState.value.themes.isEmpty()
 
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = shouldShowLoading, errorMessage = null) }
+
             try {
-                // Obtenemos el progreso del estudiante que contiene los módulos y estados de examen
                 val response = RetrofitClient.apiService.getStudentProgress(cleanId)
 
                 if (response.isSuccessful && response.body() != null) {
                     val progress = response.body()!!
                     
-                    // Mapeamos los datos del backend a nuestro modelo de UI
-                    // Filtramos y agrupamos por módulo (tema)
-                    val moduleGroups = progress.modules.groupBy { it.title }
+                    // 🚀 NORMALIZACIÓN: Unificar todos los niveles de un tema en un solo grupo
+                    // Elimina la división de "Fracciones I", "Fracciones II", etc.
+                    val moduleGroups = progress.modules.groupBy { 
+                        normalizeThemeName(it.title)
+                    }
                     
-                    val modulesUi = mutableListOf<ModuleAchievementUiModel>()
+                    val themesUi = moduleGroups.map { (tema, niveles) ->
+                        mapToThemeUi(tema, niveles)
+                    }.toMutableList()
+
+                    // 🚀 CONTENIDO PRÓXIMO: Insertar temas futuros de forma explícita
+                    val currentThemeTitles = themesUi.map { it.title.uppercase() }
                     
-                    // Procesamos "Fracciones" primero si existe (según requerimiento visual)
-                    val fraccionesData = moduleGroups["Fracciones"]
-                    if (fraccionesData != null) {
-                        modulesUi.add(mapToModuleUi("Fracciones", "Dominas las fracciones en cualquier situación.", R.drawable.fraction_neo_chat, fraccionesData))
-                    } else {
-                        // Si no viene del backend, pero es el módulo principal, lo mostramos vacío/bloqueado o no lo mostramos?
-                        // La regla dice NO HARDCODEAR, pero si el backend no lo devuelve, no se muestra.
-                        // Sin embargo, para la consistencia visual del diseño:
+                    if ("DECIMALES" !in currentThemeTitles) {
+                        themesUi.add(createComingSoonTheme("DECIMALES", R.drawable.ic_decimales))
+                    }
+                    if ("PORCENTAJES" !in currentThemeTitles) {
+                        themesUi.add(createComingSoonTheme("PORCENTAJES", R.drawable.ic_porcentajes))
+                    }
+                    if ("GEOMETRÍA" !in currentThemeTitles) {
+                        themesUi.add(createComingSoonTheme("GEOMETRÍA", R.drawable.ic_modulo_default))
                     }
 
-                    // Módulos futuros (Próximamente) - Estos sí pueden ser estáticos visualmente según el prompt
-                    modulesUi.add(
-                        ModuleAchievementUiModel(
-                            id = "dec",
-                            title = "Decimales",
-                            description = "Resuelves operaciones con decimales con confianza.",
-                            iconRes = R.drawable.ic_decimales,
-                            levels = emptyList(),
-                            isComingSoon = true
-                        )
-                    )
-                    modulesUi.add(
-                        ModuleAchievementUiModel(
-                            id = "por",
-                            title = "Porcentajes",
-                            description = "Comprendes y aplicas porcentajes fácilmente.",
-                            iconRes = R.drawable.ic_porcentajes,
-                            levels = emptyList(),
-                            isComingSoon = true
-                        )
-                    )
-                    modulesUi.add(
-                        ModuleAchievementUiModel(
-                            id = "opc",
-                            title = "Operaciones combinadas",
-                            description = "Dominas operaciones de varios pasos.",
-                            iconRes = R.drawable.ic_modulo_default,
-                            levels = emptyList(),
-                            isComingSoon = true
-                        )
+                    // Ordenar: Reales primero, luego alfabético
+                    val sortedThemes = themesUi.sortedWith(
+                        compareBy<ThemeAchievementUiModel> { it.isComingSoon }
+                            .thenBy { it.title }
                     )
 
                     withContext(Dispatchers.Main) {
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                modules = modulesUi
+                                themes = sortedThemes,
+                                errorMessage = null
                             )
                         }
                     }
                 } else {
                     withContext(Dispatchers.Main) {
                         _uiState.update {
-                            it.copy(isLoading = false, errorMessage = "No se pudo cargar el progreso.")
+                            it.copy(isLoading = false, errorMessage = "No se pudo sincronizar el álbum de insignias.")
                         }
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = "Error: ${e.localizedMessage}")
+                        it.copy(isLoading = false, errorMessage = "Error de conexión: ${e.localizedMessage}")
                     }
                 }
             }
         }
     }
 
-    private fun mapToModuleUi(title: String, desc: String, icon: Int, items: List<com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse>): ModuleAchievementUiModel {
-        val levels = listOf(
-            createLevelUi("B", "Básico", R.drawable.achievement_basic, items),
-            createLevelUi("I", "Intermedio", R.drawable.achievement_intermediate, items),
-            createLevelUi("A", "Avanzado", R.drawable.achievement_advanced, items)
-        )
-        
-        return ModuleAchievementUiModel(
-            id = items.firstOrNull()?.moduleId ?: UUID.randomUUID().toString(),
+    /**
+     * Identifica el tema raíz basándose en el título para agrupar niveles académicos.
+     */
+    private fun normalizeThemeName(title: String): String {
+        return when {
+            title.contains("Fracciones", ignoreCase = true) -> "FRACCIONES"
+            title.contains("Decimales", ignoreCase = true) -> "DECIMALES"
+            title.contains("Porcentajes", ignoreCase = true) -> "PORCENTAJES"
+            title.contains("Geometría", ignoreCase = true) -> "GEOMETRÍA"
+            else -> title.uppercase()
+        }
+    }
+
+    private fun createComingSoonTheme(title: String, icon: Int): ThemeAchievementUiModel {
+        return ThemeAchievementUiModel(
+            id = "soon_${title.lowercase()}",
             title = title,
-            description = desc,
+            description = "Mundo en construcción...",
             iconRes = icon,
-            levels = levels
+            levelGroups = emptyList(),
+            isComingSoon = true
         )
     }
 
-    private fun createLevelUi(tag: String, name: String, badge: Int, items: List<com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse>): LevelAchievementUiModel {
-        val item = items.find { it.level == tag }
-        val isUnlocked = item?.examPassed ?: false
-        val date = item?.completedAt?.let { formatDate(it) }
+    private fun mapToThemeUi(
+        title: String, 
+        items: List<com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse>
+    ): ThemeAchievementUiModel {
         
-        return LevelAchievementUiModel(
-            levelTag = tag,
-            levelName = name,
-            isUnlocked = isUnlocked,
-            unlockedDate = if (isUnlocked) date else null,
-            badgeRes = badge
+        // Generar la estructura de 3 niveles académicos para el tema
+        val levelGroups = listOf(
+            createLevelGroupUi("Básico", items),
+            createLevelGroupUi("Intermedio", items),
+            createLevelGroupUi("Avanzado", items)
+        )
+        
+        return ThemeAchievementUiModel(
+            id = items.firstOrNull()?.moduleId ?: "theme_${title.lowercase()}",
+            title = title,
+            description = "Completa todos los retos de $title para alcanzar la maestría suprema.",
+            iconRes = R.drawable.fraction_neo_chat,
+            levelGroups = levelGroups
+        )
+    }
+
+    private fun createLevelGroupUi(
+        levelName: String, 
+        items: List<com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse>
+    ): LevelGroupUiModel {
+        
+        // Buscar el módulo que corresponde al nivel académico específico dentro del tema
+        val item = items.find { 
+            it.level.startsWith(levelName.take(1), ignoreCase = true) || it.level.contains(levelName, ignoreCase = true)
+        }
+        
+        // Mapear los hitos basados en la Opción A (9 insignias por tema)
+        val milestones = when (levelName) {
+            "Básico" -> listOf(
+                MilestoneUiModel("Explorador", item?.theoryCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
+                MilestoneUiModel("Practicante", item?.practiceCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
+                MilestoneUiModel("Primer Maestro", item?.examPassed ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) })
+            )
+            "Intermedio" -> listOf(
+                MilestoneUiModel("Investigador", item?.theoryCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
+                MilestoneUiModel("Estratega", item?.practiceCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
+                MilestoneUiModel("Dominador", item?.examPassed ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) })
+            )
+            "Avanzado" -> listOf(
+                MilestoneUiModel("Experto", item?.theoryCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
+                MilestoneUiModel("Preciso", item?.practiceCompleted ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) }),
+                MilestoneUiModel("Maestro Supremo", item?.examPassed ?: false, R.drawable.general_medal, item?.completedAt?.let { formatDate(it) })
+            )
+            else -> emptyList()
+        }
+        
+        return LevelGroupUiModel(
+            levelName = levelName,
+            milestones = milestones
         )
     }
 
     private fun formatDate(dateStr: String): String {
         return try {
-            // Asumiendo formato ISO del backend, ajustamos a dd/MM/yyyy
             val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
             val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             val date = inputFormat.parse(dateStr)

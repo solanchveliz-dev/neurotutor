@@ -19,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.ui.theme.*
 
@@ -33,11 +34,13 @@ data class TheoryStep(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TheoryScreen(
+    studentId: String,
     studentName: String,
     moduleId: String,
     level: String, // "B", "I", "A"
     onStartExercise: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: TheoryViewModel = viewModel()
 ) {
     var currentStepIndex by remember { mutableIntStateOf(0) }
 
@@ -93,7 +96,11 @@ fun TheoryScreen(
     val totalPages = theorySteps.size
     val currentStep = theorySteps.getOrNull(currentStepIndex) ?: TheoryStep("", "")
 
-    val actionButtonColor = Color(0xFF6366F1)
+    // Función auxiliar para manejar el fin de la teoría y la notificación al backend
+    val handleFinishTheory = {
+        viewModel.markTheoryAsCompleted(studentId, moduleId)
+        onStartExercise()
+    }
 
     val welcomeGradient = Brush.verticalGradient(
         colors = listOf(Color(0xFF0EA5E9), Color(0xFF38BDF8), Color(0xFFBAE6FD))
@@ -146,7 +153,7 @@ fun TheoryScreen(
                                 LinearProgressIndicator(
                                     progress = { (currentStepIndex + 1).toFloat() / totalPages.toFloat() },
                                     modifier = Modifier.width(150.dp).height(10.dp).clip(RoundedCornerShape(5.dp)),
-                                    color = if (currentStepIndex == 0) Color.White else actionButtonColor,
+                                    color = if (currentStepIndex == 0) Color.White else MoradoActivo,
                                     trackColor = if (currentStepIndex == 0) Color.White.copy(alpha = 0.3f) else Color(0xFFE2E8F0),
                                 )
                                 Text(
@@ -192,7 +199,7 @@ fun TheoryScreen(
                             1 -> FractionIntroductionStep(onNext = { currentStepIndex++ }, onBack = { currentStepIndex-- })
                             2 -> FractionPartsStep(onNext = { currentStepIndex++ }, onBack = { currentStepIndex-- })
                             3 -> ProperFractionsStep(onNext = { currentStepIndex++ }, onBack = { currentStepIndex-- })
-                            4 -> ImproperFractionsStep(onFinish = onStartExercise, onBack = { currentStepIndex-- })
+                            4 -> ImproperFractionsStep(onFinish = handleFinishTheory, onBack = { currentStepIndex-- })
                         }
                     }
                     "I" -> {
@@ -226,7 +233,7 @@ fun TheoryScreen(
                             )
 
                             5 -> MultiplyFractionsStep(
-                                onNext = onStartExercise,
+                                onNext = handleFinishTheory,
                                 onBack = { currentStepIndex-- }
                             )
                         }

@@ -60,7 +60,6 @@ fun LevelSectionsScreen(
         viewModel.loadProgress()
     }
 
-    // CIELO CONTINUO UNIFICADO
     val backgroundGradient = Brush.verticalGradient(
         colors = listOf(
             NeuroBlue,
@@ -80,7 +79,7 @@ fun LevelSectionsScreen(
                 .background(brush = backgroundGradient)
                 .padding(paddingValues)
         ) {
-            // NUBES DECORATIVAS AMBIENTALES DE FONDO
+            // NUBES DECORATIVAS
             Image(
                 painter = painterResource(id = R.drawable.cloud_bottom),
                 contentDescription = null,
@@ -90,83 +89,17 @@ fun LevelSectionsScreen(
                     .size(125.dp)
                     .alpha(0.18f)
             )
-            Image(
-                painter = painterResource(id = R.drawable.cloud_bottom),
-                contentDescription = null,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .offset(x = (-35).dp, y = (-20).dp)
-                    .size(110.dp)
-                    .alpha(0.15f)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.cloud_bottom),
-                contentDescription = null,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .offset(x = 30.dp, y = 140.dp)
-                    .size(95.dp)
-                    .alpha(0.22f)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.cloud_bottom),
-                contentDescription = null,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(x = (-20).dp, y = (-60).dp)
-                    .size(130.dp)
-                    .alpha(0.12f)
-            )
 
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // HERO HEADER (Ajustado en jerarquía y posición vertical para emular TopicDetailScreen)
+                // HERO HEADER
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
                 ) {
-                    // NUBES EN LAS ESQUINAS DEL HEADER
-                    Image(
-                        painter = painterResource(id = R.drawable.cloud_bottom),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .offset(x = (-15).dp, y = 10.dp)
-                            .size(55.dp)
-                            .alpha(0.25f)
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.cloud_bottom),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 15.dp, y = 8.dp)
-                            .size(60.dp)
-                            .alpha(0.20f)
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.cloud_bottom),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .offset(x = (-10).dp, y = (-10).dp)
-                            .size(50.dp)
-                            .alpha(0.20f)
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.cloud_bottom),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = 12.dp, y = (-8).dp)
-                            .size(55.dp)
-                            .alpha(0.22f)
-                    )
-
-                    // BOTÓN VOLVER: Reutilizando la estrategia exacta de TopicDetailScreen
                     IconButton(
                         onClick = onBack,
                         modifier = Modifier
@@ -182,28 +115,20 @@ fun LevelSectionsScreen(
                         )
                     }
 
-                    // BLOQUE DE TEXTOS COMPACTO: Modificado para subir el bloque e incrementar jerarquía
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .statusBarsPadding()
-                            .padding(
-                                start = 56.dp,
-                                end = 56.dp,
-                                top = 0.dp,     // Se quita el padding excedente para subir el bloque completo entre 35.dp y 45.dp
-                                bottom = 36.dp   // Contrapeso inferior para elevar los textos hacia la línea de la flecha
-                            ),
+                            .padding(start = 56.dp, end = 56.dp, bottom = 36.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        // Procesamiento del nivel dinámico
                         val cleanLevelLabel = when {
                             levelName.contains("III:", true) || levelName.contains("Avanzado", true) -> "Avanzado"
                             levelName.contains("II:", true) || levelName.contains("Intermedio", true) -> "Intermedio"
                             else -> "Básico"
                         }
 
-                        // Título principal: Fracciones - Nivel
                         Text(
                             text = "$topicTitle - $cleanLevelLabel",
                             fontSize = 23.sp,
@@ -213,26 +138,13 @@ fun LevelSectionsScreen(
                             maxLines = 1
                         )
 
-                        // Separación reducida a 2.dp para cohesionar el bloque
                         Spacer(modifier = Modifier.height(2.dp))
 
-                        // Subtítulo principal: Mayor tamaño (18.sp) y presencia para emular "Selecciona un nivel"
                         Text(
                             text = "¿Qué quieres hacer?",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeuroWhite.copy(alpha = 0.95f),
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        // Pequeña descripción complementaria: Equivalente a "Completa cada isla..."
-                        Text(
-                            text = "Selecciona una actividad para continuar",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = NeuroWhite.copy(alpha = 0.75f),
                             textAlign = TextAlign.Center
                         )
                     }
@@ -246,49 +158,6 @@ fun LevelSectionsScreen(
                         .padding(top = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // BARRA DE PROGRESO PREMIUM DE VIDEOJUEGO
-                    Card(
-                        modifier = Modifier
-                            .padding(horizontal = 24.dp)
-                            .fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Progreso del nivel",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 15.sp,
-                                    color = TextoBase
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                LinearProgressIndicator(
-                                    progress = { state.progreso },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(12.dp)
-                                        .clip(RoundedCornerShape(6.dp)),
-                                    color = NeuroPurple,
-                                    trackColor = Color(0xFFE0F2FE)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = "${(state.progreso * 100).toInt()}%",
-                                fontWeight = FontWeight.Black,
-                                color = NeuroBlue,
-                                fontSize = 20.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
                     // --- 📚 SECCIONES ---
                     Column(
                         modifier = Modifier.padding(horizontal = 24.dp),
@@ -306,18 +175,26 @@ fun LevelSectionsScreen(
                         // TARJETA PRÁCTICA
                         ActionSectionCard(
                             title = "Práctica",
-                            subtitle = "${state.ejerciciosCompletados}/${state.totalEjercicios} completados",
+                            subtitle = if (state.examenDisponible) "✓ Completado" else "${state.ejerciciosCompletados}/${state.totalEjercicios} completados",
                             icon = Icons.AutoMirrored.Filled.ArrowBack,
-                            color = MoradoActivo,
+                            color = if (state.examenDisponible) NeuroGreen else MoradoActivo,
                             onClick = onNavigateToExercises
                         )
 
                         // TARJETA EXAMEN
                         ActionSectionCard(
                             title = "Examen Final",
-                            subtitle = if (state.examenDisponible) "🎯 Disponible" else "🔒 Bloqueado",
+                            subtitle = when {
+                                state.examPassed -> "✓ Aprobado"
+                                state.examenDisponible -> "🎯 Disponible"
+                                else -> "🔒 Bloqueado"
+                            },
                             icon = Icons.AutoMirrored.Filled.ArrowBack,
-                            color = if (state.examenDisponible) Color(0xFFF59E0B) else Color(0xFF94A3B8),
+                            color = when {
+                                state.examPassed -> NeuroGreen
+                                state.examenDisponible -> Color(0xFFF59E0B)
+                                else -> Color(0xFF94A3B8)
+                            },
                             isLocked = !state.examenDisponible,
                             onClick = onNavigateToExam
                         )
@@ -347,13 +224,13 @@ fun ActionSectionCard(
     onClick: () -> Unit
 ) {
     val (iconRes, description, cardBgColor, borderStrokeColor) = when (title) {
-        "Teoría" -> Quadruple(R.drawable.icon_theory, "Aprende los conceptos", Color(0xFFF0FDF4), Color(0xFF22C55E))
-        "Ejercicios", "Práctica" -> Quadruple(R.drawable.icon_practice, "Ejercicios para mejorar", Color(0xFFF5F3FF), NeuroPurple)
+        "Teoría" -> Quadruple(R.drawable.icon_theory, "Aprende los conceptos", Color(0xFFF0FDF4), if(subtitle.contains("✓")) NeuroGreen else Color(0xFF22C55E))
+        "Ejercicios", "Práctica" -> Quadruple(R.drawable.icon_practice, "Ejercicios para mejorar", Color(0xFFF5F3FF), if(subtitle.contains("✓")) NeuroGreen else NeuroPurple)
         else -> {
             if (isLocked) {
                 Quadruple(R.drawable.icon_exam, "Pon a prueba lo aprendido", Color(0xFFF8FAFC), Color(0xFFCBD5E1))
             } else {
-                Quadruple(R.drawable.icon_exam, "Pon a prueba lo aprendido", Color(0xFFFFFBEB), Color(0xFFF59E0B))
+                Quadruple(R.drawable.icon_exam, "Pon a prueba lo aprendido", if(subtitle.contains("✓")) Color(0xFFF0FDF4) else Color(0xFFFFFBEB), if(subtitle.contains("✓")) NeuroGreen else Color(0xFFF59E0B))
             }
         }
     }

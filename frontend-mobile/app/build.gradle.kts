@@ -34,7 +34,6 @@ android {
     }
     buildFeatures {
         compose = true
-        // Correcto: Desactivado porque ahora usamos GeminiConfig.kt
         buildConfig = false
     }
 }
@@ -50,7 +49,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.compose)
 
-    // Retrofit (¡CORREGIDO PARA RECONOCER GSON CONVERTER FACTORY!)
+    // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
@@ -70,6 +69,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
     implementation("org.json:json:20240303")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Image Loading
+    implementation(libs.coil.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

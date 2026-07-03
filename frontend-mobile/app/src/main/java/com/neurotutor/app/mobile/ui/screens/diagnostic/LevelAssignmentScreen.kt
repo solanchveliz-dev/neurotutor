@@ -52,10 +52,12 @@ fun LevelAssignmentScreen(
         label = "NeoPremiumOffset"
     )
 
-    val (textoNivel, badgeResId, colorNivel, gradientCard, mensajeUnicoNeo, textoCelebracion) = when (state.nivelAsignado) {
+    // 🎨 PROPUESTA VISUAL UNIFICADA:
+    // Se reemplazan las INSIGNIAS por las ISLAS para representar el mundo desbloqueado.
+    val (textoNivel, illustrationResId, colorNivel, gradientCard, mensajeUnicoNeo, textoCelebracion) = when (state.nivelAsignado) {
         "COHETE", "AVANZADO" -> Sextuple(
             "AVANZADO",
-            R.drawable.badge_advanced,
+            R.drawable.island_advanced,
             Color(0xFF0052FF),
             Brush.verticalGradient(colors = listOf(Color(0xFFE6EEFF), Color.White)),
             "¡Excelente trabajo! Estás listo para afrontar retos matemáticos más avanzados.",
@@ -63,7 +65,7 @@ fun LevelAssignmentScreen(
         )
         "FUEGO", "INTERMEDIO" -> Sextuple(
             "INTERMEDIO",
-            R.drawable.badge_intermediate,
+            R.drawable.island_intermediate,
             Color(0xFF7C3AED),
             Brush.verticalGradient(colors = listOf(Color(0xFFF3E8FF), Color.White)),
             "¡Vas por buen camino! Ahora trabajaremos desafíos más interesantes para ayudarte a seguir creciendo.",
@@ -71,7 +73,7 @@ fun LevelAssignmentScreen(
         )
         else -> Sextuple(
             "BÁSICO",
-            R.drawable.badge_basic,
+            R.drawable.island_basic,
             Color(0xFF10B981),
             Brush.verticalGradient(colors = listOf(Color(0xFFECFDF5), Color.White)),
             "Buen intento. He preparado una ruta especial para ayudarte a fortalecer tus bases matemáticas.",
@@ -98,20 +100,7 @@ fun LevelAssignmentScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Evaluando tus respuestas...", color = TextoBase.copy(alpha = 0.6f))
                 }
-            } else if (state.errorMessage != null) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = "Error: ${state.errorMessage}", color = Color.Red, textAlign = TextAlign.Center)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { viewModel.procesarResultadoExamen(studentId, respuestas) }) {
-                        Text("Reintentar")
-                    }
-                }
             } else {
-                // 🚀 DISTRIBUCIÓN CON ESPACIO CENTRADO ENTRE ELEMENTOS
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -120,9 +109,6 @@ fun LevelAssignmentScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    // 1. ENCABEZADO "¡Diagnóstico completado!"
-                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     Text(
                         text = textoCelebracion,
                         fontSize = 25.sp,
@@ -133,7 +119,7 @@ fun LevelAssignmentScreen(
                     )
 
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    // 2. TARJETA PRINCIPAL (Nivel BÁSICO + Insignia)
+                    // 2. TARJETA PRINCIPAL (Nivel + Ilustración Isla + Puntaje)
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     Card(
                         modifier = Modifier
@@ -147,73 +133,68 @@ fun LevelAssignmentScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(gradientCard)
-                                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 14.dp),
+                                .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 18.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "🏅 Nivel obtenido",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF64748B),
-                                letterSpacing = 0.8.sp
+                                text = "NIVEL ASIGNADO",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = colorNivel.copy(alpha = 0.7f),
+                                letterSpacing = 1.2.sp
                             )
 
                             Text(
                                 text = textoNivel,
-                                fontSize = 32.sp,
+                                fontSize = 34.sp,
                                 fontWeight = FontWeight.Black,
                                 color = colorNivel,
                                 letterSpacing = 1.sp
                             )
 
+                            // Ilustración de la Isla como meta/destino
                             Image(
-                                painter = painterResource(id = badgeResId),
-                                contentDescription = "Insignia Gamificada de Logro",
+                                painter = painterResource(id = illustrationResId),
+                                contentDescription = "Ilustración de la isla",
                                 modifier = Modifier
-                                    .height(275.dp)
+                                    .height(240.dp)
                                     .fillMaxWidth(),
                                 contentScale = ContentScale.Fit
                             )
 
                             Text(
-                                text = "🎯 ${state.totalAciertos} / 10 aciertos",
-                                fontSize = 17.sp,
+                                text = "🎯 Puntaje: ${state.totalAciertos} / 10 aciertos",
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1E293B)
                             )
                         }
                     }
 
-                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    // 3. ESPACIO CENTRADO (lo que pedías)
-                    // Este Spacer con weight empuja la tarjeta NEO hacia abajo
-                    // y crea una separación elegante
-                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     Spacer(modifier = Modifier.weight(0.3f))
 
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    // 4. TARJETA NEO (MÁS GRANDE)
+                    // 3. TARJETA NEO (Guía Tutor)
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(4.dp, RoundedCornerShape(20.dp))
-                            .border(1.dp, Color(0xFFF1F5F9), RoundedCornerShape(20.dp)),
+                            .shadow(4.dp, RoundedCornerShape(20.dp)),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.neo_diagnostic_result),
-                                contentDescription = "Guía Tutor Neo",
+                                contentDescription = "Tutor Neo",
                                 modifier = Modifier
-                                    .size(110.dp)
+                                    .size(100.dp)
                                     .offset(y = dy.dp),
                                 contentScale = ContentScale.Fit
                             )
@@ -225,28 +206,21 @@ fun LevelAssignmentScreen(
                                 fontSize = 14.sp,
                                 color = Color(0xFF334155),
                                 fontWeight = FontWeight.Medium,
-                                lineHeight = 18.sp,
+                                lineHeight = 19.sp,
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
 
-                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    // 5. ESPACIO QUE EMPUJA EL BOTÓN HACIA LA BARRA DE NAVEGACIÓN
-                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     Spacer(modifier = Modifier.weight(0.5f))
 
-                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    // 6. BOTÓN "Ver revisión de respuestas" (pegado al fondo)
-                    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     Button(
                         onClick = onNavigateToDetails,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
-                            .shadow(2.dp, RoundedCornerShape(14.dp)),
+                            .height(54.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MoradoActivo),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(
                             text = "Ver revisión de respuestas",

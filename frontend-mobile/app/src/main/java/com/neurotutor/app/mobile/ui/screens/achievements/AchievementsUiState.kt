@@ -2,23 +2,27 @@ package com.neurotutor.app.mobile.ui.screens.achievements
 
 data class AchievementsUiState(
     val isLoading: Boolean = true,
-    val modules: List<ModuleAchievementUiModel> = emptyList(),
+    val themes: List<ThemeAchievementUiModel> = emptyList(),
     val errorMessage: String? = null
 )
 
-data class ModuleAchievementUiModel(
+data class ThemeAchievementUiModel(
     val id: String,
     val title: String,
     val description: String,
     val iconRes: Int,
-    val levels: List<LevelAchievementUiModel>,
+    val levelGroups: List<LevelGroupUiModel>,
     val isComingSoon: Boolean = false
 )
 
-data class LevelAchievementUiModel(
-    val levelTag: String,
-    val levelName: String,
-    val isUnlocked: Boolean,
-    val unlockedDate: String? = null,
-    val badgeRes: Int
+data class LevelGroupUiModel(
+    val levelName: String, // "Básico", "Intermedio", "Avanzado"
+    val milestones: List<MilestoneUiModel>
+)
+
+data class MilestoneUiModel(
+    val name: String,        // "Explorador", "Investigador", etc.
+    val isUnlocked: Boolean, // Mapeado de theory/practice/exam
+    val badgeRes: Int,       // R.drawable.general_medal
+    val unlockedDate: String? = null
 )

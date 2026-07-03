@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -34,22 +34,23 @@ fun DashboardBottomBar(
 ) {
     Box(
         modifier = Modifier
-            .fillMaxWidth(0.97f)
+            .fillMaxWidth()
             .height(100.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(84.dp)
-                .shadow(12.dp, RoundedCornerShape(28.dp)),
+                .fillMaxWidth(0.97f)
+                .height(72.dp)
+                .padding(bottom = 6.dp)
+                .shadow(16.dp, RoundedCornerShape(28.dp)),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 NavItem(
@@ -60,7 +61,7 @@ fun DashboardBottomBar(
                 ) { onTabClick("inicio") }
 
                 NavItem(
-                    icon = Icons.Default.MenuBook,
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
                     label = "Módulos",
                     selected = selectedTab == "modulos",
                     modifier = Modifier.weight(1f)
@@ -84,21 +85,22 @@ fun DashboardBottomBar(
             }
         }
 
-        // Botón Neo AI Flotante
+        // Botón Neo AI Flotante con Glow
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .offset(y = (-20).dp)
+                .offset(y = (-15).dp)
+                .size(80.dp)
                 .clickable { onNeoClick() },
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(86.dp)
+                    .size(76.dp)
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFF60A5FA).copy(alpha = 0.65f),
+                                Color(0xFF60A5FA).copy(alpha = 0.5f),
                                 Color.Transparent
                             )
                         ),
@@ -108,7 +110,7 @@ fun DashboardBottomBar(
             Image(
                 painter = painterResource(id = R.drawable.neo_head),
                 contentDescription = "Neo AI",
-                modifier = Modifier.size(78.dp),
+                modifier = Modifier.size(68.dp),
                 contentScale = ContentScale.Fit
             )
         }
@@ -132,7 +134,7 @@ private fun NavItem(
             imageVector = icon,
             contentDescription = null,
             tint = if (selected) MoradoActivo else Color(0xFF94A3B8),
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(26.dp)
         )
         Text(
             text = label,

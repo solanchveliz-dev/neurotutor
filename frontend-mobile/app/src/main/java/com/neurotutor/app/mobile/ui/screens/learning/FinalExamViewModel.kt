@@ -128,54 +128,94 @@ class FinalExamViewModel : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     val result = response.body()!!
 
-                    withContext(Dispatchers.Main) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                isFinished = true,
-                                isPassed = true,
-                                score = currentScore,
-                                pointsEarned = result.pointsEarned,
-                                levelUp = result.levelUp,
-                                newLevel = result.newLevel,
-                                topicCompleted = result.topicCompleted,
-                                alreadyPassedBefore = result.pointsEarned == 0,
-                                showResultDialog = true
-                            )
+                    if (result.success) {
+                        withContext(Dispatchers.Main) {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isFinished = true,
+                                    isPassed = true,
+                                    score = currentScore,
+                                    pointsEarned = result.pointsEarned,
+                                    levelUp = result.levelUp,
+                                    newLevel = result.newLevel,
+                                    topicCompleted = result.topicCompleted,
+                                    alreadyPassedBefore = result.pointsEarned == 0,
+                                    showResultDialog = true,
+                                    errorMessage = null
+                                )
+                            }
                         }
+                    } else {
+                        showSubmissionError(
+                            message = result.message.ifBlank {
+                                "El servidor no confirmó la aprobación del examen."
+                            },
+                            score = currentScore
+                        )
                     }
                 } else {
                     // Fallback al endpoint antiguo si el nuevo no existe
                     val oldResponse = RetrofitClient.apiService.submitExam(cleanId, moduleId, currentScore)
-                    withContext(Dispatchers.Main) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                isFinished = true,
-                                isPassed = true,
-                                score = currentScore,
-                                pointsEarned = 100,  // Asumimos que da puntos
-                                levelUp = false,  // No sabemos
-                                showResultDialog = true
-                            )
+                    if (oldResponse.isSuccessful && !oldResponse.body().isNullOrBlank()) {
+                        withContext(Dispatchers.Main) {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isFinished = true,
+                                    isPassed = true,
+                                    score = currentScore,
+                                    pointsEarned = 0,
+                                    levelUp = false,
+                                    newLevel = null,
+                                    topicCompleted = false,
+                                    alreadyPassedBefore = false,
+                                    showResultDialog = true,
+                                    errorMessage = null
+                                )
+                            }
                         }
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Error al guardar resultado: ${e.message}",
-                            showResultDialog = true
+                    } else {
+                        showSubmissionError(
+                            message = "No se pudo guardar el resultado del examen. Inténtalo nuevamente.",
+                            score = currentScore
                         )
                     }
                 }
+            } catch (e: Exception) {
+                showSubmissionError(
+                    message = "No se pudo conectar con el servidor. Verifica tu conexión e inténtalo nuevamente.",
+                    score = currentScore
+                )
             }
         }
     }
 
     fun dismissResultDialog() {
         _uiState.update { it.copy(showResultDialog = false) }
+    }
+
+    fun dismissSubmissionError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private suspend fun showSubmissionError(message: String, score: Int) {
+        withContext(Dispatchers.Main) {
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    isFinished = false,
+                    isPassed = false,
+                    score = score,
+                    pointsEarned = 0,
+                    levelUp = false,
+                    newLevel = null,
+                    topicCompleted = false,
+                    alreadyPassedBefore = false,
+                    showResultDialog = false,
+                    errorMessage = message
+                )
+            }
+        }
     }
 }

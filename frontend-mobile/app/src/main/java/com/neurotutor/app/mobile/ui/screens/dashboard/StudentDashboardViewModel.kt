@@ -1,18 +1,19 @@
 package com.neurotutor.app.mobile.ui.screens.dashboard
 
-import android.content.Context
-import android.util.Log
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.neurotutor.app.mobile.data.local.ProgressManager
 import com.neurotutor.app.mobile.data.model.learning.ModuleItem
 import com.neurotutor.app.mobile.data.network.RetrofitClient
+import com.neurotutor.app.mobile.domain.mapper.ProgressMapper
+import com.neurotutor.app.mobile.ui.components.BadgeMapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 
 data class StudentDashboardUiState(
@@ -21,21 +22,16 @@ data class StudentDashboardUiState(
     val gradoSeccion: String = "",
     val nivelActual: String = "",
     val puntosTotales: Int = 0,
+    val overallProgress: Int = 0,
     val modulos: List<ModuleItem> = emptyList(),
+    val earnedBadges: List<DashboardBadgeUiModel> = emptyList(),
     val errorMessage: String? = null
 )
 
-class StudentDashboardViewModel(private val appContext: Context) : ViewModel() {
+class StudentDashboardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(StudentDashboardUiState())
     val uiState: StateFlow<StudentDashboardUiState> = _uiState.asStateFlow()
-
-    private lateinit var progressManager: ProgressManager
-    private var hasClearedProgress = false
-
-    init {
-        progressManager = ProgressManager(appContext)
-    }
 
     fun cargarInformacionReal(studentId: String) {
         val cleanId = studentId.replace("\"", "").trim()
@@ -43,30 +39,29 @@ class StudentDashboardViewModel(private val appContext: Context) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val response = RetrofitClient.apiService.getStudentProfile(cleanId)
+                val profileDeferred = async { RetrofitClient.apiService.getStudentProfile(cleanId) }
+                val progressDeferred = async { RetrofitClient.apiService.getStudentProgress(cleanId) }
 
-                if (response.isSuccessful && response.body() != null) {
-                    val perfil = response.body()!!
+                val profileResponse = profileDeferred.await()
+                val progressResponse = progressDeferred.await()
+
+                if (profileResponse.isSuccessful && profileResponse.body() != null) {
+                    val perfil = profileResponse.body()!!
+                    val progressData = if (progressResponse.isSuccessful) progressResponse.body() else null
+                    
                     val nivelEspanol = when (perfil.nivelActual) {
                         "COHETE", "AVANZADO" -> "Avanzado 🚀"
                         "FUEGO", "INTERMEDIO" -> "Intermedio 🔥"
                         else -> "Básico 🌱"
                     }
 
-                    // Limpiar progreso SOLO LA PRIMERA VEZ (para empezar desde 0)
-                    if (!hasClearedProgress) {
-                        progressManager.clearAllProgressForStudent(cleanId)
-                        hasClearedProgress = true
-                    }
+                    // 🚀 CRUCE DE DATOS: Usar ProgressMapper para inyectar progreso vivo en la malla del perfil
+                    val modulosSincronizados = ProgressMapper.fromProfileWithLiveProgress(
+                        profileModules = perfil.modulos,
+                        liveProgress = progressData?.modules.orEmpty()
+                    )
 
-                    // Calcular progreso real basado en ejercicios completados localmente
-                    val modulosConProgreso = perfil.modulos.map { modulo ->
-                        val ejerciciosCompletados = progressManager.getCompletedExercisesCount(cleanId, modulo.id)
-                        Log.d("Progress", "Módulo ${modulo.id} - Completados: $ejerciciosCompletados de ${modulo.ejerciciosTotales}")
-                        modulo.copy(
-                            ejerciciosCompletados = ejerciciosCompletados
-                        )
-                    }
+                    val earnedBadges = BadgeMapper.fromModules(progressData?.modules.orEmpty())
 
                     withContext(Dispatchers.Main) {
                         _uiState.update {
@@ -76,23 +71,16 @@ class StudentDashboardViewModel(private val appContext: Context) : ViewModel() {
                                 gradoSeccion = perfil.gradoSeccion,
                                 nivelActual = nivelEspanol,
                                 puntosTotales = perfil.puntosTotales,
-                                modulos = modulosConProgreso
+                                overallProgress = progressData?.overallProgress ?: 0,
+                                modulos = modulosSincronizados,
+                                earnedBadges = earnedBadges
                             )
-                        }
-                    }
-                } else {
-                    val code = response.code()
-                    withContext(Dispatchers.Main) {
-                        _uiState.update {
-                            it.copy(isLoading = false, errorMessage = "Error $code: No se encontró el perfil.")
                         }
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    _uiState.update {
-                        it.copy(isLoading = false, errorMessage = "Error de conexión: ${e.localizedMessage}")
-                    }
+                    _uiState.update { it.copy(isLoading = false, errorMessage = e.localizedMessage) }
                 }
             }
         }

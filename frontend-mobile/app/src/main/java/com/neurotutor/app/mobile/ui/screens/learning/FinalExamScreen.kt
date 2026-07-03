@@ -236,6 +236,24 @@ fun FinalExamScreen(
                     }
                 )
             }
+
+            state.errorMessage?.let { message ->
+                AlertDialog(
+                    onDismissRequest = viewModel::dismissSubmissionError,
+                    title = {
+                        Text(
+                            text = "No se guardó el resultado",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    text = { Text(text = message) },
+                    confirmButton = {
+                        TextButton(onClick = viewModel::dismissSubmissionError) {
+                            Text("Entendido")
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -457,6 +475,7 @@ fun ExamResultDialog(
                         levelUp -> "🚀"
                         passed && pointsEarned > 0 -> "🎉"
                         passed && alreadyPassedBefore -> "📚"
+                        passed -> "🎉"
                         else -> "😅"
                     },
                     fontSize = 64.sp,
@@ -469,6 +488,7 @@ fun ExamResultDialog(
                         levelUp -> "¡NIVEL SUPERADO! 🚀"
                         passed && pointsEarned > 0 -> "¡FELICITACIONES! 🎉"
                         passed && alreadyPassedBefore -> "¡Buen repaso! 📚"
+                        passed -> "¡EXAMEN APROBADO! 🎉"
                         else -> "¡CASI LO LOGRASTE! 💪"
                     },
                     fontWeight = FontWeight.Bold,

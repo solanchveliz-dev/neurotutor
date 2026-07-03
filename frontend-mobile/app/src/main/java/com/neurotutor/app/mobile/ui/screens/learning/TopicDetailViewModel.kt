@@ -38,6 +38,7 @@ class TopicDetailViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
+                // 🚀 CONSUMO DE RUTA CON PROGRESO OFICIAL (33/66/100)
                 val response = RetrofitClient.apiService.getTopicRuta(moduleId, cleanStudentId)
 
                 if (response.isSuccessful && response.body() != null) {
@@ -47,9 +48,8 @@ class TopicDetailViewModel : ViewModel() {
                             name = moduleItem.titulo,
                             description = "Contenido adaptado a tu progreso",
                             status = moduleItem.estado,
-                            progress = if (moduleItem.ejerciciosTotales > 0) 
-                                moduleItem.ejerciciosCompletados.toFloat() / moduleItem.ejerciciosTotales.toFloat() 
-                                else 0f
+                            // Sincronización con la única fuente de verdad: ProgressService
+                            progress = moduleItem.progressPercentage / 100f
                         )
                     }
 

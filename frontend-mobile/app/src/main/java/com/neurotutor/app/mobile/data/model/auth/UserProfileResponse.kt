@@ -1,11 +1,15 @@
 package com.neurotutor.app.mobile.data.model.auth
 
 data class UserProfileResponse(
+    val id: String,
     val name: String,
     val email: String,
+    val grade: String,
+    val section: String,
     val level: String,
     val points: Int,
     val avatarUrl: String?,
-    val modulesCompleted: Int,
-    val medalsCount: Int
+    val gender: String,
+    val diagnosticCompleted: Boolean,
+    val createdAt: String
 )

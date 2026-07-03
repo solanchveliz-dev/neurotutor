@@ -3,50 +3,89 @@ package com.neurotutor.app.mobile.domain.mapper
 import com.neurotutor.app.mobile.data.model.auth.ModuleProgressResponse
 import com.neurotutor.app.mobile.data.model.learning.ModuleItem
 
-/**
- * Modelo de UI unificado para representar el progreso de un tema completo (ej. Fracciones)
- */
 data class ThemeProgress(
     val name: String,
     val progressPercentage: Int,
-    val modules: List<ModuleProgressResponse>
+    val levels: List<LevelProgressInfo>
+)
+
+data class LevelProgressInfo(
+    val id: String,
+    val title: String,
+    val progress: Int,
+    val isCompleted: Boolean
 )
 
 object ProgressMapper {
+    private const val LEVELS_PER_THEME = 3
 
-    /**
-     * Agrupa módulos por tema y calcula el promedio real basado en la cantidad TOTAL de niveles
-     * recibidos desde el backend (asumiendo que el backend envía la malla completa).
-     */
-    fun calculateThematicProgress(modules: List<ModuleProgressResponse>): List<ThemeProgress> {
+    fun fromProgressResponse(modules: List<ModuleProgressResponse>): List<ThemeProgress> {
         if (modules.isEmpty()) return emptyList()
 
-        // Agrupamos por el nombre del tema extraído del título (ej: "Fracciones")
-        // Nota: Idealmente el backend debería enviar el slug del tema, pero usamos el título como fallback dinámico
-        return modules.groupBy { extractThemeName(it.title) }
+        return modules
+            .groupBy { extractThemeName(it.title) }
             .map { (themeName, themeModules) ->
-                val totalProgress = themeModules.sumOf { it.progressPercentage }
-                // La regla oficial: Suma / Total de niveles existentes en el JSON (Backend debe enviar todos)
-                val average = if (themeModules.isNotEmpty()) totalProgress / themeModules.size else 0
-                
+                val levels = themeModules
+                    .distinctBy { normalizeLevel(it.level) }
+                    .map {
+                        LevelProgressInfo(
+                            id = it.moduleId,
+                            title = it.title,
+                            progress = it.progressPercentage,
+                            isCompleted = it.examPassed
+                        )
+                    }
+
                 ThemeProgress(
                     name = themeName,
-                    progressPercentage = average,
-                    modules = themeModules
+                    progressPercentage = levels.sumOf { it.progress } / LEVELS_PER_THEME,
+                    levels = levels
                 )
             }
     }
 
-    /**
-     * Helper para extraer el nombre del tema (Fracciones, Decimales, etc.)
-     * Maneja formatos como "I: Fracciones Básicas" o simplemente "Fracciones"
-     */
-    private fun extractThemeName(title: String): String {
-        return when {
-            title.contains("Fracciones", ignoreCase = true) -> "Fracciones"
-            title.contains("Decimales", ignoreCase = true) -> "Decimales"
-            title.contains("Porcentajes", ignoreCase = true) -> "Porcentajes"
-            else -> title.split(":").last().trim()
-        }
+    fun fromProfileWithLiveProgress(
+        profileModules: List<ModuleItem>,
+        liveProgress: List<ModuleProgressResponse>
+    ): List<ModuleItem> {
+        val liveProgressByTheme = liveProgress.groupBy { extractThemeName(it.title) }
+
+        return profileModules
+            .groupBy { it.temaNombre }
+            .map { (themeName, profileThemeModules) ->
+                val liveThemeModules = liveProgressByTheme.entries
+                    .firstOrNull { (liveTheme, _) ->
+                        liveTheme.equals(themeName, ignoreCase = true)
+                    }
+                    ?.value
+                    .orEmpty()
+
+                val themeProgress = liveThemeModules
+                    .distinctBy { normalizeLevel(it.level) }
+                    .sumOf { it.progressPercentage } / LEVELS_PER_THEME
+
+                profileThemeModules.first().copy(progressPercentage = themeProgress)
+            }
     }
+
+    private fun extractThemeName(title: String): String {
+        val baseTitle = title.substringBefore(":").trim()
+        return baseTitle
+            .replace(
+                Regex(
+                    """\s+(I{1,3}|[1-3]|BASICO|BÁSICO|INTERMEDIO|AVANZADO)$""",
+                    RegexOption.IGNORE_CASE
+                ),
+                ""
+            )
+            .trim()
+    }
+
+    private fun normalizeLevel(level: String): String =
+        when (level.trim().uppercase()) {
+            "B", "BASICO", "BÁSICO" -> "B"
+            "I", "INTERMEDIO" -> "I"
+            "A", "AVANZADO" -> "A"
+            else -> level.trim().uppercase()
+        }
 }

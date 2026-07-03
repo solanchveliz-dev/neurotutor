@@ -1,154 +1,134 @@
 package com.neurotutor.app.mobile.ui.screens.profile.components
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.neurotutor.app.mobile.R
+import com.neurotutor.app.mobile.ui.theme.NeuroWhite
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Header del perfil rediseñado para consistencia absoluta con LevelSectionsScreen.
+ */
 @Composable
 fun ProfileHeader(
     name: String,
     level: String,
     avatarUrl: String?,
     onBack: () -> Unit,
-    onSettings: () -> Unit
+    onSettings: () -> Unit,
+    onAvatarClick: () -> Unit = {}
 ) {
-    val gradient = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF007AFF),
-            Color(0xFF5AC8FA)
-        )
-    )
-
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
-            .background(gradient)
+            .padding(bottom = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Clouds/Decorations if any (based on reference)
-        Image(
-            painter = painterResource(id = R.drawable.cloud_bottom),
-            contentDescription = null,
+        Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .alpha(0.3f),
-            contentScale = ContentScale.FillWidth
-        )
-
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Top Bar
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "Mi perfil",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onSettings) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Configuración",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
+                .statusBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = NeuroWhite,
+                    modifier = Modifier.size(26.dp)
                 )
+            }
+
+            Text(
+                text = "Mi Perfil",
+                fontSize = 23.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = NeuroWhite,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f)
             )
 
+            IconButton(onClick = onSettings) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Configuración",
+                    tint = NeuroWhite,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        ProfileAvatar(
+            name = name,
+            avatarUrl = avatarUrl,
+            size = 96.dp,
+            onClick = onAvatarClick
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = name,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            color = NeuroWhite,
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            text = "Explorador Matemático",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = NeuroWhite.copy(alpha = 0.9f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Surface(
+            color = NeuroWhite.copy(alpha = 0.2f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ProfileAvatar(avatarUrl = avatarUrl, size = 90.dp)
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = name.ifEmpty { "Estudiante" },
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = Color(0xFFEAF4FF)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Explore,
+                        contentDescription = "Ruta recomendada por el diagnóstico",
+                        modifier = Modifier.padding(9.dp),
+                        tint = Color(0xFF007AFF)
                     )
-                    Text(
-                        text = "Explorador Matemático", // Dynamic role based on level or fixed
-                        fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Level Badge
-                    Surface(
-                        color = Color(0xFF8B5CF6),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.general_medal),
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Nivel $level",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
                 }
-                
-                Image(
-                    painter = painterResource(id = R.drawable.neo_profile),
-                    contentDescription = "Neo",
-                    modifier = Modifier.size(110.dp),
-                    contentScale = ContentScale.Fit
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Nivel recomendado: $level",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeuroWhite
                 )
             }
         }
     }
 }
-
-// Extension function for alpha if needed or use .copy(alpha = ...)
-private fun Modifier.alpha(alpha: Float): Modifier = this.then(
-    androidx.compose.ui.draw.alpha(alpha)
-)
