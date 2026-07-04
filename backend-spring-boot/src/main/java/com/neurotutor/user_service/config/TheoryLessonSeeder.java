@@ -29,6 +29,28 @@ public class TheoryLessonSeeder implements ApplicationRunner {
         seedLevel(6L, "BASICO", basicLessons());
         seedLevel(7L, "INTERMEDIO", intermediateLessons());
         seedLevel(8L, "AVANZADO", advancedLessons());
+        updateExistingLessonThree();
+    }
+
+    /**
+     * The public lesson endpoint uses the lesson primary key, not its order inside
+     * a module. Keep lesson id 3 synchronized even when it was created before
+     * structured web content was introduced.
+     */
+    private void updateExistingLessonThree() {
+        TheoryLesson lesson = theoryLessonRepository.findById(3L).orElse(null);
+        if (lesson == null) return;
+
+        LessonSeed seed = basicLessons().get(2);
+        lesson.setTitle("Partes de una fracción");
+        lesson.setSubtitle("Conoce el numerador y el denominador");
+        lesson.setSummary("Cada fracción está formada por dos números. Cada uno tiene un significado muy importante.");
+        lesson.setIcon(seed.icon());
+        lesson.setContentHtml(seed.contentHtml());
+        lesson.setWebContentJson(basicWebContent(3));
+        lesson.setOrderNumber(3);
+        lesson.setActive(true);
+        theoryLessonRepository.saveAndFlush(lesson);
     }
 
     private void seedLevel(Long levelId, String expectedLevel, List<LessonSeed> seeds) {
