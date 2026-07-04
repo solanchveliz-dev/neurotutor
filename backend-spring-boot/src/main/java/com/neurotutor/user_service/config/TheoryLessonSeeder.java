@@ -121,7 +121,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.save(lesson);
             }
 
-            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 5)) {
+            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 6)) {
                 lesson.setTitle("Bienvenida al nivel intermedio");
                 lesson.setSubtitle("Ahora vamos a resolver operaciones con fracciones 🚀");
                 lesson.setSummary("En este nivel aprenderás a sumar, restar, multiplicar y dividir fracciones para resolver problemas de la vida real.");
@@ -143,6 +143,10 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     lesson.setTitle("Resta de fracciones");
                     lesson.setSubtitle("Quitar una parte de otra.");
                     lesson.setSummary("Para restar fracciones, podemos hacerlo con el mismo denominador o convirtiendo a fracciones equivalentes.");
+                } else if (orderNumber == 6) {
+                    lesson.setTitle("Multiplicación de fracciones");
+                    lesson.setSubtitle("Tomar una parte de otra parte.");
+                    lesson.setSummary("Multiplicar fracciones significa tomar una fracción de otra fracción.");
                 }
                 lesson.setWebContentJson(intermediateWebContent(orderNumber));
                 lesson.setActive(true);
@@ -276,6 +280,23 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String intermediateWebContent(int lessonNumber) {
+        if (lessonNumber == 6) return """
+                {
+                  "layout":"intermediate_fraction_multiplication",
+                  "hero":{"badge":"Lección 6","title":"Multiplicación de fracciones","subtitle":"Tomar una parte de otra parte.","description":"Multiplicar fracciones significa tomar una fracción de otra fracción.","image":"leccion6_intermedio.png"},
+                  "sections":[
+                    {"type":"multiplication_key_idea","title":"Idea clave","text":"Multiplicamos numerador por numerador y denominador por denominador.","formula":{"left":{"numerator":"a","denominator":"b"},"right":{"numerator":"c","denominator":"d"},"result":{"numerator":"a × c","denominator":"b × d"}},"image":"idea.png"},
+                    {"type":"multiplication_examples","title":"Veamos ejemplos","items":[
+                      {"number":"1","title":"Ejemplo 1","left":{"numerator":"1","denominator":"2"},"right":{"numerator":"1","denominator":"3"},"operation":{"numerator":"1 × 1","denominator":"2 × 3"},"result":{"numerator":"1","denominator":"6"},"visuals":[{"kind":"blocks","numerator":1,"denominator":2,"color":"#f6c35b","caption":"Tomamos 1 de 2 partes (parte de un todo)."},{"kind":"blocks","numerator":1,"denominator":3,"color":"#75d158","caption":"De esa parte, tomamos 1 de 3."},{"kind":"grid","numerator":1,"denominator":6,"color":"#f6c35b","caption":"Resultado: 1 de 6 partes."}],"tone":"blue"},
+                      {"number":"2","title":"Ejemplo 2","left":{"numerator":"2","denominator":"3"},"right":{"numerator":"3","denominator":"4"},"operation":{"numerator":"2 × 3","denominator":"3 × 4"},"intermediate":{"numerator":"6","denominator":"12"},"result":{"numerator":"1","denominator":"2"},"visuals":[{"kind":"circle","numerator":2,"denominator":3,"color":"#9664df","caption":"Tomamos 2 de 3."},{"kind":"blocks","numerator":3,"denominator":4,"color":"#75d158","caption":"De esa parte, tomamos 3 de 4."},{"kind":"grid","numerator":6,"denominator":12,"color":"#9664df","caption":"Resultado: 6 de 12 partes."}],"tone":"violet"}
+                    ]},
+                    {"type":"real_life_multiplication","title":"Ejemplo en la vida real","prefix":"Tienes","first":{"numerator":"1","denominator":"2"},"middle":"de una torta y le das","second":{"numerator":"1","denominator":"4"},"suffix":"de lo que tienes a tu amigo.","question":"¿Qué parte de la torta completa le diste?","equation":[{"numerator":"1","denominator":"2"},"×",{"numerator":"1","denominator":"4"},"=",{"numerator":"1","denominator":"8"}],"message":"La mitad de un cuarto es un octavo.","images":["torta.png","torta.png","tajada_torta.png"],"neo":"neo_leccion.png"},
+                    {"type":"smaller_result","title":"¿Por qué el resultado suele ser más pequeño?","paragraphs":["Cuando multiplicamos fracciones propias (menores que 1), estamos tomando una parte de una parte.","Por eso el resultado suele ser más pequeño."],"equation":[{"numerator":"1","denominator":"3"},"×",{"numerator":"1","denominator":"2"},"=",{"numerator":"1","denominator":"6"}]},
+                    {"type":"multiplication_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Multiplicar numerador con denominador.","Sumar fracciones antes de multiplicar.","Olvidar multiplicar ambos (numerador y denominador)."]},
+                    {"type":"multiplication_summary","title":"En resumen","image":"libro.png","items":["Multiplica numeradores.","Multiplica denominadores.","Simplifica si es posible.","El resultado suele ser una fracción más pequeña."]}
+                  ]
+                }
+                """;
         if (lessonNumber == 5) return """
                 {
                   "layout":"intermediate_fraction_subtraction",
