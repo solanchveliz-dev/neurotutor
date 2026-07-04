@@ -1,15 +1,150 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, BookOpenCheck, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, Clock3, GraduationCap, Lightbulb, Sparkles, Target } from "lucide-react";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import BackButton from "../components/student/BackButton";
-import LearningProgressPanel from "../components/student/LearningProgressPanel";
-import ProgressCard from "../components/student/ProgressCard";
 import { Button } from "@/components/ui/button";
 import { getTheoryLesson, getTheoryLessons } from "../services/learningService";
-import { markTheoryCompleted } from "../services/progressService";
+import { getModuleProgress, markTheoryCompleted } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
+
+const parseLessonContent = (contentHtml = "", { hideTip = false } = {}) => {
+  if (!contentHtml || typeof DOMParser === "undefined") {
+    return { contentHtml, learningObjectives: [], tipText: null };
+  }
+
+  const document = new DOMParser().parseFromString(contentHtml, "text/html");
+  const objectiveList = document.querySelector(".lesson-list");
+  const learningObjectives = objectiveList
+    ? Array.from(objectiveList.querySelectorAll(":scope > li"))
+        .map((item) => item.textContent?.trim())
+        .filter(Boolean)
+    : [];
+  const tipText = document.querySelector(".tip-box")?.textContent?.trim() || null;
+
+  if (objectiveList) {
+    const objectiveSection = objectiveList.closest("section");
+    const heading = objectiveSection?.querySelector("h2, h3");
+
+    if (objectiveSection && heading) objectiveSection.remove();
+    else objectiveList.remove();
+  }
+
+  // Visual-only rule: keep backend content unchanged and omit tip boxes only
+  // when the current lesson is the introductory welcome lesson.
+  if (hideTip) {
+    document.querySelectorAll(".tip-box").forEach((tip) => tip.remove());
+  }
+
+  return { contentHtml: document.body.innerHTML, learningObjectives, tipText };
+};
+
+const validPercentage = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  return Math.min(100, Math.max(0, Number(value) || 0));
+};
+
+const assetUrl = (asset) => {
+  if (!asset) return null;
+  return String(asset).startsWith("/") ? asset : `/assets/${asset}`;
+};
+
+function StructuredSection({ section }) {
+  const visual = assetUrl(section.visual);
+  if (section.type === "main_concept" || section.type === "example") {
+    const Icon = section.type === "main_concept" ? Target : BookOpen;
+    return <section className="grid items-center gap-4 rounded-[22px] border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-4 sm:grid-cols-[minmax(0,1fr)_140px]"><div><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><Icon className="size-5 text-nt-blue" />{section.title}</h2>{section.text && <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p>}</div>{visual && <img src={visual} alt="" className="mx-auto size-32 object-contain drop-shadow-md" />}</section>;
+  }
+  if (section.type === "important_idea") {
+    return <aside className="rounded-[22px] border border-amber-200 bg-amber-50 p-4"><h2 className="flex items-center gap-2 text-base font-black text-amber-900"><Lightbulb className="size-5 text-amber-500" />{section.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-amber-900">{section.text}</p></aside>;
+  }
+  if (section.type === "common_mistakes" && Array.isArray(section.items)) {
+    return <section><h2 className="flex items-center gap-2 text-lg font-black text-red-700"><AlertTriangle className="size-5" />{section.title}</h2><div className="mt-3 grid gap-2">{section.items.map((item) => <div key={item} className="flex gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3"><span className="font-black text-red-500">×</span><p className="text-sm font-semibold text-slate-700">{item}</p></div>)}</div></section>;
+  }
+  if (section.type === "reflection") {
+    return <section className="rounded-[22px] border border-violet-100 bg-gradient-to-r from-violet-50 to-sky-50 p-4"><h2 className="text-base font-black text-nt-purple">{section.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p></section>;
+  }
+  return null;
+}
+
+function LessonSidebar({ lesson, lessons, position, level, progress, neoTip }) {
+  const totalLessons = progress?.total_lessons ?? lessons.length;
+  const completedLessons = progress?.completed_lessons
+    ?? progress?.theory_completed_lessons
+    ?? (progress?.theory_completed === true ? totalLessons : null);
+  const theoryPercentage = validPercentage(
+    progress?.theory_progress_percentage
+      ?? (completedLessons !== null && totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : null)
+  );
+  const lessonProgressData = lesson?.lessonProgress ?? lesson?.lesson_progress;
+  const completedFlag = lesson?.completed ?? lesson?.is_completed ?? lessonProgressData?.completed ?? lessonProgressData?.is_completed;
+  const lessonStatus = lesson?.status ?? lessonProgressData?.status;
+  const lessonPercentage = validPercentage(
+    lesson?.progress_percentage
+      ?? lesson?.progress
+      ?? lesson?.completion_percentage
+      ?? lessonProgressData?.progress_percentage
+      ?? lessonProgressData?.progress
+      ?? (completedFlag === true || String(lessonStatus ?? "").toUpperCase() === "COMPLETADO" ? 100 : null)
+  );
+  const estimatedMinutes = lesson?.estimated_minutes ?? lesson?.estimated_duration_minutes;
+  const completionPoints = lesson?.completion_points ?? lesson?.points;
+
+  return (
+    <div className="space-y-5">
+      <section className="rounded-[26px] border border-white bg-white p-4 shadow-[0_14px_34px_rgba(30,58,138,0.11)]">
+        <img src="/assets/teoria.png" alt="" className="mx-auto h-28 w-full object-contain drop-shadow-[0_12px_18px_rgba(30,58,138,0.16)]" />
+        <h2 className="mt-1 text-center text-lg font-black text-nt-blue">Tu progreso en teoría</h2>
+        <div className="mt-4 grid grid-cols-[58px_minmax(0,1fr)] items-center gap-3">
+          <div
+            className="grid size-[58px] place-items-center rounded-full"
+            style={{ background: theoryPercentage === null ? "#e2e8f0" : `conic-gradient(#7c3aed ${theoryPercentage * 3.6}deg, #e2e8f0 0deg)` }}
+          >
+            <div className="grid size-11 place-items-center rounded-full bg-white text-xs font-black text-nt-purple">
+              {theoryPercentage === null ? "—" : `${theoryPercentage}%`}
+            </div>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-nt-text-secondary">
+              {completedLessons === null ? `— / ${totalLessons}` : `${completedLessons} / ${totalLessons}`} lecciones completadas
+            </p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+              <div className="h-full rounded-full bg-gradient-to-r from-nt-blue to-nt-green" style={{ width: `${theoryPercentage ?? 0}%` }} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[26px] border border-violet-100 bg-gradient-to-br from-white via-violet-50 to-sky-50 p-4 shadow-[0_14px_34px_rgba(76,29,149,0.10)]">
+        <div className="flex items-center gap-2">
+          <span className="grid size-9 place-items-center rounded-[12px] bg-violet-100 text-violet-700"><Sparkles className="size-[18px]" /></span>
+          <div><p className="text-xs font-bold text-nt-text-secondary">Lección actual</p><h2 className="text-base font-black text-nt-text-primary">{position}/{lessons.length}</h2></div>
+        </div>
+        <h3 className="mt-3 text-sm font-black leading-5 text-nt-text-primary">{lesson.title}</h3>
+        <dl className="mt-3 grid gap-2 text-xs">
+          {lessonPercentage !== null && <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Progreso</dt><dd className="font-black text-nt-blue">{lessonPercentage}%</dd></div>}
+          {lessonPercentage === null && lessonStatus && <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Estado</dt><dd className="font-black text-nt-blue">{lessonStatus}</dd></div>}
+          <div className="flex items-center justify-between gap-3"><dt className="flex items-center gap-1.5 text-nt-text-secondary"><GraduationCap className="size-3.5" />Nivel</dt><dd className="font-black text-nt-text-primary">{level.name}</dd></div>
+          <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Contenido</dt><dd className="font-black text-nt-text-primary">Teoría</dd></div>
+          {estimatedMinutes !== null && estimatedMinutes !== undefined && <div className="flex items-center justify-between gap-3"><dt className="flex items-center gap-1.5 text-nt-text-secondary"><Clock3 className="size-3.5" />Tiempo</dt><dd className="font-black text-nt-text-primary">{estimatedMinutes} min</dd></div>}
+          {completionPoints !== null && completionPoints !== undefined && <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Puntos</dt><dd className="font-black text-emerald-700">+{completionPoints}</dd></div>}
+        </dl>
+      </section>
+
+      <aside className="relative min-h-[156px] overflow-hidden rounded-3xl border border-violet-200 bg-gradient-to-br from-white via-violet-50 to-sky-100 p-4 shadow-[0_14px_34px_rgba(99,102,241,0.14)]">
+          <span className="absolute left-4 top-3 text-sm text-violet-300/80" aria-hidden="true">✦</span>
+          <span className="absolute right-5 top-4 text-xs text-amber-300/80" aria-hidden="true">✦</span>
+          <div className="relative z-10 max-w-[58%] pt-3">
+            <h2 className="text-lg font-black text-nt-text-primary">{neoTip?.title ?? "NEO dice"}</h2>
+            <p className="mt-2 line-clamp-4 text-xs font-semibold leading-5 text-slate-700">{neoTip?.text ?? "Cuando repartes una pizza, una barra de chocolate o una torta en partes iguales, ya estás usando fracciones."}</p>
+          </div>
+          <div className="absolute -bottom-10 -right-8 size-32 rounded-full bg-white/50 blur-2xl" />
+          <img src={assetUrl(neoTip?.image) ?? "/assets/neo_leccion.png"} alt="NEO" className="absolute bottom-0 right-1 z-10 size-38 object-contain drop-shadow-[0_12px_18px_rgba(76,29,149,0.18)]" />
+        </aside>
+    </div>
+  );
+}
 
 function TheoryLesson() {
   const navigate = useNavigate();
@@ -17,6 +152,7 @@ function TheoryLesson() {
   const { moduleId, levelId, lessonId } = useParams();
   const [lesson, setLesson] = useState(null);
   const [lessons, setLessons] = useState([]);
+  const [moduleProgress, setModuleProgress] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +185,21 @@ function TheoryLesson() {
     };
   }, [lessonId, levelId]);
 
+  useEffect(() => {
+    if (!studentId) return undefined;
+    let active = true;
+    getModuleProgress(studentId, levelId)
+      .then((progressData) => {
+        if (active) setModuleProgress(progressData);
+      })
+      .catch(() => {
+        if (active) setModuleProgress(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [studentId, levelId]);
+
   const lessonIndex = useMemo(
     () => lessons.findIndex((item) => String(item.id) === String(lessonId)),
     [lessons, lessonId]
@@ -57,10 +208,41 @@ function TheoryLesson() {
   const nextLesson = lessonIndex >= 0 ? lessons[lessonIndex + 1] : null;
   const position = lessonIndex >= 0 ? lessonIndex + 1 : 0;
   const routeProgress = lessons.length ? Math.round((position / lessons.length) * 100) : 0;
+  const normalizedLessonTitle = String(lesson?.title ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const isWelcomeLesson = position === 1
+    || normalizedLessonTitle.includes("bienvenida al mundo de las fracciones")
+    || normalizedLessonTitle.includes("bienvenido al mundo de las fracciones");
+  // Objectives are parsed from backend-provided content_html. The initial database
+  // content is hardcoded by backend-spring-boot/.../config/TheoryLessonSeeder.java.
+  const parsedLessonContent = useMemo(
+    () => parseLessonContent(lesson?.content_html, { hideTip: isWelcomeLesson }),
+    [lesson?.content_html, isWelcomeLesson]
+  );
+  const webContent = useMemo(() => {
+    const value = lesson?.web_content_json ?? lesson?.webContent;
+    if (!value) return null;
+    if (typeof value === "object") return value;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }, [lesson?.web_content_json, lesson?.webContent]);
+  const webSections = Array.isArray(webContent?.sections) ? webContent.sections : [];
+  const learningObjectivesSection = webSections.find((section) => section.type === "learning_objectives");
+  const learningObjectives = Array.isArray(learningObjectivesSection?.items)
+    ? learningObjectivesSection.items.filter(Boolean)
+    : parsedLessonContent.learningObjectives;
+  const neoTip = webSections.find((section) => section.type === "neo_tip") ?? null;
+  const contentSections = webSections.filter((section) => !["learning_objectives", "neo_tip"].includes(section.type));
+  const heroContent = webContent?.hero ?? null;
 
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
-    { label: "Módulos", active: true, onClick: () => navigate(`/module/${moduleId}`, { state: { module } }) },
+    { label: "Módulos", active: true },
     { label: "Mis Logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
@@ -140,37 +322,68 @@ function TheoryLesson() {
         </div>
       }
       rightPanel={
-        <div className="space-y-5">
-          <LearningProgressPanel studentId={studentId} moduloId={levelId} />
-          <ProgressCard
-            title="Lección actual"
-            subtitle={`${position}/${lessons.length}`}
-            value={routeProgress}
-            totalLabel={level.name}
-            tone="purple"
-          />
-        </div>
+        <LessonSidebar lesson={lesson} lessons={lessons} position={position} level={level} progress={moduleProgress} neoTip={neoTip} />
       }
     >
-      <article className="rounded-nt-card border border-white/85 bg-white/95 p-5 shadow-nt-card sm:p-7 lg:p-8">
-        <div className="flex flex-col gap-4 border-b border-nt-border pb-6 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <span className="inline-flex rounded-full bg-nt-green px-3 py-1 text-xs font-black text-white">
-              Lección {position}
-            </span>
-            <h1 className="mt-4 text-3xl font-black leading-tight text-nt-text-primary sm:text-4xl">
-              {lesson.title} <span aria-hidden="true">{lesson.icon}</span>
-            </h1>
-            {lesson.subtitle && <p className="mt-2 text-base font-black text-nt-purple">{lesson.subtitle}</p>}
-            <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-nt-text-secondary">{lesson.summary}</p>
+      <article className="rounded-nt-card border border-white/85 bg-white/95 p-3 shadow-nt-card sm:p-4 lg:p-5">
+        <section className="relative overflow-hidden rounded-[24px] border border-blue-100 bg-gradient-to-br from-white via-blue-50 to-sky-50 px-4 py-4 shadow-[0_10px_26px_rgba(59,130,246,0.10)] sm:px-5">
+          <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-sky-200/25 blur-3xl" />
+          <div className="relative grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)] md:gap-5">
+            <div className="min-w-0">
+              <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">
+                {heroContent?.badge ?? `Lección ${position}`}
+              </span>
+              <h1 className="mt-2.5 text-2xl font-black leading-tight text-nt-text-primary sm:text-3xl">
+                {heroContent?.title ?? lesson.title}
+              </h1>
+              {(heroContent?.subtitle ?? lesson.subtitle) && <p className="mt-1.5 text-sm font-black text-nt-purple sm:text-base">{heroContent?.subtitle ?? lesson.subtitle}</p>}
+              {(heroContent?.description ?? lesson.summary) && (
+                <p className="mt-2 max-w-2xl text-sm font-semibold leading-5 text-slate-600">{heroContent?.description ?? lesson.summary}</p>
+              )}
+            </div>
+            <div className="order-first flex min-h-[150px] items-center justify-center md:order-none md:min-h-[180px]">
+              <img
+                src={assetUrl(heroContent?.image) ?? "/assets/lecciones_saludo.png"}
+                alt=""
+                className="max-h-[205px] w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]"
+              />
+            </div>
           </div>
-          <div className="grid size-16 shrink-0 place-items-center rounded-[24px] bg-nt-sky text-3xl shadow-sm">
-            {lesson.icon || <BookOpenCheck className="size-7 text-nt-blue" />}
-          </div>
-        </div>
+        </section>
 
+        {learningObjectives.length > 0 && (
+          <section className="mt-4 px-1 pb-1">
+            <div className="mb-3 flex items-center gap-2.5">
+              <BookOpen className="size-5 shrink-0 text-emerald-700" aria-hidden="true" />
+              <h2 className="text-xl font-black text-nt-text-primary">{learningObjectivesSection?.title ?? "Hoy aprenderás"}</h2>
+            </div>
+            <div className="grid gap-2">
+              {learningObjectives.map((objective) => (
+                <article
+                  key={objective}
+                  className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-emerald-500 text-white shadow-sm">
+                    <Check className="size-4" strokeWidth={3} aria-hidden="true" />
+                  </span>
+                  <p className="text-sm font-bold leading-5 text-slate-700">{objective}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {webContent && contentSections.length > 0 && (
+          <div className="mt-5 grid gap-4">
+            {contentSections.map((section, index) => (
+              <StructuredSection key={`${section.type}-${index}`} section={section} />
+            ))}
+          </div>
+        )}
+
+        {!webContent && !isWelcomeLesson && parsedLessonContent.contentHtml.trim() && (
         <div
-          className="mt-7 grid gap-5 text-base font-semibold leading-7 text-slate-700
+          className="mt-5 grid gap-4 text-base font-semibold leading-7 text-slate-700
             [&_h2]:text-2xl [&_h2]:font-black [&_h2]:text-nt-text-primary
             [&_h3]:text-lg [&_h3]:font-black [&_h3]:text-nt-blue
             [&_.lesson-lead]:rounded-[26px] [&_.lesson-lead]:bg-gradient-to-br [&_.lesson-lead]:from-nt-sky/80 [&_.lesson-lead]:to-violet-50 [&_.lesson-lead]:p-5
@@ -189,8 +402,9 @@ function TheoryLesson() {
             [&_.fraction-parts_div]:grid [&_.fraction-parts_div]:gap-2 [&_.fraction-parts_div]:rounded-[24px] [&_.fraction-parts_div]:bg-nt-sky/70 [&_.fraction-parts_div]:p-5 [&_.fraction-parts_div]:text-center
             [&_.fraction-parts_strong]:text-5xl [&_.fraction-parts_strong]:font-black [&_.fraction-parts_strong]:text-nt-purple
             [&_.problem-box]:rounded-[24px] [&_.problem-box]:bg-green-50 [&_.problem-box]:p-5 [&_.problem-box]:text-green-900"
-          dangerouslySetInnerHTML={{ __html: lesson.content_html }}
+          dangerouslySetInnerHTML={{ __html: parsedLessonContent.contentHtml }}
         />
+        )}
       </article>
 
       {completionError && (

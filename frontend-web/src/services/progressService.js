@@ -1,8 +1,16 @@
 import api from "./api";
 
+const pendingProgressRequests = new Map();
+
 export const getStudentProgress = async (studentId) => {
-  const response = await api.get(`/api/students/${studentId}/progress`);
-  return response.data;
+  const key = String(studentId);
+  if (pendingProgressRequests.has(key)) return pendingProgressRequests.get(key);
+
+  const request = api.get(`/api/students/${studentId}/progress`, { timeout: 9000 })
+    .then((response) => response.data)
+    .finally(() => pendingProgressRequests.delete(key));
+  pendingProgressRequests.set(key, request);
+  return request;
 };
 
 export const getModuleProgress = async (studentId, moduloId) => {

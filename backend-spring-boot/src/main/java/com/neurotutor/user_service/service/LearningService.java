@@ -5,6 +5,8 @@ import com.neurotutor.user_service.model.*;
 import com.neurotutor.user_service.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class LearningService {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Autowired
     private EjercicioRepository ejercicioRepository;
@@ -195,7 +198,16 @@ public class LearningService {
                         org.springframework.http.HttpStatus.NOT_FOUND, "Leccion no encontrada"));
         return new TheoryLessonDetailResponse(
                 lesson.getId(), lesson.getModulo().getId(), lesson.getTitle(), lesson.getSubtitle(),
-                lesson.getSummary(), lesson.getIcon(), lesson.getContentHtml(), lesson.getOrderNumber());
+                lesson.getSummary(), lesson.getIcon(), lesson.getContentHtml(), parseWebContent(lesson.getWebContentJson()), lesson.getOrderNumber());
+    }
+
+    private JsonNode parseWebContent(String webContentJson) {
+        if (webContentJson == null || webContentJson.isBlank()) return null;
+        try {
+            return OBJECT_MAPPER.readTree(webContentJson);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     @Transactional

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookOpenCheck, CheckCircle2, Clock3, Medal, Target } from "lucide-react";
+import { BookOpenCheck, Clock3, Pencil, Trophy as Medal } from "lucide-react";
 import { getModuleProgress } from "@/services/progressService";
 
 const clampPercentage = (value) => Math.min(100, Math.max(0, Number(value) || 0));
@@ -15,11 +15,11 @@ const formatActivityDate = (value) => {
   }).format(date);
 };
 
-function StatusRow({ complete, icon: Icon, label, weight, detail }) {
+function StatusRow({ complete, icon: Icon, label, weight, detail, iconTone }) {
   return (
-    <div className="flex items-center gap-3 rounded-[20px] bg-nt-sky/55 p-3">
-      <div className={`grid size-10 shrink-0 place-items-center rounded-[16px] ${complete ? "bg-green-100 text-green-700" : "bg-white text-slate-400"}`}>
-        {complete ? <CheckCircle2 className="size-5" /> : <Icon className="size-5" />}
+    <div className="flex items-center gap-2.5 rounded-[17px] border border-sky-100/80 bg-sky-50/90 px-3 py-2.5">
+      <div className={`grid size-9 shrink-0 place-items-center rounded-[13px] shadow-sm ${iconTone ?? (weight === 34 ? "bg-gradient-to-br from-violet-500 to-purple-700 text-amber-200" : "bg-gradient-to-br from-blue-500 to-indigo-600 text-white")}`}>
+        <Icon className="size-[18px]" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
@@ -34,7 +34,7 @@ function StatusRow({ complete, icon: Icon, label, weight, detail }) {
   );
 }
 
-function LearningProgressPanel({ studentId, moduloId, progress: providedProgress, refreshKey = 0, title = "Progreso del nivel" }) {
+function LearningProgressPanel({ studentId, moduloId, progress: providedProgress, refreshKey = 0, title = "Progreso del nivel", compact = false }) {
   const [progress, setProgress] = useState(providedProgress ?? null);
   const [isLoading, setIsLoading] = useState(!providedProgress);
   const [error, setError] = useState("");
@@ -79,14 +79,14 @@ function LearningProgressPanel({ studentId, moduloId, progress: providedProgress
   const percentage = clampPercentage(progress?.progress_percentage);
 
   return (
-    <section className="rounded-nt-card border border-white/85 bg-white/95 p-5 shadow-nt-card">
+    <section className={`w-full rounded-[26px] border border-white bg-white shadow-[0_14px_34px_rgba(30,58,138,0.11)] ${compact ? "p-4" : "p-5"}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase text-nt-blue">Aprendizaje</p>
-          <h2 className="mt-1 text-xl font-black text-nt-text-primary">{title}</h2>
+          <h2 className={`${compact ? "mt-0.5 text-lg" : "mt-1 text-xl"} font-black text-nt-text-primary`}>{title}</h2>
           {progress?.title && <p className="mt-1 text-sm font-bold text-nt-text-secondary">{progress.title}</p>}
         </div>
-        <div className="grid size-14 shrink-0 place-items-center rounded-[22px] bg-gradient-to-br from-nt-blue to-nt-purple text-lg font-black text-white shadow-lg shadow-nt-blue/20">
+        <div className={`grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-nt-blue to-nt-purple font-black text-white shadow-lg shadow-nt-blue/25 ${compact ? "size-12 text-base" : "size-14 text-lg"}`}>
           {isLoading ? "…" : `${percentage}%`}
         </div>
       </div>
@@ -101,18 +101,19 @@ function LearningProgressPanel({ studentId, moduloId, progress: providedProgress
         </div>
       ) : (
         <>
-          <div className="mt-5 h-3 overflow-hidden rounded-full bg-nt-border">
+          <div className={`${compact ? "mt-3 h-2.5" : "mt-5 h-3"} overflow-hidden rounded-full bg-nt-border`}>
             <div className="h-full rounded-full bg-gradient-to-r from-nt-blue via-nt-purple to-nt-green transition-all" style={{ width: `${percentage}%` }} />
           </div>
-          <p className="mt-2 text-xs font-semibold leading-5 text-nt-text-secondary">
+          <p className="mt-2 text-[11px] font-semibold leading-4 text-nt-text-secondary">
             El total se forma con teoría (33%), práctica (33%) y examen final aprobado (34%).
           </p>
 
-          <div className="mt-4 grid gap-2">
+          <div className="mt-3 grid gap-2">
             <StatusRow complete={progress?.theory_completed} icon={BookOpenCheck} label="Teoría" weight={33} detail="Pendiente" />
             <StatusRow
               complete={progress?.practice_completed}
-              icon={Target}
+              icon={Pencil}
+              iconTone="bg-gradient-to-br from-emerald-400 to-green-600 text-white"
               label="Práctica"
               weight={33}
               detail={progress?.practice_total_count ? `${progress.practice_completed_count}/${progress.practice_total_count} respuestas correctas` : "Pendiente"}
@@ -120,9 +121,9 @@ function LearningProgressPanel({ studentId, moduloId, progress: providedProgress
             <StatusRow complete={progress?.exam_passed} icon={Medal} label="Examen final" weight={34} detail="Pendiente de aprobar" />
           </div>
 
-          <div className="mt-4 grid gap-2 rounded-[20px] border border-nt-border bg-white p-3 text-xs font-bold text-nt-text-secondary">
+          <div className="mt-3 grid gap-2 rounded-[17px] border border-amber-100 bg-amber-50/90 p-3 text-xs font-bold text-nt-text-secondary">
             <div className="flex items-center justify-between gap-3">
-              <span>Mejor examen</span>
+              <span className="flex items-center gap-2 text-amber-800"><Medal className="size-4 text-amber-500" />Mejor examen</span>
               <strong className="text-nt-text-primary">{progress?.exam_best_score ? `${progress.exam_best_score}%` : "Sin intento"}</strong>
             </div>
             <div className="flex items-center gap-2 border-t border-nt-border pt-2">

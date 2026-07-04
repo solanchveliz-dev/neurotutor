@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 import requests
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
 
@@ -49,6 +49,7 @@ def _get_from_spring(endpoint):
 
 @csrf_exempt
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def admin_login(request):
     username = request.data.get("username") or request.data.get("email")
@@ -69,6 +70,7 @@ def admin_login(request):
 
 @csrf_exempt
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def admin_logout(request):
     logout(request)

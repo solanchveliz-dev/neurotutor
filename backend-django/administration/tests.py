@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 
 
 class AdminApiTests(TestCase):
@@ -27,6 +27,29 @@ class AdminApiTests(TestCase):
         response = self.client.get("/api/admin/me/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["username"], "admin")
+
+    def test_admin_login_does_not_require_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+
+        response = csrf_client.post(
+            "/api/admin/login/",
+            {"username": "admin", "password": "safe-password"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["username"], "admin")
+
+    def test_invalid_admin_credentials_return_401_without_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+
+        response = csrf_client.post(
+            "/api/admin/login/",
+            {"username": "admin", "password": "incorrect-password"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 401)
 
     @patch("administration.views.requests.get")
     def test_staff_user_can_use_spring_proxy(self, spring_get):

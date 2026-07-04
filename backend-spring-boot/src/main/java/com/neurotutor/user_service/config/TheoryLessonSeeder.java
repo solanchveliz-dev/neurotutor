@@ -57,7 +57,101 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 lesson.setContentHtml(seed.contentHtml());
                 theoryLessonRepository.save(lesson);
             }
+
+            if ("BASICO".equals(expectedLevel)
+                    && (lesson.getWebContentJson() == null || lesson.getWebContentJson().isBlank())) {
+                lesson.setWebContentJson(basicWebContent(orderNumber));
+                theoryLessonRepository.save(lesson);
+            }
+
+            if ("BASICO".equals(expectedLevel) && orderNumber == 4) {
+                lesson.setTitle("Fracciones propias e impropias");
+                lesson.setSubtitle("Compara el numerador y el denominador");
+                lesson.setSummary("Diferencia fracciones propias e impropias mediante ejemplos y comparaciones visuales.");
+                theoryLessonRepository.save(lesson);
+            } else if ("BASICO".equals(expectedLevel) && orderNumber == 5) {
+                lesson.setTitle("Repaso antes de la práctica");
+                lesson.setSubtitle("Prepárate para resolver ejercicios");
+                lesson.setSummary("Refuerza las ideas principales del nivel antes de comenzar la práctica.");
+                theoryLessonRepository.save(lesson);
+            }
         }
+    }
+
+    private String basicWebContent(int lessonNumber) {
+        return switch (lessonNumber) {
+            case 1 -> """
+                    {
+                      "hero":{"badge":"Lección 1","title":"Bienvenida al mundo de las fracciones","subtitle":"Tu aventura comienza aquí","description":"Descubre cómo las fracciones nos ayudan a compartir, medir y resolver situaciones cotidianas.","image":"lecciones_basico1.png"},
+                      "sections":[
+                        {"type":"main_concept","title":"¿Para qué sirven las fracciones?","text":"Las fracciones expresan una parte de algo completo y nos ayudan a repartir de manera justa.","visual":"pizza.png"},
+                        {"type":"example","title":"Las vemos todos los días","text":"Aparecen al compartir una pizza, una torta o una barra de chocolate en partes iguales.","visual":"lecciones_saludo.png"},
+                        {"type":"important_idea","title":"Una idea para comenzar","text":"Una fracción permite hablar de una o varias partes de un todo."},
+                        {"type":"neo_tip","title":"NEO dice","text":"Observa cómo repartes objetos en casa: probablemente ya utilizas fracciones sin darte cuenta.","image":"neo_leccion.png"},
+                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Qué son las fracciones de forma sencilla.","Dónde aparecen en la vida diaria.","Cómo repartir objetos en partes iguales.","Qué descubrirás durante este nivel."]},
+                        {"type":"common_mistakes","title":"Errores comunes","items":["Creer que las fracciones solo aparecen en los libros.","Repartir un objeto en partes de distinto tamaño."]},
+                        {"type":"reflection","title":"Antes de continuar","text":"Piensa en algo que hayas compartido hoy. ¿Cómo podrías describir cada parte?"}
+                      ]
+                    }
+                    """;
+            case 2 -> """
+                    {
+                      "hero":{"badge":"Lección 2","title":"¿Qué es una fracción?","subtitle":"Partes iguales de un todo","description":"Comprende cómo una parte o varias partes iguales pueden representarse con una fracción.","image":"lecciones_basico2.png"},
+                      "sections":[
+                        {"type":"main_concept","title":"Partes iguales","text":"Una fracción representa una o varias partes iguales en las que se divide un todo.","visual":"pizza.png"},
+                        {"type":"example","title":"Pizza, chocolate y torta","text":"Si divides una pizza en 2 partes iguales y tomas una, tienes 1/2. Si tomas 2 de 4 partes iguales, tienes 2/4.","visual":"lecciones_basico2.png"},
+                        {"type":"important_idea","title":"Todas las partes deben ser iguales","text":"Si las partes tienen tamaños diferentes, no representan un reparto fraccionario justo."},
+                        {"type":"neo_tip","title":"NEO dice","text":"Antes de escribir una fracción, comprueba que el objeto esté dividido en partes iguales.","image":"neo_leccion.png"},
+                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Qué representa una fracción.","Qué significa dividir un todo en partes iguales.","Cómo reconocer 1/2 y 2/4 en ejemplos cotidianos."]},
+                        {"type":"common_mistakes","title":"Errores comunes","items":["Contar partes que no tienen el mismo tamaño.","Confundir la cantidad tomada con el objeto completo."]},
+                        {"type":"reflection","title":"Antes de continuar","text":"Cada fracción está formada por dos números. En la siguiente lección descubrirás qué significa cada uno."}
+                      ]
+                    }
+                    """;
+            case 3 -> """
+                    {
+                      "hero":{"badge":"Lección 3","title":"Partes de una fracción","subtitle":"Conoce el numerador y el denominador","description":"Identifica qué representa el número superior y qué representa el número inferior.","image":"lecciones_basico3.png"},
+                      "sections":[
+                        {"type":"main_concept","title":"Numerador y denominador","text":"El numerador indica cuántas partes tomamos. El denominador indica en cuántas partes iguales se dividió el todo.","visual":"lecciones_basico3.png"},
+                        {"type":"example","title":"Observa 3/4","text":"En 3/4, tomamos 3 partes y el todo fue dividido en 4 partes iguales.","visual":"pizza.png"},
+                        {"type":"important_idea","title":"Lee de arriba hacia abajo","text":"Primero observa cuántas partes se toman y después cuántas partes iguales forman el todo."},
+                        {"type":"neo_tip","title":"NEO dice","text":"Señala primero el número de arriba y luego el de abajo mientras explicas qué representa cada uno.","image":"neo_leccion.png"},
+                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Identificar el numerador.","Identificar el denominador.","Explicar qué representa cada número.","Interpretar fracciones en imágenes."]},
+                        {"type":"common_mistakes","title":"Errores comunes","items":["Intercambiar numerador y denominador.","Olvidar que el denominador cuenta partes iguales.","Usar cero como denominador."]},
+                        {"type":"reflection","title":"Antes de continuar","text":"En la fracción 2/5, ¿qué indica el 2 y qué indica el 5?"}
+                      ]
+                    }
+                    """;
+            case 4 -> """
+                    {
+                      "hero":{"badge":"Lección 4","title":"Fracciones propias e impropias","subtitle":"Compara el numerador y el denominador","description":"Diferencia fracciones menores que una unidad de aquellas que representan una unidad o más.","image":"lecciones_basico4.png"},
+                      "sections":[
+                        {"type":"main_concept","title":"Propias e impropias","text":"Una fracción es propia cuando el numerador es menor que el denominador. Es impropia cuando el numerador es mayor o igual.","visual":"lecciones_basico4.png"},
+                        {"type":"example","title":"Compara 1/4 y 5/3","text":"1/4 es propia porque 1 es menor que 4. 5/3 es impropia porque 5 es mayor que 3.","visual":"pizza.png"},
+                        {"type":"important_idea","title":"Compara los dos números","text":"La relación entre numerador y denominador permite clasificar rápidamente la fracción."},
+                        {"type":"neo_tip","title":"NEO dice","text":"Fíjate si el número de arriba es menor, igual o mayor que el número de abajo.","image":"neo_leccion.png"},
+                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Reconocer fracciones propias.","Reconocer fracciones impropias.","Comparar numerador y denominador.","Relacionar fracciones con representaciones visuales."]},
+                        {"type":"common_mistakes","title":"Errores comunes","items":["Pensar que toda fracción es menor que uno.","Clasificar sin comparar los dos números.","Confundir propia con impropia."]},
+                        {"type":"reflection","title":"Antes de continuar","text":"¿La fracción 7/5 es propia o impropia? Explica por qué."}
+                      ]
+                    }
+                    """;
+            case 5 -> """
+                    {
+                      "hero":{"badge":"Lección 5","title":"Repaso antes de la práctica","subtitle":"Estás listo para poner a prueba lo aprendido","description":"Repasa las ideas principales del nivel antes de comenzar los ejercicios.","image":"lecciones_basico5.png"},
+                      "sections":[
+                        {"type":"main_concept","title":"Resumen de lo aprendido","text":"Las fracciones representan partes iguales de un todo y se interpretan observando sus dos números.","visual":"lecciones_basico5.png"},
+                        {"type":"example","title":"Repaso rápido","text":"En 3/4 se toman 3 de 4 partes iguales. Como 3 es menor que 4, es una fracción propia.","visual":"pizza.png"},
+                        {"type":"important_idea","title":"Ideas importantes","text":"Las partes deben ser iguales; el numerador va arriba y el denominador abajo; compara ambos para clasificar."},
+                        {"type":"neo_tip","title":"NEO dice","text":"Explica cada respuesta con tus propias palabras antes de pasar a la práctica.","image":"neo_leccion.png"},
+                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Recordar qué representa una fracción.","Distinguir numerador y denominador.","Clasificar fracciones propias e impropias.","Prepararte para resolver ejercicios."]},
+                        {"type":"common_mistakes","title":"Errores comunes","items":["Olvidar que las partes deben ser iguales.","Intercambiar numerador y denominador.","Pensar que todas las fracciones son menores que uno."]},
+                        {"type":"reflection","title":"Antes de continuar","text":"¿Puedes explicar con un ejemplo qué es una fracción y clasificarla? Entonces estás listo para practicar."}
+                      ]
+                    }
+                    """;
+            default -> null;
+        };
     }
 
     private List<LessonSeed> basicLessons() {

@@ -1,5 +1,6 @@
 package com.neurotutor.user_service.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class TheoryLessonDetailResponse {
@@ -10,10 +11,11 @@ public class TheoryLessonDetailResponse {
     private final String summary;
     private final String icon;
     private final String contentHtml;
+    private final JsonNode webContentJson;
     private final int orderNumber;
 
     public TheoryLessonDetailResponse(Long id, Long moduleId, String title, String subtitle,
-                                      String summary, String icon, String contentHtml,
+                                      String summary, String icon, String contentHtml, JsonNode webContentJson,
                                       int orderNumber) {
         this.id = id;
         this.moduleId = moduleId;
@@ -22,6 +24,7 @@ public class TheoryLessonDetailResponse {
         this.summary = summary;
         this.icon = icon;
         this.contentHtml = contentHtml;
+        this.webContentJson = webContentJson;
         this.orderNumber = orderNumber;
     }
 
@@ -34,6 +37,8 @@ public class TheoryLessonDetailResponse {
     public String getIcon() { return icon; }
     @JsonProperty("content_html")
     public String getContentHtml() { return contentHtml; }
+    @JsonProperty("web_content_json")
+    public JsonNode getWebContentJson() { return webContentJson; }
     @JsonProperty("order_number")
     public int getOrderNumber() { return orderNumber; }
 }

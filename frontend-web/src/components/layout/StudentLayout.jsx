@@ -17,15 +17,15 @@ function StudentLayout({
       )}
     >
       <div className="grid w-full grid-cols-1 gap-5 lg:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)_320px]">
-        {sidebar && <aside className="lg:sticky lg:top-8 lg:self-start">{sidebar}</aside>}
+        {sidebar && <aside className="relative z-50 lg:sticky lg:top-8 lg:self-start">{sidebar}</aside>}
 
-        <main className={cn("min-w-0 w-full space-y-5", contentClassName)}>
+        <main className={cn("relative z-0 min-w-0 w-full space-y-5", contentClassName)}>
           {topbar}
           {children}
         </main>
 
         {rightPanel && (
-          <aside className="min-w-0 space-y-5 lg:col-start-2 2xl:col-start-auto 2xl:sticky 2xl:top-8 2xl:self-start">
+          <aside className="relative z-10 min-w-0 space-y-5 lg:col-start-2 2xl:col-start-auto 2xl:sticky 2xl:top-8 2xl:self-start">
             {rightPanel}
           </aside>
         )}

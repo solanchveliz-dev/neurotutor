@@ -1,11 +1,21 @@
 import axios from "axios";
 
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "https://neurotutor-production.up.railway.app"
+).replace(/\/$/, "");
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
+  timeout: 30000,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 api.interceptors.response.use(
@@ -35,3 +45,11 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+export const logApiError = (error) => {
+  console.error("ERROR API:", error);
+  console.error("STATUS:", error?.response?.status);
+  console.error("DATA:", error?.response?.data);
+  console.error("URL:", error?.config?.url);
+  console.error("BASE URL:", error?.config?.baseURL);
+};

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BookOpenCheck, Medal } from "lucide-react";
+import { ArrowRight, Medal } from "lucide-react";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import PrimaryButton from "../components/student/PrimaryButton";
@@ -8,8 +8,12 @@ import { getStudentDashboard } from "../services/dashboardService";
 import { getStudentProfile } from "../services/profileService";
 import { getStudentProgress } from "../services/progressService";
 import { getStudentAchievements } from "../services/achievementService";
-import { getStudentId } from "../utils/auth";
+import { logApiError } from "../services/api";
+import { getStoredUser, getStudentId } from "../utils/auth";
 import { getAchievementImage, sortAchievementsByUnlockedAt } from "../utils/achievementVisuals";
+import { rememberCurrentModuleId } from "../utils/moduleNavigation";
+import { getCachedStudentData, setCachedStudentData } from "../utils/studentDataCache";
+import { resolveCurrentModuleId } from "../utils/moduleNavigation";
 
 const normalizeText = (value) => {
   if (value === null || value === undefined) return "";
@@ -65,16 +69,26 @@ const normalizeLevel = (level) => {
 
 function StudentDashboard() {
   const navigate = useNavigate();
-  const [student, setStudent] = useState(null);
-  const [modules, setModules] = useState([]);
+  const studentId = getStudentId();
+  const cachedStudent = getCachedStudentData(studentId, "user");
+  const cachedModules = getCachedStudentData(studentId, "modules") ?? [];
+  const cachedAchievements = getCachedStudentData(studentId, "achievements");
+  const [student, setStudent] = useState(cachedStudent);
+  const [modules, setModules] = useState(cachedModules);
   const [progressSummary, setProgressSummary] = useState(null);
-  const [achievements, setAchievements] = useState([]);
+  const [progressError, setProgressError] = useState("");
+  const [achievements, setAchievements] = useState(cachedAchievements?.unlocked ?? []);
   const [achievementError, setAchievementError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!cachedStudent && !cachedModules.length);
   const [error, setError] = useState(null);
 
   const fetchDashboard = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    const user = getStoredUser();
     const studentId = getStudentId();
+    console.log("TOKEN:", token ? "existe" : "no existe");
+    console.log("USER:", user);
+    console.log("STUDENT ID:", studentId);
 
     if (!studentId) {
       setError(new Error("No se encontró la sesión del estudiante."));
@@ -82,36 +96,68 @@ function StudentDashboard() {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoading(!cachedStudent && !cachedModules.length);
     setError(null);
     setAchievementError("");
+    setProgressError("");
 
     try {
-      const [profile, progress, achievementData] = await Promise.all([
+      getStudentProgress(studentId)
+        .then((progress) => {
+          setProgressSummary(progress);
+          setProgressError("");
+          setModules((current) => current.map((module) => {
+            const item = progress?.modules?.find((entry) => String(entry?.module_id) === String(module.id));
+            return item ? { ...module, progress: item.progress_percentage ?? module.progress, total: 100 } : module;
+          }));
+        })
+        .catch((progressFailure) => {
+          logApiError(progressFailure);
+          setProgressError("No disponible temporalmente");
+        });
+
+      const [profileResult, achievementsResult, dashboardResult] = await Promise.allSettled([
         getStudentProfile(studentId),
-        getStudentProgress(studentId),
-        getStudentAchievements(studentId).catch(() => {
-          setAchievementError("No pudimos cargar tus logros ahora.");
-          return null;
-        }),
+        getStudentAchievements(studentId),
+        getStudentDashboard(studentId),
       ]);
-      const legacyProfile = await getStudentDashboard(studentId).catch(() => null);
+      const progressResult = { status: "fulfilled", value: null };
+
+      [profileResult, progressResult, achievementsResult, dashboardResult]
+        .filter((result) => result.status === "rejected")
+        .forEach((result) => logApiError(result.reason));
+
+      if ([profileResult, dashboardResult].every((result) => result.status === "rejected") && !cachedStudent && !cachedModules.length) {
+        throw profileResult.reason;
+      }
+
+      const profile = profileResult.status === "fulfilled" ? profileResult.value : null;
+      const progress = progressResult.status === "fulfilled" ? progressResult.value : null;
+      const achievementData = achievementsResult.status === "fulfilled" ? achievementsResult.value : null;
+      const legacyProfile = dashboardResult.status === "fulfilled" ? dashboardResult.value : null;
+      if (achievementsResult.status === "rejected") setAchievementError("No pudimos cargar tus logros ahora.");
+      if (progressResult.status === "rejected") {
+        console.error("Falló progress:", progressResult.reason?.message, progressResult.reason?.config?.url);
+        setProgressError("No disponible temporalmente");
+      }
       const [grade = "", section = ""] = String(legacyProfile?.gradoSeccion ?? "").split(" ");
 
-      setProgressSummary(progress);
       setAchievements(
         Array.isArray(achievementData?.unlocked) ? achievementData.unlocked.filter(Boolean) : []
       );
+      if (achievementData) setCachedStudentData(studentId, "achievements", achievementData);
 
-      setStudent({
-        name: profile.name,
-        grade: profile.grade || grade,
-        section: profile.section || section,
-        level: profile.level,
-        points: profile.points ?? 0,
+      const normalizedStudent = {
+        name: profile?.name ?? legacyProfile?.nombreCompleto ?? "Estudiante",
+        grade: profile?.grade || grade,
+        section: profile?.section || section,
+        level: profile?.level ?? legacyProfile?.nivelActual ?? "",
+        points: profile?.points ?? legacyProfile?.puntosTotales ?? progress?.points ?? 0,
         gender: profile?.gender,
         avatarUrl: profile?.avatar_url,
-      });
+      };
+      setStudent(normalizedStudent);
+      setCachedStudentData(studentId, "user", normalizedStudent);
 
       const progressModules = Array.isArray(progress?.modules) ? progress.modules : [];
       const progressByModule = new Map(
@@ -119,8 +165,7 @@ function StudentDashboard() {
       );
 
       if (Array.isArray(legacyProfile?.modulos) && legacyProfile.modulos.length > 0) {
-        setModules(
-          legacyProfile.modulos.filter(Boolean).map((module, index) => {
+        const normalizedModules = legacyProfile.modulos.filter(Boolean).map((module, index) => {
             const moduleProgress = progressByModule.get(String(module.id));
             return {
               id: module.id,
@@ -132,11 +177,16 @@ function StudentDashboard() {
               active: module.estado === "EN_CURSO" || index === 0,
               levels: getModuleLevels(module).map(normalizeLevel).filter(Boolean),
             };
-          })
-        );
+          });
+        setModules(normalizedModules);
+        setCachedStudentData(studentId, "modules", normalizedModules);
+        const resolvedId = resolveCurrentModuleId(normalizedModules);
+        if (resolvedId != null) {
+          rememberCurrentModuleId(resolvedId);
+          setCachedStudentData(studentId, "resolvedModuleId", resolvedId);
+        }
       } else if (Array.isArray(progress?.modules) && progress.modules.length > 0) {
-        setModules(
-          progress.modules.filter(Boolean).map((module, index) => ({
+        const normalizedModules = progress.modules.filter(Boolean).map((module, index) => ({
             id: module.module_id,
             title: module.title,
             description: "Progreso registrado en el servidor.",
@@ -145,12 +195,14 @@ function StudentDashboard() {
             unlocked: true,
             active: index === 0,
             levels: [],
-          }))
-        );
+          }));
+        setModules(normalizedModules);
+        setCachedStudentData(studentId, "modules", normalizedModules);
       } else {
         setModules([]);
       }
     } catch (err) {
+      logApiError(err);
       console.error("Error fetching dashboard:", err);
       setError(err);
       setStudent(null);
@@ -178,6 +230,8 @@ function StudentDashboard() {
 
     if (!selectedRealModule?.id) return;
 
+    rememberCurrentModuleId(selectedRealModule.id);
+
     const availableLevel = getAvailableLevel(selectedRealModule);
 
     if (availableLevel?.id) {
@@ -193,6 +247,8 @@ function StudentDashboard() {
   const handleOpenLearningCard = (module) => {
     if (!module?.id) return;
 
+    rememberCurrentModuleId(module.id);
+
     const availableLevel = getAvailableLevel(module);
 
     if (availableLevel?.id) {
@@ -205,7 +261,8 @@ function StudentDashboard() {
     navigate(`/module/${module.id}`, { state: { module } });
   };
 
-  const overallProgress = clampPercentage(progressSummary?.overall_progress);
+  const hasProgressData = progressSummary !== null;
+  const overallProgress = hasProgressData ? clampPercentage(progressSummary.overall_progress) : null;
 
   const getModulePercentage = (module) => {
     if (!module?.total) return 0;
@@ -266,7 +323,9 @@ function StudentDashboard() {
     progressModules.find((item) => (item.progress_percentage ?? 0) < 100) ??
     progressModules[0] ??
     null;
-  const nextObjective = currentModuleProgress?.progress_percentage >= 100
+  const nextObjective = progressError
+    ? { title: "Progreso no disponible", detail: "Podrás consultar tu avance cuando el servicio responda nuevamente." }
+    : currentModuleProgress?.progress_percentage >= 100
     ? { title: "¡Módulo completado!", detail: "Tu progreso está registrado al 100%." }
     : !currentModuleProgress?.theory_completed
       ? { title: "Completa la teoría", detail: "Revisa las lecciones del nivel para avanzar." }
@@ -308,7 +367,7 @@ function StudentDashboard() {
 
   const sidebarItems = [
     { label: "Inicio", active: true, onClick: () => navigate("/student-dashboard") },
-    { label: "Módulos", onClick: () => openModuleFlow() },
+    { label: "Módulos" },
     { label: "Mis Logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
@@ -368,25 +427,25 @@ function StudentDashboard() {
             <div className="mt-3 flex flex-col items-center">
               <div
                 className="grid size-28 place-items-center rounded-full shadow-[0_14px_30px_rgba(37,99,235,0.15)]"
-                style={{ background: `conic-gradient(#2563EB 0deg, #7C3AED ${overallProgress * 3.6}deg, #DBEAFE ${overallProgress * 3.6}deg 360deg)` }}
+                style={{ background: hasProgressData ? `conic-gradient(#2563EB 0deg, #7C3AED ${overallProgress * 3.6}deg, #DBEAFE ${overallProgress * 3.6}deg 360deg)` : "#E2E8F0" }}
               >
                 <div className="grid size-20 place-items-center rounded-full bg-white shadow-inner">
-                  <span className="text-2xl font-black text-nt-text-primary">{overallProgress}%</span>
+                  <span className="text-2xl font-black text-nt-text-primary">{hasProgressData ? `${overallProgress}%` : "—"}</span>
                 </div>
               </div>
-              <p className="mt-2 text-xs font-black text-nt-blue">Avance registrado</p>
+              <p className="mt-2 text-center text-xs font-black text-nt-blue">{hasProgressData ? "Avance registrado" : "No disponible temporalmente"}</p>
             </div>
             </div>
           </section>
 
           <section className="rounded-nt-card border border-blue-100 bg-gradient-to-br from-nt-sky/90 via-white to-violet-50/70 p-5 shadow-nt-card">
             <div className="flex items-center gap-3">
-              <div className="grid size-11 place-items-center rounded-[18px] bg-nt-blue/10 text-nt-blue">
-                <BookOpenCheck className="size-5" />
+              <div className="grid size-11 shrink-0 place-items-center rounded-[18px] bg-nt-blue/10 sm:size-14">
+                <img src="/assets/avanzando.png" alt="" className="size-10 shrink-0 object-contain sm:size-[52px]" />
               </div>
               <div>
                 <h2 className="text-lg font-black text-nt-text-primary">Cómo avanzas</h2>
-                <p className="text-xs font-bold text-nt-text-secondary">Progreso registrado por nivel</p>
+                <p className="text-xs font-bold text-nt-text-secondary">{hasProgressData ? "Progreso registrado por nivel" : "No disponible temporalmente"}</p>
               </div>
             </div>
             <div className="mt-4 grid gap-2">
@@ -449,14 +508,12 @@ function StudentDashboard() {
       <section className="space-y-4 rounded-nt-card border border-white/80 bg-white/80 p-5 shadow-nt-card backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="grid size-9 place-items-center rounded-[14px] bg-nt-blue/10 text-nt-blue">
-              <BookOpenCheck className="size-4.5" />
-            </div>
+            <img src="/assets/libro.png" alt="" className="size-10 shrink-0 object-contain sm:size-22" />
             <h2 className="text-xl font-black text-nt-text-primary">Continúa aprendiendo</h2>
           </div>
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-sm font-black text-nt-blue transition hover:text-nt-purple"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-nt-blue to-nt-purple px-4 py-2 text-sm font-black text-white shadow-md shadow-nt-purple/20 transition duration-200 hover:scale-[1.03] hover:brightness-105"
             onClick={() => openModuleFlow()}
           >
             Ver todo
@@ -468,7 +525,7 @@ function StudentDashboard() {
           <article className="flex min-h-[205px] flex-col rounded-[24px] border border-blue-200/80 bg-gradient-to-br from-blue-50 via-sky-50/85 to-white p-4 shadow-[0_12px_30px_rgba(37,99,235,0.12)]">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase text-nt-blue">Módulo actual</p>
+                <p className="text-xs font-black text-nt-blue">MÓDULO ACTUAL</p>
                 <h3 className="mt-2 line-clamp-2 text-lg font-black leading-6 text-nt-text-primary">
                   {currentLearningTitle || "Sin módulo disponible"}
                 </h3>
@@ -477,7 +534,7 @@ function StudentDashboard() {
                 )}
               </div>
               {currentLearningCard?.image && (
-                <img src={currentLearningCard.image} alt="" className="size-16 shrink-0 rounded-[18px] object-cover shadow-sm" />
+                <img src={currentLearningCard.image} alt="" className="size-[72px] shrink-0 object-contain sm:size-[84px] lg:size-[88px] xl:size-[100px]" />
               )}
             </div>
             <div className="mt-auto pt-4">
@@ -504,30 +561,30 @@ function StudentDashboard() {
             <img
               src="/assets/progreso.png"
               alt=""
-              className="pointer-events-none absolute right-2 top-2 size-16 object-contain drop-shadow-[0_10px_16px_rgba(16,185,129,0.2)] sm:size-20 lg:size-24"
+              className="pointer-events-none absolute right-1 top-0 size-20 object-contain drop-shadow-[0_12px_20px_rgba(16,185,129,0.24)] sm:size-28 lg:size-[104px] xl:size-[140px]"
             />
-            <div className="relative z-10 flex items-center gap-3">
-              <div className="pr-16 sm:pr-20 lg:pr-24">
-                <h3 className="font-black text-nt-text-primary">Tu progreso hoy</h3>
+            <div className="relative z-10">
+              <div className="pr-20 sm:pr-28 lg:pr-[104px] xl:pr-[120px]">
+                <h3 className="text-xs font-black text-emerald-700">TU PROGRESO HOY</h3>
                 <p className="text-xs font-semibold text-nt-text-secondary">Resumen real de tu cuenta</p>
               </div>
             </div>
-            <div className="relative z-10 mt-4 grid grid-cols-2 gap-2">
-              <div className="rounded-[15px] bg-white/80 p-2.5">
+            <div className="relative z-10 mt-16 grid grid-cols-4 gap-2 border-t border-emerald-200/70 pt-3 sm:mt-14 lg:mt-16 xl:mt-14">
+              <div className="min-w-0 text-center">
                 <p className="text-lg font-black text-nt-blue">{progressSummary?.points ?? student.points ?? 0}</p>
-                <p className="text-[10px] font-bold text-nt-text-secondary">Puntos</p>
+                <p className="text-[9px] font-bold leading-tight text-nt-text-secondary sm:text-[10px]">Puntos</p>
               </div>
-              <div className="rounded-[15px] bg-white/80 p-2.5">
-                <p className="text-lg font-black text-emerald-700">{overallProgress}%</p>
-                <p className="text-[10px] font-bold text-nt-text-secondary">Progreso general</p>
+              <div className="min-w-0 border-l border-emerald-200/70 text-center">
+                <p className="text-lg font-black text-emerald-700">{hasProgressData ? `${overallProgress}%` : "—"}</p>
+                <p className="text-[9px] font-bold leading-tight text-nt-text-secondary sm:text-[10px]">{hasProgressData ? "Progreso" : "No disponible"}</p>
               </div>
-              <div className="rounded-[15px] bg-white/80 p-2.5">
+              <div className="min-w-0 border-l border-emerald-200/70 text-center">
                 <p className="text-lg font-black text-nt-purple">{achievements.length}</p>
-                <p className="text-[10px] font-bold text-nt-text-secondary">Logros</p>
+                <p className="text-[9px] font-bold leading-tight text-nt-text-secondary sm:text-[10px]">Logros</p>
               </div>
-              <div className="rounded-[15px] bg-white/80 p-2.5">
+              <div className="min-w-0 border-l border-emerald-200/70 text-center">
                 <p className="text-lg font-black text-nt-text-primary">{progressModules.length}</p>
-                <p className="text-[10px] font-bold text-nt-text-secondary">Con actividad</p>
+                <p className="text-[9px] font-bold leading-tight text-nt-text-secondary sm:text-[10px]">Con actividad</p>
               </div>
             </div>
           </article>
@@ -536,11 +593,11 @@ function StudentDashboard() {
             <img
               src="/assets/proximo_objetivo.png"
               alt=""
-              className="pointer-events-none absolute right-1 top-1 size-[72px] object-contain drop-shadow-[0_10px_18px_rgba(245,158,11,0.22)] sm:size-20 lg:size-[104px]"
+              className="pointer-events-none absolute right-0 top-0 size-[88px] object-contain drop-shadow-[0_12px_20px_rgba(245,158,11,0.25)] sm:size-28 lg:size-[112px] xl:size-[152px]"
             />
             <div className="relative z-10 flex items-start gap-3">
-              <div className="min-w-0 pr-[72px] sm:pr-20 lg:pr-[104px]">
-                <p className="text-xs font-black uppercase text-orange-600">Próximo objetivo</p>
+              <div className="min-w-0 pr-[88px] sm:pr-28 lg:pr-[112px] xl:pr-[132px]">
+                <p className="text-xs font-black text-orange-600">PRÓXIMO OBJETIVO</p>
                 <h3 className="mt-2 text-lg font-black leading-6 text-nt-text-primary">{nextObjective.title}</h3>
                 <p className="mt-1 text-xs font-semibold leading-5 text-nt-text-secondary">{nextObjective.detail}</p>
               </div>
@@ -561,8 +618,8 @@ function StudentDashboard() {
       <section className="rounded-nt-card border border-white/80 bg-white/85 p-5 shadow-nt-card backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-[20px] bg-nt-purple/12 text-nt-purple">
-              <Medal className="size-6" />
+            <div className="grid size-11 shrink-0 place-items-center rounded-[20px] bg-nt-purple/12 sm:size-14">
+              <img src="/assets/icon_trophy.webp" alt="" className="size-40 shrink-0 object-contain sm:size-[52px]" />
             </div>
             <div>
               <h2 className="text-xl font-black text-nt-text-primary">Mis Logros</h2>
@@ -571,7 +628,7 @@ function StudentDashboard() {
           </div>
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-nt-button bg-nt-purple px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-nt-purple/20"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-nt-blue to-nt-purple px-4 py-2 text-sm font-black text-white shadow-md shadow-nt-purple/20 transition duration-200 hover:scale-[1.03] hover:brightness-105"
             onClick={() => navigate("/achievements")}
           >
             Ver logros
@@ -590,20 +647,20 @@ function StudentDashboard() {
               return (
                 <div
                   key={achievement.id}
-                  className={`relative flex flex-col items-center overflow-hidden rounded-[24px] border px-4 py-4 text-center shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-lg ${visual.card}`}
+                  className={`relative flex flex-col items-center overflow-hidden rounded-[24px] border px-4 py-3.5 text-center shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-lg ${visual.card}`}
                 >
                   <span className={`pointer-events-none absolute top-6 size-20 rounded-full opacity-30 blur-xl sm:size-24 ${visual.glow}`} aria-hidden="true" />
                   {image ? (
                     <img
                       src={image}
                       alt=""
-                      className="relative z-10 mx-auto size-[72px] object-contain drop-shadow-[0_14px_20px_rgba(37,99,235,0.24)] sm:size-[88px] lg:size-[104px]"
+                      className="relative z-10 mx-auto size-[72px] object-contain drop-shadow-[0_14px_20px_rgba(37,99,235,0.24)] sm:size-[88px] lg:size-[204px]"
                     />
                   ) : (
                     <Medal className="relative z-10 mx-auto size-[72px] text-nt-purple drop-shadow-[0_12px_18px_rgba(124,58,237,0.24)] sm:size-[88px] lg:size-[104px]" />
                   )}
-                  <h3 className="relative z-10 mt-3 font-black text-nt-text-primary">{achievement.title}</h3>
-                  <p className="relative z-10 mt-1 text-xs font-semibold leading-5 text-nt-text-secondary">{achievement.description}</p>
+                  <h3 className="relative z-10 mt-2 font-black text-nt-text-primary">{achievement.title}</h3>
+                  <p className="relative z-10 mt-1 text-xs font-semibold leading-4 text-nt-text-secondary">{achievement.description}</p>
                 </div>
               );
             })}

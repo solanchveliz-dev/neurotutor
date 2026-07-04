@@ -8,7 +8,6 @@ import DiagnosticResult from "./pages/DiagnosticResult";
 import DiagnosticReview from "./pages/DiagnosticReview";
 import StudentDashboard from "./pages/StudentDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
-import LearningPath from "./pages/LearningPath";
 import ModuleDetail from "./pages/ModuleDetail";
 import LevelActivities from "./pages/LevelActivities";
 import Theory from "./pages/Theory";
@@ -80,15 +79,6 @@ function App() {
           element={
             <ProtectedRoute>
               <StudentDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/learning-path"
-          element={
-            <ProtectedRoute>
-              <LearningPath />
             </ProtectedRoute>
           }
         />

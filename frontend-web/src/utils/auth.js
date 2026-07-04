@@ -26,4 +26,5 @@ export const clearAuthData = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   localStorage.removeItem("diagnosticResult");
+  localStorage.removeItem("neurotutor.currentModuleId");
 };

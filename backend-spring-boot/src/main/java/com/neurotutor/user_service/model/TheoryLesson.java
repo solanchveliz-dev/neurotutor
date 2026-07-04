@@ -35,6 +35,9 @@ public class TheoryLesson {
     @Column(name = "content_html", columnDefinition = "LONGTEXT", nullable = false)
     private String contentHtml;
 
+    @Column(name = "web_content_json", columnDefinition = "LONGTEXT")
+    private String webContentJson;
+
     @Column(name = "order_number", nullable = false)
     private int orderNumber;
 
@@ -71,6 +74,8 @@ public class TheoryLesson {
     public void setIcon(String icon) { this.icon = icon; }
     public String getContentHtml() { return contentHtml; }
     public void setContentHtml(String contentHtml) { this.contentHtml = contentHtml; }
+    public String getWebContentJson() { return webContentJson; }
+    public void setWebContentJson(String webContentJson) { this.webContentJson = webContentJson; }
     public int getOrderNumber() { return orderNumber; }
     public void setOrderNumber(int orderNumber) { this.orderNumber = orderNumber; }
     public boolean isActive() { return active; }

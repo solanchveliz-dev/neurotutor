@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Lock } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, Clock3, FileQuestion, Gauge, Lock, Percent, Target, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppSidebar from "../components/layout/AppSidebar";
@@ -13,6 +13,43 @@ const levelLabels = {
   BASICO: "Básico",
   INTERMEDIO: "Intermedio",
   AVANZADO: "Avanzado",
+};
+
+const levelHeroConfig = {
+  BASICO: {
+    image: "/assets/logro_basico.png", difficulty: "Fácil", emoji: "🌱", position: "Nivel 1 de 3",
+    description: "Aprende las bases de las fracciones: qué representan, cómo se leen y cómo se usan en situaciones cotidianas.",
+    heroTone: "from-white via-emerald-50 to-blue-50", borderTone: "border-emerald-100",
+    imageGlow: "from-emerald-200/70 via-cyan-100/60 to-blue-100/50",
+    labelTone: "bg-emerald-100 text-emerald-700", badgeTone: "border-emerald-100 bg-white/75", accentTone: "text-emerald-700",
+  },
+  INTERMEDIO: {
+    image: "/assets/logro_intermedio.png", difficulty: "Media", emoji: "💎", position: "Nivel 2 de 3",
+    description: "Conecta conceptos y estrategias para resolver fracciones con mayor seguridad y precisión.",
+    heroTone: "from-white via-cyan-50 to-blue-50", borderTone: "border-cyan-100",
+    imageGlow: "from-cyan-200/70 via-sky-100/60 to-blue-100/50",
+    labelTone: "bg-cyan-100 text-cyan-700", badgeTone: "border-cyan-100 bg-white/75", accentTone: "text-cyan-700",
+  },
+  AVANZADO: {
+    image: "/assets/logro_avanzado.png", difficulty: "Alta", emoji: "🚀", position: "Nivel 3 de 3",
+    description: "Supera retos avanzados y aplica todo lo aprendido para dominar las fracciones.",
+    heroTone: "from-white via-violet-50 to-blue-50", borderTone: "border-violet-100",
+    imageGlow: "from-violet-200/70 via-fuchsia-100/50 to-blue-100/50",
+    labelTone: "bg-violet-100 text-violet-700", badgeTone: "border-violet-100 bg-white/75", accentTone: "text-violet-700",
+  },
+};
+
+const availableMetric = (label, value, icon) =>
+  value === null || value === undefined || value === "" ? null : { label, value, icon };
+
+const percentageMetric = (label, value, icon = Percent) =>
+  availableMetric(label, value === null || value === undefined ? null : `${value}%`, icon);
+
+const getLevelButtonTone = (levelKey) => {
+  const normalized = String(levelKey ?? "").trim().toUpperCase();
+  if (["INTERMEDIO", "INTERMEDIATE"].includes(normalized)) return "bg-blue-500 hover:bg-blue-600 shadow-blue-200";
+  if (["AVANZADO", "ADVANCED"].includes(normalized)) return "bg-violet-500 hover:bg-violet-600 shadow-violet-200";
+  return "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200";
 };
 
 function LevelActivities() {
@@ -38,12 +75,29 @@ function LevelActivities() {
         setModule(moduleData);
         setLevel({
           id: levelData.id,
+          key: levelData.level,
           name: levelLabels[levelData.level] ?? levelData.level,
           backendTitle: levelData.title,
           description: levelData.description,
+          recommendation: levelData.recommendation
+            ?? levelData.objective
+            ?? levelData.learning_goal
+            ?? levelData.what_you_learn
+            ?? levelData.description,
           lessonCount: levelData.lessons_count ?? 0,
           practiceCount: levelData.practice_count ?? 0,
           examCount: levelData.exam_count ?? 0,
+          completedLessons: levelData.completed_lessons,
+          estimatedMinutes: levelData.estimated_minutes,
+          theoryProgressPercentage: levelData.theory_progress_percentage,
+          exercisesCount: levelData.exercises_count ?? levelData.practice_count,
+          correctAnswers: levelData.correct_answers,
+          practiceAccuracy: levelData.practice_accuracy,
+          practiceProgressPercentage: levelData.practice_progress_percentage,
+          questionsCount: levelData.questions_count ?? levelData.exam_count,
+          passingScore: levelData.passing_score,
+          bestScore: levelData.best_score,
+          examProgressPercentage: levelData.exam_progress_percentage,
         });
         setModuleProgress(progressData);
       })
@@ -62,10 +116,17 @@ function LevelActivities() {
   };
   const isExamUnlocked = completion.theoryCompleted && completion.practiceCompleted;
   const progressPercentage = moduleProgress?.progress_percentage ?? 0;
+  const hero = levelHeroConfig[level?.key] ?? levelHeroConfig.BASICO;
+  const levelButtonTone = getLevelButtonTone(level?.key);
+  const practiceTotal = moduleProgress?.practice_total_count;
+  const practiceCorrect = moduleProgress?.practice_completed_count;
+  const calculatedAccuracy = Number(practiceTotal) > 0 && practiceCorrect !== null && practiceCorrect !== undefined
+    ? Math.round((Number(practiceCorrect) / Number(practiceTotal)) * 100)
+    : null;
 
   const sidebarItems = [
     { label: "Inicio", onClick: () => navigate("/student-dashboard") },
-    { label: "Modulos", active: true, onClick: () => navigate(`/module/${moduleId}`, { state: { module } }) },
+    { label: "Modulos", active: true },
     { label: "Mis logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
@@ -82,6 +143,13 @@ function LevelActivities() {
       barTone: "bg-nt-green",
       badgeTone: "bg-nt-green/15 text-green-700",
       progress: completion.theoryCompleted ? 100 : 0,
+      metricAccent: "text-emerald-600",
+      metrics: [
+        availableMetric("Lecciones", level?.lessonCount, BookOpen),
+        availableMetric("Completadas", level?.completedLessons, CheckCircle2),
+        availableMetric("Tiempo promedio", level?.estimatedMinutes ? `${level.estimatedMinutes} min` : null, Clock3),
+        percentageMetric("Completado", level?.theoryProgressPercentage, Gauge),
+      ].filter(Boolean),
       actionLabel: "Abrir teoria",
       onClick: () => navigate(`/module/${moduleId}/level/${levelId}/theory`, { state: { module, level } }),
     },
@@ -94,6 +162,13 @@ function LevelActivities() {
       barTone: "bg-nt-blue",
       badgeTone: "bg-nt-blue/10 text-nt-blue",
       progress: completion.practiceCompleted ? 100 : 0,
+      metricAccent: "text-blue-600",
+      metrics: [
+        availableMetric("Ejercicios", level?.exercisesCount, Target),
+        availableMetric("Correctos", level?.correctAnswers ?? practiceCorrect, CheckCircle2),
+        percentageMetric("Precisión", level?.practiceAccuracy ?? calculatedAccuracy, Gauge),
+        percentageMetric("Completado", level?.practiceProgressPercentage, Percent),
+      ].filter(Boolean),
       actionLabel: "Abrir practica",
       onClick: () => navigate(`/practice/${levelId}`, { state: { module, level } }),
     },
@@ -106,6 +181,13 @@ function LevelActivities() {
       barTone: isExamUnlocked ? "bg-nt-purple" : "bg-slate-300",
       badgeTone: isExamUnlocked ? "bg-nt-purple/10 text-nt-purple" : "bg-slate-100 text-slate-500",
       progress: isExamUnlocked ? 0 : 0,
+      metricAccent: "text-violet-600",
+      metrics: [
+        availableMetric("Preguntas", level?.questionsCount, FileQuestion),
+        percentageMetric("Nota mínima", level?.passingScore, Target),
+        percentageMetric("Mejor nota", level?.bestScore ?? (moduleProgress?.exam_best_score > 0 ? moduleProgress.exam_best_score : null), Trophy),
+        percentageMetric("Completado", level?.examProgressPercentage, Percent),
+      ].filter(Boolean),
       actionLabel: "Ir al examen",
       disabled: !isExamUnlocked,
       onClick: () => navigate(`/final-exam/${levelId}`, { state: { module, level } }),
@@ -154,49 +236,64 @@ function LevelActivities() {
             studentId={getStudentId()}
             moduloId={levelId ?? moduleId}
             progress={moduleProgress}
+            compact
           />
-          <div className="rounded-nt-card border border-white/80 bg-white/95 p-5 shadow-nt-card">
-            <h2 className="text-lg font-black text-nt-text-primary">Requisitos</h2>
-            <div className="mt-4 grid gap-2 text-sm font-semibold">
-              <div className="flex items-center gap-2 rounded-[18px] bg-nt-sky/70 p-3 text-nt-text-primary">
-                <CheckCircle2 className="size-4 text-nt-green" />
-                Teoria disponible
-              </div>
-              <div className="flex items-center gap-2 rounded-[18px] bg-nt-sky/70 p-3 text-nt-text-primary">
-                <CheckCircle2 className="size-4 text-nt-green" />
-                Practica disponible
-              </div>
-              <div className="flex items-center gap-2 rounded-[18px] bg-slate-100 p-3 text-slate-500">
-                <Lock className="size-4" />
-                {isExamUnlocked ? "Examen disponible" : "Examen bloqueado"}
-              </div>
+          <aside className="relative min-h-[164px] overflow-hidden rounded-[28px] border border-violet-200 bg-gradient-to-br from-violet-100 via-indigo-50 to-sky-100 p-5 shadow-[0_16px_38px_rgba(99,102,241,0.16)]">
+            <span className="absolute left-4 top-3 text-sm text-violet-400/70" aria-hidden="true">✦</span>
+            <span className="absolute right-5 top-4 text-sm text-amber-400/80" aria-hidden="true">✦</span>
+            <span className="absolute bottom-5 left-8 size-1.5 rounded-full bg-cyan-300/70" aria-hidden="true" />
+            <div className="relative z-10 max-w-[58%] pt-3">
+              <h2 className="text-xl font-black leading-tight text-nt-text-primary">Sobre este nivel</h2>
+              {level.recommendation && (
+                <p className="mt-2 text-sm font-semibold leading-5 text-slate-700">{level.recommendation}</p>
+              )}
             </div>
-          </div>
+            <div className="absolute -bottom-10 -right-8 size-36 rounded-full bg-white/40 blur-2xl" />
+            <img
+              src="/assets/neo_pensando.png"
+              alt="NEO pensando"
+              className="absolute right-2 top-1/2 z-10 h-32 w-32 -translate-y-1/2 object-contain drop-shadow-[0_14px_20px_rgba(76,29,149,0.20)]"
+            />
+          </aside>
+
         </div>
       }
     >
-      <section className="overflow-hidden rounded-nt-card border border-white/80 bg-white/90 shadow-nt-card backdrop-blur">
-        <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div>
-            <span className="inline-flex rounded-full bg-nt-purple px-3 py-1 text-xs font-black text-white shadow-lg shadow-nt-purple/25">
-              {module.title}
-            </span>
-            <h1 className="mt-4 text-3xl font-black leading-tight text-nt-text-primary md:text-4xl">
-              {level.name}
-            </h1>
-            <p className="mt-2 text-sm font-black text-nt-blue">
-              {level.backendTitle}
-            </p>
-            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-nt-text-secondary">
-              Elige una actividad para avanzar en este nivel. El examen final se mantiene bloqueado hasta registrar teoria y practica completadas.
-            </p>
+      <section className={`relative overflow-hidden rounded-[32px] border bg-gradient-to-br ${hero.heroTone} ${hero.borderTone} shadow-[0_18px_45px_rgba(59,130,246,0.12)]`}>
+        <div className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-white/55 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 h-24 w-72 rounded-full bg-blue-200/20 blur-3xl" />
+        <div className="relative grid items-center gap-5 px-5 py-6 md:px-7 lg:grid-cols-[288px_minmax(0,1fr)_150px] lg:gap-7 lg:px-8 lg:py-7">
+          <div className="relative mx-auto flex size-56 items-center justify-center sm:size-64 lg:mx-0 lg:size-72">
+            <div className={`absolute inset-5 rounded-full bg-gradient-to-br ${hero.imageGlow} blur-2xl`} />
+            <img
+              src={hero.image}
+              alt={`Isla del nivel ${level.name}`}
+              className="relative z-10 size-56 object-contain drop-shadow-[0_20px_26px_rgba(30,58,138,0.22)] sm:size-64 lg:size-72"
+            />
           </div>
-          <div className="rounded-[28px] bg-nt-sky/80 px-5 py-4 text-center">
-            <p className="text-sm font-black text-nt-text-secondary">Avance</p>
-            <p className="text-4xl font-black text-nt-blue">{progressPercentage}%</p>
+
+          <div className="min-w-0 text-center lg:text-left">
+            <h1 className="text-3xl font-black leading-tight text-nt-text-primary md:text-4xl">Nivel: {level.name}</h1>
+            <p className={`mt-2 text-sm font-black sm:text-base ${hero.accentTone}`}>
+              {module.title} <span aria-hidden="true">•</span> {hero.position} {hero.emoji}
+            </p>
+            <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600 sm:text-[15px] lg:mx-0">{hero.description}</p>
           </div>
+
+          <aside className={`mx-auto w-full max-w-[220px] rounded-[22px] border p-4 text-center shadow-[0_10px_26px_rgba(30,58,138,0.08)] backdrop-blur ${hero.badgeTone}`}>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-nt-text-secondary">Dificultad</p>
+            <p className={`mt-1 text-xl font-black ${hero.accentTone}`}>{hero.difficulty} {hero.emoji}</p>
+            <div className="my-3 h-px bg-slate-200/80" />
+            <div className="flex items-center justify-between gap-3 text-xs font-black text-nt-text-secondary">
+              <span>Avance</span><span className="text-nt-blue">{progressPercentage}%</span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200/80">
+              <div className="h-full rounded-full bg-gradient-to-r from-nt-blue to-cyan-400" style={{ width: `${progressPercentage}%` }} />
+            </div>
+          </aside>
         </div>
       </section>
+
 
       <section className="grid gap-4">
         {activities.map((item) => (
@@ -230,6 +327,23 @@ function LevelActivities() {
                   {item.description}
                 </p>
 
+                {item.metrics.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                    {item.metrics.map((metric) => {
+                      const MetricIcon = metric.icon;
+                      return (
+                        <div key={metric.label} className="flex min-w-0 items-center gap-1.5">
+                          <MetricIcon className={`size-4 shrink-0 ${item.metricAccent}`} aria-hidden="true" />
+                          <div className="min-w-0 leading-none">
+                            <strong className="block truncate text-sm font-black text-nt-text-primary">{metric.value}</strong>
+                            <span className="mt-0.5 block truncate text-[10px] font-bold text-nt-text-secondary">{metric.label}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="mt-4">
                   <div className="mb-2 flex items-center justify-between text-sm font-black text-nt-text-primary">
                     <span>{item.disabled ? "Requisitos pendientes" : "Actividad disponible"}</span>
@@ -248,7 +362,7 @@ function LevelActivities() {
                 type="button"
                 disabled={item.disabled}
                 onClick={item.onClick}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-nt-button bg-nt-blue px-5 text-sm font-black text-white shadow-lg shadow-nt-blue/20 transition hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
+                className={`inline-flex h-12 items-center justify-center gap-2 rounded-nt-button px-5 text-sm font-black text-white shadow-lg transition disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none ${levelButtonTone}`}
               >
                 {item.disabled ? "Bloqueado" : item.actionLabel}
                 {item.disabled ? (
@@ -262,26 +376,6 @@ function LevelActivities() {
         ))}
       </section>
 
-      <section className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-sm">
-          <p className="text-sm font-black text-nt-text-primary">Teoria</p>
-          <p className="mt-1 text-xs font-semibold text-nt-text-secondary">
-            {completion.theoryCompleted ? "Completada" : "Pendiente de completar"}
-          </p>
-        </div>
-        <div className="rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-sm">
-          <p className="text-sm font-black text-nt-text-primary">Practica</p>
-          <p className="mt-1 text-xs font-semibold text-nt-text-secondary">
-            {completion.practiceCompleted ? "Completada" : "Pendiente de completar"}
-          </p>
-        </div>
-        <div className="rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-sm">
-          <p className="text-sm font-black text-nt-text-primary">Examen final</p>
-          <p className="mt-1 text-xs font-semibold text-nt-text-secondary">
-            {isExamUnlocked ? "Disponible" : "Bloqueado por requisitos"}
-          </p>
-        </div>
-      </section>
     </StudentLayout>
   );
 }

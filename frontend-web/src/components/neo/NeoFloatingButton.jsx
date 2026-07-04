@@ -1,10 +1,10 @@
-function NeoFloatingButton({ onClick, isOpen }) {
+function NeoFloatingButton({ onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={isOpen ? "Cerrar asistente NEO" : "Abrir asistente NEO"}
-      aria-expanded={isOpen}
+      aria-label="Abrir asistente NEO"
+      aria-expanded="false"
       className="group fixed bottom-6 right-6 z-[80] flex items-center overflow-visible bg-transparent transition duration-300 ease-out focus:outline-none focus-visible:ring-4 focus-visible:ring-[#60A5FA]/35"
     >
       <span className="relative z-10 flex h-16 w-[150px] items-center rounded-full border-[1.5px] border-violet-500/25 bg-white/95 py-2 pl-5 pr-7 text-left leading-tight shadow-[0_14px_34px_rgba(30,58,138,0.18)] backdrop-blur-md transition duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_40px_rgba(30,58,138,0.23)]">
