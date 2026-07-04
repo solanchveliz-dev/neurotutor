@@ -121,7 +121,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.save(lesson);
             }
 
-            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 4)) {
+            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 5)) {
                 lesson.setTitle("Bienvenida al nivel intermedio");
                 lesson.setSubtitle("Ahora vamos a resolver operaciones con fracciones 🚀");
                 lesson.setSummary("En este nivel aprenderás a sumar, restar, multiplicar y dividir fracciones para resolver problemas de la vida real.");
@@ -139,6 +139,10 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     lesson.setTitle("Suma con diferente denominador");
                     lesson.setSubtitle("Primero igualamos las partes, luego sumamos.");
                     lesson.setSummary("Cuando las fracciones tienen partes de distinto tamaño, no podemos sumarlas directamente.");
+                } else if (orderNumber == 5) {
+                    lesson.setTitle("Resta de fracciones");
+                    lesson.setSubtitle("Quitar una parte de otra.");
+                    lesson.setSummary("Para restar fracciones, podemos hacerlo con el mismo denominador o convirtiendo a fracciones equivalentes.");
                 }
                 lesson.setWebContentJson(intermediateWebContent(orderNumber));
                 lesson.setActive(true);
@@ -272,6 +276,22 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String intermediateWebContent(int lessonNumber) {
+        if (lessonNumber == 5) return """
+                {
+                  "layout":"intermediate_fraction_subtraction",
+                  "hero":{"badge":"Lección 5","title":"Resta de fracciones","subtitle":"Quitar una parte de otra.","description":"Para restar fracciones, podemos hacerlo con el mismo denominador o convirtiendo a fracciones equivalentes.","image":"leccion5_intermedio.png"},
+                  "sections":[
+                    {"type":"subtraction_key_idea","title":"Idea clave","paragraphs":["Restar fracciones es quitar una cantidad de otra.","Si las partes son del mismo tamaño, restamos los numeradores y conservamos el denominador."],"image":"idea.png"},
+                    {"type":"subtraction_types","title":"Tipos de resta de fracciones","items":[
+                      {"number":"1","title":"Resta con igual denominador","text":"Cuando las fracciones tienen el mismo denominador.","equation":[{"numerator":"5","denominator":"6"},"−",{"numerator":"2","denominator":"6"},"=",{"numerator":"3","denominator":"6"}],"figures":[{"numerator":5,"denominator":6,"color":"#86d65c"},"−",{"numerator":2,"denominator":6,"color":"#ef5b4c"},"=",{"numerator":3,"denominator":6,"color":"#86d65c"}],"notes":["Solo restamos los numeradores: 5 − 2 = 3","El denominador se conserva: 6"],"tone":"green"},
+                      {"number":"2","title":"Resta con diferente denominador","text":"Primero convertimos a fracciones equivalentes.","equation":[{"numerator":"3","denominator":"4"},"−",{"numerator":"1","denominator":"2"},"=",{"numerator":"3","denominator":"4"},"−",{"numerator":"2","denominator":"4"},"=",{"numerator":"1","denominator":"4"}],"figures":[{"numerator":3,"denominator":4,"color":"#9b6ce3"},"−",{"numerator":2,"denominator":4,"color":"#80d36b"},"=",{"numerator":1,"denominator":4,"color":"#9b6ce3"}],"notes":[{"prefix":"Convertimos","from":{"numerator":"1","denominator":"2"},"middle":"a","to":{"numerator":"2","denominator":"4"},"suffix":"para tener el mismo denominador."},{"text":"Luego: 3 − 2 = 1. El denominador sigue siendo 4."}],"tone":"violet"}
+                    ]},
+                    {"type":"subtraction_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Restar también los denominadores.","No convertir a fracciones equivalentes.","Restar en el orden equivocado."]},
+                    {"type":"subtraction_tips","title":"Tips para recordar","image":"neo_ideas.png","items":["¿Las partes son iguales? → Resta los numeradores.","¿Las partes son diferentes? → Haz que sean iguales primero.","El denominador siempre se conserva al final.","Revisa tu resultado: ¿Tiene sentido la cantidad obtenida?"]},
+                    {"type":"subtraction_summary","title":"En resumen...","image":"libro.png","items":["Restar fracciones es quitar una parte de otra.","Si tienen el mismo denominador, restamos los numeradores.","Si tienen diferente denominador, convertimos a equivalentes y luego restamos."]}
+                  ]
+                }
+                """;
         if (lessonNumber == 4) return """
                 {
                   "layout":"intermediate_different_denominator",

@@ -179,6 +179,38 @@ function DifferentDenominatorContent({ sections }) {
   </div>;
 }
 
+function FractionCircle({ numerator, denominator, color }) {
+  const total = Math.max(1, Number(denominator) || 1);
+  const filled = Math.min(total, Math.max(0, Number(numerator) || 0));
+  const segment = 360 / total;
+  const fillAngle = segment * filled;
+  return <span className="block size-20 shrink-0 rounded-full border-2 border-slate-500 shadow-sm" style={{ background: `repeating-conic-gradient(from -90deg, transparent 0 ${segment - 1}deg, #64748b ${segment - 1}deg ${segment}deg), conic-gradient(from -90deg, ${color} 0 ${fillAngle}deg, white ${fillAngle}deg 360deg)` }} />;
+}
+
+function SubtractionTypesCard({ item }) {
+  const tones = { green: "border-emerald-200 bg-emerald-50/60 text-emerald-700", violet: "border-violet-200 bg-violet-50/60 text-violet-700" };
+  return <article className={`grid min-h-[310px] content-between rounded-[22px] border p-4 shadow-sm ${tones[item.tone]}`}><div><h3 className="flex items-start gap-3 text-lg font-black"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-current text-white"><span className="text-white">{item.number}</span></span><span>{item.title}<small className="mt-1 block text-xs font-semibold text-slate-700">{item.text}</small></span></h3><div className="mt-3 overflow-x-auto"><FractionEquation values={item.equation} /></div></div><div className="mt-3 flex min-w-0 items-center justify-around gap-2 overflow-x-auto py-1">{item.figures?.map((figure, index) => typeof figure === "string" ? <span key={`${figure}-${index}`} className="text-xl font-black text-nt-text-primary">{figure}</span> : <FractionCircle key={`${figure.numerator}-${figure.denominator}-${index}`} {...figure} />)}</div><div className="mt-3 grid gap-1 rounded-[16px] border border-current/10 bg-white/55 px-3 py-2 text-center">{item.notes?.map((note, index) => typeof note === "string" || note.text ? <p key={index} className="text-xs font-semibold leading-5 text-slate-700">{typeof note === "string" ? note : note.text}</p> : <div key={index} className="flex flex-wrap items-center justify-center gap-1.5 text-xs font-semibold text-slate-700"><span>{note.prefix}</span><EquivalentFraction value={note.from} /><span>{note.middle}</span><EquivalentFraction value={note.to} /><span>{note.suffix}</span></div>)}</div></article>;
+}
+
+function FractionSubtractionContent({ sections }) {
+  const section = (type) => sections.find((item) => item.type === type);
+  const idea = section("subtraction_key_idea");
+  const types = section("subtraction_types");
+  const mistakes = section("subtraction_mistakes");
+  const tips = section("subtraction_tips");
+  const summary = section("subtraction_summary");
+
+  return <div className="mt-3 grid gap-3">
+    {idea && <section className="grid items-center gap-3 rounded-[20px] border border-amber-200 bg-amber-50/80 px-4 py-3 shadow-sm sm:grid-cols-[32px_minmax(0,1fr)_70px]"><Star className="size-7 fill-amber-400 text-amber-400" /><div><h2 className="font-black text-amber-900">{idea.title}</h2>{idea.paragraphs?.map((paragraph) => <p key={paragraph} className="mt-1 text-sm font-semibold leading-5 text-slate-700">{paragraph}</p>)}</div><img src={assetUrl(idea.image)} alt="Idea clave" className="mx-auto h-14 w-full object-contain" /></section>}
+    {types && <section><h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><BookOpen className="size-5" />{types.title}</h2><div className="mt-2 grid gap-3 lg:grid-cols-2">{types.items?.map((item) => <SubtractionTypesCard key={item.number} item={item} />)}</div></section>}
+    <div className="grid gap-3 lg:grid-cols-2">
+      {mistakes && <section className="relative overflow-hidden rounded-[22px] border border-red-200 bg-red-50/70 p-4 shadow-sm"><div className="max-w-[75%]"><h2 className="flex items-center gap-2 font-black text-red-600"><AlertTriangle className="size-5" />{mistakes.title}</h2><div className="mt-3 grid gap-2">{mistakes.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><span className="font-black text-red-500">×</span>{item}</p>)}</div></div><img src={assetUrl(mistakes.image)} alt="NEO señalando errores" className="absolute bottom-0 right-1 h-28 w-[27%] object-contain drop-shadow-md" /></section>}
+      {tips && <section className="relative overflow-hidden rounded-[22px] border border-amber-200 bg-amber-50/60 p-4 shadow-sm"><div className="max-w-[78%]"><h2 className="flex items-center gap-2 font-black text-amber-900"><Lightbulb className="size-5 text-amber-400" />{tips.title}</h2><div className="mt-3 grid gap-2">{tips.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><Check className="size-4 shrink-0 text-green-500" strokeWidth={3} />{item}</p>)}</div></div><img src={assetUrl(tips.image)} alt="NEO compartiendo consejos" className="absolute bottom-0 right-1 h-28 w-[25%] object-contain drop-shadow-md" /></section>}
+    </div>
+    {summary && <section className="grid items-center gap-3 rounded-[20px] border border-violet-200 bg-gradient-to-r from-violet-50 to-sky-50 px-4 py-3 shadow-sm sm:grid-cols-[minmax(0,1fr)_150px]"><div><h2 className="font-black text-violet-700">{summary.title}</h2><div className="mt-2 grid gap-1">{summary.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold text-slate-700"><span className="text-violet-500">•</span>{item}</p>)}</div></div><img src={assetUrl(summary.image)} alt="Libros de estudio" className="mx-auto h-20 w-full object-contain" /></section>}
+  </div>;
+}
+
 function LessonTwoContent({ sections, onNext }) {
   const section = (type) => sections.find((item) => item.type === type);
   const objective = section("lesson_objective");
@@ -583,6 +615,7 @@ function TheoryLesson() {
   const isIntermediateEquivalent = webContent?.layout === "intermediate_equivalent_fractions";
   const isIntermediateSameDenominator = webContent?.layout === "intermediate_same_denominator";
   const isIntermediateDifferentDenominator = webContent?.layout === "intermediate_different_denominator";
+  const isIntermediateFractionSubtraction = webContent?.layout === "intermediate_fraction_subtraction";
   const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
   const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
   const remainingSections = contentSections.filter((section) =>
@@ -736,7 +769,9 @@ function TheoryLesson() {
 
         {isIntermediateDifferentDenominator && <DifferentDenominatorContent sections={webSections} />}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && (learningObjectives.length > 0 || importantSection || neoTip) && (
+        {isIntermediateFractionSubtraction && <FractionSubtractionContent sections={webSections} />}
+
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && (learningObjectives.length > 0 || importantSection || neoTip) && (
           <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
             {learningObjectives.length > 0 && (
               <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
@@ -780,7 +815,7 @@ function TheoryLesson() {
           </section>
         )}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && webContent && contentSections.length > 0 && (
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && webContent && contentSections.length > 0 && (
           <div className="mt-4 grid gap-3">
             {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
               <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
