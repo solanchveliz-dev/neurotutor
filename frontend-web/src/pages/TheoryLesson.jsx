@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, Clock3, GraduationCap, Lightbulb, Sparkles, Target } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, Eye, Lightbulb, Star, Target } from "lucide-react";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import BackButton from "../components/student/BackButton";
@@ -54,52 +54,104 @@ function StructuredSection({ section }) {
   const visual = assetUrl(section.visual);
   if (section.type === "main_concept" || section.type === "example") {
     const Icon = section.type === "main_concept" ? Target : BookOpen;
-    return <section className="grid items-center gap-4 rounded-[22px] border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-4 sm:grid-cols-[minmax(0,1fr)_140px]"><div><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><Icon className="size-5 text-nt-blue" />{section.title}</h2>{section.text && <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p>}</div>{visual && <img src={visual} alt="" className="mx-auto size-32 object-contain drop-shadow-md" />}{Array.isArray(section.items) && <div className="grid gap-2 sm:col-span-2 sm:grid-cols-3">{section.items.map((item) => <article key={item.label} className="rounded-2xl border border-amber-100 bg-white/85 px-4 py-3 text-center shadow-sm"><strong className="text-xl font-black text-nt-purple">{item.label}</strong><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{item.description}</p></article>)}</div>}</section>;
+    const pizzaImages = { "1/2": "/assets/pizza1.png", "1/4": "/assets/pizza2.png", "3/4": "/assets/pizza3.png" };
+    return <section className="grid h-full content-between gap-3 overflow-hidden rounded-[22px] border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-4 shadow-sm"><div><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary">{section.type === "main_concept" && <Icon className="size-5 text-nt-blue" />}{section.title}</h2>{section.text && <p className="mt-1.5 text-sm font-semibold leading-5 text-slate-700">{section.text}</p>}</div>{visual && !Array.isArray(section.items) && <img src={visual} alt="" className="mx-auto h-44 w-full object-contain drop-shadow-md xl:h-48" />}{Array.isArray(section.items) && <div className="grid gap-3 sm:grid-cols-3 sm:divide-x sm:divide-violet-100">{section.items.map((item) => { const [numerator, denominator] = item.label.split("/"); return <div key={item.label} className="flex h-full flex-col items-center text-center sm:px-2.5">{pizzaImages[item.label] && <img src={pizzaImages[item.label]} alt={`Pizza que representa ${item.label}`} className="h-24 w-full object-contain drop-shadow-md lg:h-28" />}<strong className="mt-1.5 grid min-w-14 rounded-xl border border-violet-100 bg-white/90 px-3 py-1.5 text-lg font-black leading-none text-nt-purple shadow-sm"><span className="border-b-2 border-current px-1 pb-1">{numerator}</span><span className="px-1 pt-1">{denominator}</span></strong><p className="mt-1.5 text-xs font-semibold leading-4 text-slate-600">{item.description}</p></div>; })}</div>}</section>;
   }
   if (section.type === "important_idea") {
-    return <aside className="rounded-[22px] border border-amber-200 bg-amber-50 p-4"><h2 className="flex items-center gap-2 text-base font-black text-amber-900"><Lightbulb className="size-5 text-amber-500" />{section.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-amber-900">{section.text}</p></aside>;
+    return <aside className="h-full rounded-[22px] border border-amber-200 bg-amber-50 p-4 shadow-sm"><h2 className="flex items-center gap-2 text-base font-black text-amber-900"><Lightbulb className="size-5 text-amber-500" />{section.title}</h2><p className="mt-2 text-sm font-semibold leading-5 text-amber-900">{section.text}</p></aside>;
   }
   if (section.type === "common_mistakes" && Array.isArray(section.items)) {
-    return <section><h2 className="flex items-center gap-2 text-lg font-black text-red-700"><AlertTriangle className="size-5" />{section.title}</h2><div className="mt-3 grid gap-2">{section.items.map((item) => <div key={item} className="flex gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3"><span className="font-black text-red-500">×</span><p className="text-sm font-semibold text-slate-700">{item}</p></div>)}</div></section>;
+    return <section className="h-full rounded-[22px] border border-rose-100 bg-gradient-to-br from-white to-rose-50 p-4 shadow-sm"><h2 className="flex items-center gap-2 text-lg font-black text-red-700"><AlertTriangle className="size-5" />{section.title}</h2><div className="mt-3 grid gap-2">{section.items.map((item) => <div key={item} className="flex gap-3 rounded-2xl border border-red-100 bg-white/80 px-4 py-3 shadow-sm"><span className="font-black text-red-500">×</span><p className="text-sm font-semibold text-slate-700">{item}</p></div>)}</div></section>;
   }
   if (section.type === "reflection") {
-    return <section className="rounded-[22px] border border-violet-100 bg-gradient-to-r from-violet-50 to-sky-50 p-4"><h2 className="text-base font-black text-nt-purple">{section.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p></section>;
+    return <section className="rounded-[22px] border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-sky-50 p-4 shadow-sm"><h2 className="text-base font-black text-nt-purple">{section.title}</h2><p className="mt-1.5 text-sm font-semibold leading-6 text-slate-700">{section.text}</p></section>;
   }
   if (section.type === "observe") {
-    return <section className="grid items-center gap-4 rounded-[22px] border border-sky-100 bg-sky-50 p-4 sm:grid-cols-[minmax(0,1fr)_180px]"><div><h2 className="text-lg font-black text-nt-blue">{section.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p></div>{section.image && <img src={assetUrl(section.image)} alt="" className="mx-auto h-32 w-full object-contain" />}</section>;
+    return <section className="grid h-full items-center gap-4 rounded-[22px] border border-sky-100 bg-sky-50 p-4 sm:grid-cols-[minmax(0,55%)_minmax(160px,45%)]"><div><h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><Eye className="size-5" aria-hidden="true" />{section.title}</h2><p className="mt-1.5 text-sm font-semibold leading-5 text-slate-700">{section.text}</p></div><img src="/assets/niños.png" alt="Niños observando" className="mx-auto h-48 w-full object-contain drop-shadow-md lg:h-52" /></section>;
   }
   if (section.type === "summary" && Array.isArray(section.items)) {
-    return <section className="rounded-[22px] border border-emerald-100 bg-emerald-50 p-4"><h2 className="text-lg font-black text-emerald-800">{section.title}</h2><div className="mt-3 grid gap-2">{section.items.map((item) => <div key={item} className="flex items-start gap-2"><span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-500 text-white"><Check className="size-3" strokeWidth={3} /></span><p className="text-sm font-semibold text-slate-700">{item}</p></div>)}</div></section>;
+    return <section className="rounded-[22px] border border-[#b8dca3] bg-[#f2faed] p-4 shadow-sm"><h2 className="text-xl font-black text-[#397a17]">{section.title}</h2><div className="mt-3 grid gap-2 md:grid-cols-3">{section.items.map((item) => <div key={item} className="flex items-start gap-2"><span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-[#5bb226] text-white"><Check className="size-3" strokeWidth={3} /></span><p className="text-sm font-semibold text-slate-700">{item}</p></div>)}</div></section>;
   }
   return null;
 }
 
-function LessonSidebar({ lesson, lessons, position, level, progress, neoTip, nextLessonData, heroContent }) {
+function StackedFraction({ numerator, denominator, className = "text-nt-purple" }) {
+  return (
+    <strong className={`grid min-w-10 text-center text-xl font-black leading-none ${className}`}>
+      <span className="border-b-2 border-current px-1 pb-1">{numerator}</span>
+      <span className="px-1 pt-1">{denominator}</span>
+    </strong>
+  );
+}
+
+function LessonTwoContent({ sections, onNext }) {
+  const section = (type) => sections.find((item) => item.type === type);
+  const objective = section("lesson_objective");
+  const definition = section("definition");
+  const plainLanguage = section("plain_language");
+  const examples = section("daily_examples");
+  const representations = section("simple_representations");
+  const importantNote = section("important_note");
+  const keepLearning = section("keep_learning");
+  const tones = {
+    amber: "border-amber-100 bg-amber-50/70 text-amber-800",
+    violet: "border-violet-100 bg-violet-50/70 text-violet-800",
+    rose: "border-rose-100 bg-rose-50/70 text-rose-700",
+  };
+
+  return (
+    <div className="mt-3 grid gap-3">
+      {objective && (
+        <section className="flex items-center gap-3 rounded-[18px] border border-emerald-200 bg-emerald-50/80 px-4 py-3 shadow-sm">
+          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-emerald-500 text-white"><Check className="size-4" strokeWidth={3} /></span>
+          <p className="text-sm font-semibold text-slate-700"><strong className="font-black text-emerald-800">{objective.title}:</strong> {objective.text}</p>
+        </section>
+      )}
+
+      {(definition || plainLanguage) && (
+        <div className="grid gap-3 md:grid-cols-2">
+          {definition && <section className="rounded-[22px] border border-blue-100 bg-white p-4 shadow-sm"><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><span className="grid size-7 place-items-center rounded-full bg-nt-blue text-sm text-white">?</span>{definition.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{definition.text}</p></section>}
+          {plainLanguage && <section className="grid min-h-36 items-center gap-3 overflow-hidden rounded-[22px] border border-sky-100 bg-gradient-to-br from-white to-sky-50 p-4 sm:grid-cols-[minmax(0,1fr)_130px]"><div><h2 className="text-base font-black text-nt-text-primary">{plainLanguage.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{plainLanguage.text}</p></div>{plainLanguage.image && <img src={assetUrl(plainLanguage.image)} alt="NEO explicando una idea" className="mx-auto h-32 w-full object-contain drop-shadow-md" />}</section>}
+        </div>
+      )}
+
+      {examples && Array.isArray(examples.items) && (
+        <section>
+          <h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><span className="grid size-7 place-items-center rounded-lg bg-violet-100 text-violet-700"><BookOpen className="size-4" /></span>{examples.title}</h2>
+          <div className="mt-2 grid gap-3 md:grid-cols-3">
+            {examples.items.map((item) => (
+              <article key={item.title} className={`grid min-h-[230px] content-between rounded-[22px] border p-4 shadow-sm ${tones[item.tone] ?? tones.violet}`}>
+                <div><h3 className="text-base font-black">{item.title}</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{item.text}</p></div>
+                <div className="mt-2 grid grid-cols-[minmax(0,1fr)_48px] items-end gap-3">
+                  <img src={assetUrl(item.image)} alt={item.title} className="mx-auto h-24 w-full object-contain drop-shadow-md" />
+                  <StackedFraction numerator={item.numerator} denominator={item.denominator} className="text-current" />
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {(representations || importantNote) && (
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
+          {representations && <section><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><span className="grid size-7 place-items-center rounded-lg bg-blue-100 text-nt-blue"><BookOpen className="size-4" /></span>{representations.title}</h2>{representations.text && <p className="mt-1 text-xs font-semibold text-slate-600">{representations.text}</p>}<div className="mt-2 grid gap-3 rounded-[20px] border border-blue-100 bg-sky-50/70 p-4 sm:grid-cols-2">{representations.items?.map((item) => <div key={`${item.numerator}/${item.denominator}`} className="flex items-center justify-center gap-4"><span className={`size-16 shrink-0 rounded-full border-2 border-blue-400 ${item.visual === "half" ? "bg-[linear-gradient(90deg,white_50%,#60a5fa_50%)]" : "bg-[conic-gradient(#38bdf8_0_25%,white_25%_100%)]"}`} /><div><StackedFraction numerator={item.numerator} denominator={item.denominator} className="text-nt-blue" /><p className="mt-1 text-xs font-bold text-slate-600">{item.caption}</p></div></div>)}</div></section>}
+          {importantNote && <aside className="self-end rounded-[22px] border border-amber-200 bg-amber-50 p-4 shadow-sm"><h2 className="flex items-center gap-2 text-lg font-black text-amber-700"><Star className="size-5 fill-amber-400 text-amber-400" />{importantNote.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{importantNote.text}</p></aside>}
+        </div>
+      )}
+
+      {keepLearning && <section className="grid items-center gap-3 overflow-hidden rounded-[22px] border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-sky-50 px-4 py-3 shadow-sm sm:grid-cols-[76px_minmax(0,1fr)_44px]">{keepLearning.image && <img src={assetUrl(keepLearning.image)} alt="NEO" className="mx-auto size-20 object-contain drop-shadow-md" />}<div><h2 className="text-base font-black text-nt-purple">{keepLearning.title}</h2><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{keepLearning.text}</p></div>{onNext && <button type="button" onClick={onNext} aria-label="Ir a la siguiente lección" className="grid size-10 place-items-center rounded-full bg-white text-orange-500 shadow-md transition hover:translate-x-0.5"><ArrowRight className="size-5" /></button>}</section>}
+    </div>
+  );
+}
+
+function LessonSidebar({ lesson, lessons, position, progress, neoTip, nextLessonData, showNeoCard = true }) {
   const totalLessons = progress?.total_lessons ?? lessons.length;
-  const completedLessons = progress?.completed_lessons
-    ?? progress?.theory_completed_lessons
-    ?? (progress?.theory_completed === true ? totalLessons : null);
-  const theoryPercentage = validPercentage(
-    progress?.theory_progress_percentage
-      ?? (completedLessons !== null && totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : null)
-  );
-  const lessonProgressData = lesson?.lessonProgress ?? lesson?.lesson_progress;
-  const completedFlag = lesson?.completed ?? lesson?.is_completed ?? lessonProgressData?.completed ?? lessonProgressData?.is_completed;
-  const lessonStatus = lesson?.status ?? lessonProgressData?.status;
-  const lessonPercentage = validPercentage(
-    lesson?.progress_percentage
-      ?? lesson?.progress
-      ?? lesson?.completion_percentage
-      ?? lessonProgressData?.progress_percentage
-      ?? lessonProgressData?.progress
-      ?? (completedFlag === true || String(lessonStatus ?? "").toUpperCase() === "COMPLETADO" ? 100 : null)
-  );
-  const estimatedMinutes = heroContent?.time ?? lesson?.estimated_minutes ?? lesson?.estimated_duration_minutes;
-  const completionPoints = heroContent?.points ?? lesson?.completion_points ?? lesson?.points;
+  const completedLessons = progress?.completed_lessons ?? progress?.theory_completed_lessons ?? null;
+  const theoryPercentage = validPercentage(progress?.theory_progress_percentage);
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[26px] border border-white bg-white p-4 shadow-[0_14px_34px_rgba(30,58,138,0.11)]">
+      {theoryPercentage !== null && <section className="rounded-[26px] border border-white bg-white p-4 shadow-[0_14px_34px_rgba(30,58,138,0.11)]">
         <img src="/assets/teoria.png" alt="" className="mx-auto h-28 w-full object-contain drop-shadow-[0_12px_18px_rgba(30,58,138,0.16)]" />
         <h2 className="mt-1 text-center text-lg font-black text-nt-blue">Tu progreso en teoría</h2>
         <div className="mt-4 grid grid-cols-[58px_minmax(0,1fr)] items-center gap-3">
@@ -120,25 +172,19 @@ function LessonSidebar({ lesson, lessons, position, level, progress, neoTip, nex
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section className="rounded-[26px] border border-violet-100 bg-gradient-to-br from-white via-violet-50 to-sky-50 p-4 shadow-[0_14px_34px_rgba(76,29,149,0.10)]">
-        <div className="flex items-center gap-2">
-          <span className="grid size-9 place-items-center rounded-[12px] bg-violet-100 text-violet-700"><Sparkles className="size-[18px]" /></span>
-          <div><p className="text-xs font-bold text-nt-text-secondary">Lección actual</p><h2 className="text-base font-black text-nt-text-primary">{position}/{lessons.length}</h2></div>
+      <section className="rounded-[28px] border border-white bg-white p-5 shadow-[0_14px_34px_rgba(76,29,149,0.11)]">
+        <p className="text-sm font-black text-nt-text-primary">Lección actual</p>
+        <div className="mt-3 flex items-center gap-3">
+          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-nt-blue to-nt-purple text-xl font-black text-white shadow-lg shadow-violet-200">
+            {position}
+          </span>
+          <h2 className="text-base font-black leading-5 text-nt-text-primary">{lesson.title}</h2>
         </div>
-        <h3 className="mt-3 text-sm font-black leading-5 text-nt-text-primary">{lesson.title}</h3>
-        <dl className="mt-3 grid gap-2 text-xs">
-          {lessonPercentage !== null && <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Progreso</dt><dd className="font-black text-nt-blue">{lessonPercentage}%</dd></div>}
-          {lessonPercentage === null && lessonStatus && <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Estado</dt><dd className="font-black text-nt-blue">{lessonStatus}</dd></div>}
-          <div className="flex items-center justify-between gap-3"><dt className="flex items-center gap-1.5 text-nt-text-secondary"><GraduationCap className="size-3.5" />Nivel</dt><dd className="font-black text-nt-text-primary">{level.name}</dd></div>
-          <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Contenido</dt><dd className="font-black text-nt-text-primary">Teoría</dd></div>
-          {estimatedMinutes !== null && estimatedMinutes !== undefined && <div className="flex items-center justify-between gap-3"><dt className="flex items-center gap-1.5 text-nt-text-secondary"><Clock3 className="size-3.5" />Tiempo</dt><dd className="font-black text-nt-text-primary">{typeof estimatedMinutes === "string" ? estimatedMinutes : `${estimatedMinutes} min`}</dd></div>}
-          {completionPoints !== null && completionPoints !== undefined && <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Puntos</dt><dd className="font-black text-emerald-700">+{completionPoints}</dd></div>}
-        </dl>
       </section>
 
-      <aside className="relative min-h-[156px] overflow-hidden rounded-3xl border border-violet-200 bg-gradient-to-br from-white via-violet-50 to-sky-100 p-4 shadow-[0_14px_34px_rgba(99,102,241,0.14)]">
+      {showNeoCard && <aside className="relative min-h-[156px] overflow-hidden rounded-3xl border border-violet-200 bg-gradient-to-br from-white via-violet-50 to-sky-100 p-4 shadow-[0_14px_34px_rgba(99,102,241,0.14)]">
           <span className="absolute left-4 top-3 text-sm text-violet-300/80" aria-hidden="true">✦</span>
           <span className="absolute right-5 top-4 text-xs text-amber-300/80" aria-hidden="true">✦</span>
           <div className="relative z-10 max-w-[58%] pt-3">
@@ -147,7 +193,7 @@ function LessonSidebar({ lesson, lessons, position, level, progress, neoTip, nex
           </div>
           <div className="absolute -bottom-10 -right-8 size-32 rounded-full bg-white/50 blur-2xl" />
           <img src={assetUrl(neoTip?.image) ?? "/assets/neo_leccion.png"} alt="NEO" className="absolute bottom-0 right-1 z-10 size-38 object-contain drop-shadow-[0_12px_18px_rgba(76,29,149,0.18)]" />
-      </aside>
+      </aside>}
       {nextLessonData && (
         <aside className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-white to-sky-50 p-4 shadow-sm">
           <div className="max-w-[68%]"><p className="text-xs font-black text-nt-blue">Próxima lección</p><h2 className="mt-1 text-sm font-black text-nt-text-primary">{nextLessonData.title}</h2><p className="mt-2 text-xs font-semibold leading-5 text-nt-text-secondary">{nextLessonData.description}</p></div>
@@ -250,6 +296,19 @@ function TheoryLesson() {
     : parsedLessonContent.learningObjectives;
   const neoTip = webSections.find((section) => section.type === "neo_tip") ?? null;
   const contentSections = webSections.filter((section) => !["learning_objectives", "neo_tip"].includes(section.type));
+  const importantSection = contentSections.find((section) => section.type === "important_idea");
+  const exampleSection = contentSections.find((section) => section.type === "example");
+  const mainConceptSection = contentSections.find((section) => section.type === "main_concept");
+  const commonMistakesSection = contentSections.find((section) => section.type === "common_mistakes");
+  const reflectionSection = contentSections.find((section) => section.type === "reflection");
+  const observeSection = contentSections.find((section) => section.type === "observe");
+  const summarySection = contentSections.find((section) => section.type === "summary");
+  const isLessonTwo = position === 2;
+  const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
+  const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
+  const remainingSections = contentSections.filter((section) =>
+    !featuredTypes.has(section.type) && !(isLessonTwo && lessonTwoTypes.has(section.type))
+  );
   const heroContent = webContent?.hero ?? null;
 
   const sidebarItems = [
@@ -334,7 +393,7 @@ function TheoryLesson() {
         </div>
       }
       rightPanel={
-        <LessonSidebar lesson={lesson} lessons={lessons} position={position} level={level} progress={moduleProgress} neoTip={neoTip} nextLessonData={webContent?.nextLesson} heroContent={heroContent} />
+        <LessonSidebar lesson={lesson} lessons={lessons} position={position} progress={moduleProgress} neoTip={neoTip} nextLessonData={webContent?.nextLesson} showNeoCard={!webContent} />
       }
     >
       <article className="rounded-nt-card border border-white/85 bg-white/95 p-3 shadow-nt-card sm:p-4 lg:p-5">
@@ -352,17 +411,10 @@ function TheoryLesson() {
               {(heroContent?.description ?? lesson.summary) && (
                 <p className="mt-2 max-w-2xl text-sm font-semibold leading-5 text-slate-600">{heroContent?.description ?? lesson.summary}</p>
               )}
-              {heroContent && (heroContent.time || heroContent.points !== undefined) && (
-                <div className="mt-3 flex flex-wrap gap-3 text-xs">
-                  {heroContent.time && <span className="rounded-xl border border-blue-100 bg-white/80 px-3 py-2 font-black text-nt-blue">{heroContent.time}</span>}
-                  <span className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2 font-black text-nt-purple">{position} de {lessons.length}</span>
-                  {heroContent.points !== null && heroContent.points !== undefined && <span className="rounded-xl border border-amber-100 bg-white/80 px-3 py-2 font-black text-amber-700">+{heroContent.points} pts</span>}
-                </div>
-              )}
             </div>
             <div className="order-first flex min-h-[150px] items-center justify-center md:order-none md:min-h-[180px]">
               <img
-                src={assetUrl(heroContent?.image) ?? "/assets/lecciones_saludo.png"}
+                src={assetUrl(heroContent?.image) ?? (isLessonTwo ? "/assets/lecciones_basico2.png" : "/assets/lecciones_saludo.png")}
                 alt=""
                 className="max-h-[205px] w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]"
               />
@@ -370,33 +422,81 @@ function TheoryLesson() {
           </div>
         </section>
 
-        {learningObjectives.length > 0 && (
-          <section className="mt-4 px-1 pb-1">
-            <div className="mb-3 flex items-center gap-2.5">
-              <BookOpen className="size-5 shrink-0 text-emerald-700" aria-hidden="true" />
-              <h2 className="text-xl font-black text-nt-text-primary">{learningObjectivesSection?.title ?? "Hoy aprenderás"}</h2>
-            </div>
-            <div className="grid gap-2">
-              {learningObjectives.map((objective) => (
-                <article
-                  key={objective}
-                  className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-emerald-500 text-white shadow-sm">
-                    <Check className="size-4" strokeWidth={3} aria-hidden="true" />
-                  </span>
-                  <p className="text-sm font-bold leading-5 text-slate-700">{objective}</p>
-                </article>
-              ))}
-            </div>
+        {isLessonTwo && (
+          <LessonTwoContent
+            sections={webSections}
+            onNext={nextLesson ? () => goToLesson(nextLesson) : null}
+          />
+        )}
+
+        {!isLessonTwo && (learningObjectives.length > 0 || importantSection || neoTip) && (
+          <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
+            {learningObjectives.length > 0 && (
+              <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
+                <div className="mb-2.5 flex items-center gap-2">
+                  <BookOpen className="size-5 shrink-0 text-emerald-700" aria-hidden="true" />
+                  <h2 className="text-lg font-black text-nt-text-primary">{learningObjectivesSection?.title ?? "Hoy aprenderás"}</h2>
+                </div>
+                <div className="grid gap-1.5">
+                  {learningObjectives.map((objective) => (
+                    <article key={objective} className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 shadow-sm">
+                      <span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-500 text-white">
+                        <Check className="size-3" strokeWidth={3} aria-hidden="true" />
+                      </span>
+                      <p className="text-xs font-bold leading-4 text-slate-700">{objective}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
+            {importantSection && (
+              <aside className="relative h-full min-h-[190px] overflow-hidden rounded-[22px] border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                <div className="relative z-10 max-w-[58%]">
+                  <h2 className="flex items-center gap-2 text-sm font-black uppercase text-amber-800"><Lightbulb className="size-4 text-amber-500" />{importantSection.title}</h2>
+                  <p className="mt-3 text-sm font-semibold leading-5 text-amber-950">{importantSection.text}</p>
+                </div>
+                <span className="absolute right-5 top-4 text-amber-400" aria-hidden="true">✦</span>
+                <img src="/assets/idea.png" alt="" className="absolute bottom-1 right-1 h-[82%] w-[44%] object-contain drop-shadow-md" />
+              </aside>
+            )}
+            {neoTip && (
+              <aside className="grid h-full min-h-[190px] items-center gap-3 overflow-hidden rounded-[22px] border border-violet-100 bg-gradient-to-br from-violet-50 to-sky-50 p-4 shadow-sm sm:grid-cols-[minmax(0,58%)_minmax(120px,42%)]">
+                <div className="relative z-10 min-w-0">
+                  <h2 className="text-base font-black text-nt-purple">{neoTip.title}</h2>
+                  <div className="mt-3 rounded-[16px] border border-white bg-white/80 px-3 py-2 shadow-sm">
+                    <p className="text-xs font-semibold leading-5 text-slate-700">{neoTip.text}</p>
+                  </div>
+                </div>
+                <img src="/assets/neo_pensando.png" alt="NEO pensando" className="mx-auto h-40 w-full self-end object-contain drop-shadow-md sm:h-44" />
+              </aside>
+            )}
           </section>
         )}
 
-        {webContent && contentSections.length > 0 && (
-          <div className="mt-5 grid gap-4">
-            {contentSections.map((section, index) => (
-              <StructuredSection key={`${section.type}-${index}`} section={section} />
-            ))}
+        {!isLessonTwo && webContent && contentSections.length > 0 && (
+          <div className="mt-4 grid gap-3">
+            {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
+              <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  {exampleSection && <StructuredSection section={exampleSection} />}
+                  {mainConceptSection && <StructuredSection section={mainConceptSection} />}
+                </div>
+                {commonMistakesSection && <StructuredSection section={commonMistakesSection} />}
+              </div>
+            )}
+            {isLessonTwo && reflectionSection && <StructuredSection section={reflectionSection} />}
+            {!isLessonTwo && (exampleSection || observeSection) && (
+              <div className="grid gap-3 lg:grid-cols-2">
+                {exampleSection && <StructuredSection section={exampleSection} />}
+                {observeSection && <StructuredSection section={observeSection} />}
+              </div>
+            )}
+            {summarySection && <StructuredSection section={summarySection} />}
+            {remainingSections.length > 0 && (
+              <div className="grid gap-3 md:grid-cols-2">
+                {remainingSections.map((section, index) => <StructuredSection key={`${section.type}-${index}`} section={section} />)}
+              </div>
+            )}
           </div>
         )}
 

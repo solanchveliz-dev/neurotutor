@@ -59,12 +59,18 @@ public class TheoryLessonSeeder implements ApplicationRunner {
             }
 
             if ("BASICO".equals(expectedLevel)
-                    && (orderNumber == 1 || lesson.getWebContentJson() == null || lesson.getWebContentJson().isBlank())) {
+                    && (orderNumber == 1 || orderNumber == 2
+                    || lesson.getWebContentJson() == null || lesson.getWebContentJson().isBlank())) {
                 lesson.setWebContentJson(basicWebContent(orderNumber));
                 theoryLessonRepository.save(lesson);
             }
 
-            if ("BASICO".equals(expectedLevel) && orderNumber == 4) {
+            if ("BASICO".equals(expectedLevel) && orderNumber == 2) {
+                lesson.setTitle("¿Qué es una fracción?");
+                lesson.setSubtitle("Fracciones: partes iguales de un todo");
+                lesson.setSummary("Una fracción representa una parte o porción de algo que ha sido dividido en partes iguales.");
+                theoryLessonRepository.save(lesson);
+            } else if ("BASICO".equals(expectedLevel) && orderNumber == 4) {
                 lesson.setTitle("Fracciones propias e impropias");
                 lesson.setSubtitle("Compara el numerador y el denominador");
                 lesson.setSummary("Diferencia fracciones propias e impropias mediante ejemplos y comparaciones visuales.");
@@ -96,15 +102,22 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     """;
             case 2 -> """
                     {
-                      "hero":{"badge":"Lección 2","title":"¿Qué es una fracción?","subtitle":"Partes iguales de un todo","description":"Comprende cómo una parte o varias partes iguales pueden representarse con una fracción.","image":"lecciones_basico2.png"},
+                      "hero":{"badge":"Lección 2","title":"¿Qué es una fracción?","subtitle":"Fracciones: partes iguales de un todo","description":"Una fracción representa una parte o porción de algo que ha sido dividido en partes iguales.","image":"lecciones2.png"},
                       "sections":[
-                        {"type":"main_concept","title":"Partes iguales","text":"Una fracción representa una o varias partes iguales en las que se divide un todo.","visual":"pizza.png"},
-                        {"type":"example","title":"Pizza, chocolate y torta","text":"Si divides una pizza en 2 partes iguales y tomas una, tienes 1/2. Si tomas 2 de 4 partes iguales, tienes 2/4.","visual":"lecciones_basico2.png"},
-                        {"type":"important_idea","title":"Todas las partes deben ser iguales","text":"Si las partes tienen tamaños diferentes, no representan un reparto fraccionario justo."},
-                        {"type":"neo_tip","title":"NEO dice","text":"Antes de escribir una fracción, comprueba que el objeto esté dividido en partes iguales.","image":"neo_leccion.png"},
-                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Qué representa una fracción.","Qué significa dividir un todo en partes iguales.","Cómo reconocer 1/2 y 2/4 en ejemplos cotidianos."]},
-                        {"type":"common_mistakes","title":"Errores comunes","items":["Contar partes que no tienen el mismo tamaño.","Confundir la cantidad tomada con el objeto completo."]},
-                        {"type":"reflection","title":"Antes de continuar","text":"Cada fracción está formada por dos números. En la siguiente lección descubrirás qué significa cada uno."}
+                        {"type":"lesson_objective","title":"Objetivo de la lección","text":"Entender que una fracción representa partes iguales de un todo."},
+                        {"type":"definition","title":"¿Qué es una fracción?","text":"Cuando dividimos un objeto o una cantidad en partes iguales, cada parte se puede representar con una fracción."},
+                        {"type":"plain_language","title":"En otras palabras...","text":"Una fracción nos dice cuántas partes tomamos de un total de partes iguales.","image":"neo_ideas.png"},
+                        {"type":"daily_examples","title":"Ejemplos en la vida diaria","items":[
+                          {"title":"Pizza","text":"Si una pizza se divide en 2 partes iguales y tomamos 1 parte, tenemos 1/2 de la pizza.","image":"pizza1.png","numerator":"1","denominator":"2","tone":"amber"},
+                          {"title":"Chocolate","text":"Si un chocolate se divide en 4 partes iguales y tomamos 2 partes, tenemos 2/4 del chocolate.","image":"barra_chocolate.png","numerator":"2","denominator":"4","tone":"violet"},
+                          {"title":"Torta","text":"Si una torta se divide en 8 partes iguales y tomamos 3 partes, tenemos 3/8 de la torta.","image":"torta.png","numerator":"3","denominator":"8","tone":"rose"}
+                        ]},
+                        {"type":"simple_representations","title":"Representaciones sencillas","text":"Las fracciones se escriben con dos números separados por una línea.","items":[
+                          {"numerator":"1","denominator":"2","caption":"Leemos: un medio","visual":"half"},
+                          {"numerator":"2","denominator":"4","caption":"Leemos: dos cuartos","visual":"quarters"}
+                        ]},
+                        {"type":"important_note","title":"¡Importante!","text":"Cada fracción representa una parte de un todo que ha sido dividido en partes iguales."},
+                        {"type":"keep_learning","title":"Sigue aprendiendo","text":"Cada fracción está formada por dos números. En la siguiente lección descubrirás qué significa cada uno.","image":"neo_ideas.png"}
                       ]
                     }
                     """;
