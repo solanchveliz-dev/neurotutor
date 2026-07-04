@@ -59,7 +59,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
             }
 
             if ("BASICO".equals(expectedLevel)
-                    && (orderNumber == 1 || orderNumber == 2
+                    && (orderNumber == 1 || orderNumber == 2 || orderNumber == 3
                     || lesson.getWebContentJson() == null || lesson.getWebContentJson().isBlank())) {
                 lesson.setWebContentJson(basicWebContent(orderNumber));
                 theoryLessonRepository.save(lesson);
@@ -69,6 +69,11 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 lesson.setTitle("¿Qué es una fracción?");
                 lesson.setSubtitle("Fracciones: partes iguales de un todo");
                 lesson.setSummary("Una fracción representa una parte o porción de algo que ha sido dividido en partes iguales.");
+                theoryLessonRepository.save(lesson);
+            } else if ("BASICO".equals(expectedLevel) && orderNumber == 3) {
+                lesson.setTitle("Partes de una fracción");
+                lesson.setSubtitle("Conoce el numerador y el denominador");
+                lesson.setSummary("Cada fracción está formada por dos números. Cada uno tiene un significado muy importante.");
                 theoryLessonRepository.save(lesson);
             } else if ("BASICO".equals(expectedLevel) && orderNumber == 4) {
                 lesson.setTitle("Fracciones propias e impropias");
@@ -123,15 +128,21 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     """;
             case 3 -> """
                     {
-                      "hero":{"badge":"Lección 3","title":"Partes de una fracción","subtitle":"Conoce el numerador y el denominador","description":"Identifica qué representa el número superior y qué representa el número inferior.","image":"lecciones_basico3.png"},
+                      "hero":{"badge":"Lección 3","title":"Partes de una fracción","subtitle":"Conoce el numerador y el denominador","description":"Cada fracción está formada por dos números.\nCada uno tiene un significado muy importante.","image":"neo_indicando.png","fraction":{"numerator":"3","denominator":"4"},"numeratorLabel":"Numerador","numeratorText":"Indica cuántas partes se toman.","denominatorLabel":"Denominador","denominatorText":"Indica en cuántas partes iguales se divide el todo."},
                       "sections":[
-                        {"type":"main_concept","title":"Numerador y denominador","text":"El numerador indica cuántas partes tomamos. El denominador indica en cuántas partes iguales se dividió el todo.","visual":"lecciones_basico3.png"},
-                        {"type":"example","title":"Observa 3/4","text":"En 3/4, tomamos 3 partes y el todo fue dividido en 4 partes iguales.","visual":"pizza.png"},
-                        {"type":"important_idea","title":"Lee de arriba hacia abajo","text":"Primero observa cuántas partes se toman y después cuántas partes iguales forman el todo."},
-                        {"type":"neo_tip","title":"NEO dice","text":"Señala primero el número de arriba y luego el de abajo mientras explicas qué representa cada uno.","image":"neo_leccion.png"},
-                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Identificar el numerador.","Identificar el denominador.","Explicar qué representa cada número.","Interpretar fracciones en imágenes."]},
-                        {"type":"common_mistakes","title":"Errores comunes","items":["Intercambiar numerador y denominador.","Olvidar que el denominador cuenta partes iguales.","Usar cero como denominador."]},
-                        {"type":"reflection","title":"Antes de continuar","text":"En la fracción 2/5, ¿qué indica el 2 y qué indica el 5?"}
+                        {"type":"fraction_parts","fraction":{"numerator":"3","denominator":"4"},"numerator":{"title":"Numerador","text":"Es el número que está arriba de la línea fraccionaria.","detail":"Nos indica cuántas partes del total estamos tomando."},"denominator":{"title":"Denominador","text":"Es el número que está abajo de la línea fraccionaria.","detail":"Nos indica en cuántas partes iguales se ha dividido el todo."},"example":{"title":"Ejemplo:","text":"En esta pizza hay 4 partes iguales en total y tomamos 3 de ellas.","image":"pizza3.png"}},
+                        {"type":"more_examples","title":"Más ejemplos","items":[
+                          {"title":"Chocolate","text":"Tomamos 2 de las 4 partes iguales del chocolate.","image":"barra_chocolate.png","numerator":"2","denominator":"4","tone":"violet"},
+                          {"title":"Torta","text":"Tomamos 1 de las 2 partes iguales de la torta.","image":"tajada_torta.png","numerator":"1","denominator":"2","tone":"blue"},
+                          {"title":"Manzanas","text":"Tomamos 3 de las 5 partes iguales de las manzanas.","image":"manzanas.png","numerator":"3","denominator":"5","tone":"green"}
+                        ]},
+                        {"type":"comparison_table","title":"Compara y aprende","columns":{"fraction":"Fracción","numerator":"Numerador","denominator":"Denominador","interpretation":"Interpretación"},"rows":[
+                          {"numerator":"1","denominator":"2","numeratorText":"Parte que tomamos","denominatorText":"Partes en que se divide el todo","interpretation":"Tomamos 1 de las 2 partes del total."},
+                          {"numerator":"2","denominator":"4","numeratorText":"Partes que tomamos","denominatorText":"Partes en que se divide el todo","interpretation":"Tomamos 2 de las 4 partes del total."},
+                          {"numerator":"3","denominator":"4","numeratorText":"Partes que tomamos","denominatorText":"Partes en que se divide el todo","interpretation":"Tomamos 3 de las 4 partes del total."}
+                        ]},
+                        {"type":"remember","title":"¡Recuerda!","text":"El denominador nunca puede ser 0.","detail":"Cada fracción representa una parte de un todo.","image":"neo_recuerda.png"},
+                        {"type":"neo_help","title":"NEO te ayuda","text":"Siempre observa primero el denominador para saber en cuántas partes se dividió el todo. Luego mira el numerador para saber cuántas partes se tomaron.","image":"neo_ideas.png"}
                       ]
                     }
                     """;

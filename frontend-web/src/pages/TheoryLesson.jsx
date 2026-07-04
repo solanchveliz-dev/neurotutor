@@ -144,6 +144,48 @@ function LessonTwoContent({ sections, onNext }) {
   );
 }
 
+function LessonThreeContent({ sections }) {
+  const section = (type) => sections.find((item) => item.type === type);
+  const parts = section("fraction_parts");
+  const examples = section("more_examples");
+  const comparison = section("comparison_table");
+  const remember = section("remember");
+  const neoHelp = section("neo_help");
+  const exampleTones = {
+    violet: "border-violet-100 bg-violet-50/50 text-violet-700",
+    blue: "border-blue-100 bg-sky-50/50 text-blue-600",
+    green: "border-emerald-100 bg-emerald-50/40 text-emerald-600",
+  };
+
+  return (
+    <div className="mt-3 grid gap-3">
+      {parts && (
+        <section className="grid items-stretch gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_150px_minmax(0,1fr)_190px]">
+          <article className="grid content-center rounded-[22px] border border-amber-200 bg-amber-50/70 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-4"><div><h2 className="text-base font-black text-orange-600">{parts.numerator?.title}</h2><p className="mt-2 text-xs font-semibold leading-5 text-slate-700">{parts.numerator?.text}</p><p className="mt-2 text-xs font-bold leading-5 text-slate-700">{parts.numerator?.detail}</p></div><div className="rounded-2xl bg-white px-4 py-3 shadow-sm"><StackedFraction numerator={parts.fraction?.numerator} denominator={parts.fraction?.denominator} className="text-orange-500" /></div></div>
+          </article>
+          <div className="grid place-items-center rounded-[22px] bg-white p-2">
+            <div className="relative size-32 rounded-full border-2 border-nt-text-primary bg-[conic-gradient(#f59e0b_0_75%,white_75%_100%)] shadow-md"><span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-nt-text-primary" /><span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-nt-text-primary" /></div>
+          </div>
+          <article className="grid content-center rounded-[22px] border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-4"><div><h2 className="text-base font-black text-emerald-700">{parts.denominator?.title}</h2><p className="mt-2 text-xs font-semibold leading-5 text-slate-700">{parts.denominator?.text}</p><p className="mt-2 text-xs font-bold leading-5 text-slate-700">{parts.denominator?.detail}</p></div><StackedFraction numerator={parts.fraction?.numerator} denominator={parts.fraction?.denominator} className="text-emerald-600" /></div>
+          </article>
+          <article className="grid content-between rounded-[22px] border border-violet-100 bg-violet-50/60 p-4 shadow-sm"><div><h2 className="text-sm font-black text-violet-700">{parts.example?.title}</h2><p className="mt-2 text-xs font-semibold leading-5 text-slate-700">{parts.example?.text}</p></div>{parts.example?.image && <img src={assetUrl(parts.example.image)} alt="Ejemplo de fracción con pizza" className="mx-auto mt-2 h-28 w-full object-contain drop-shadow-md" />}</article>
+        </section>
+      )}
+
+      {examples && Array.isArray(examples.items) && <section><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><BookOpen className="size-5 text-nt-blue" />{examples.title}</h2><div className="mt-2 grid gap-3 md:grid-cols-3">{examples.items.map((item) => <article key={item.title} className={`grid min-h-36 grid-cols-[minmax(0,1fr)_48px] items-center gap-3 rounded-[22px] border p-4 shadow-sm ${exampleTones[item.tone] ?? exampleTones.violet}`}><div><img src={assetUrl(item.image)} alt={item.title} className="h-20 w-full object-contain drop-shadow-sm" /><p className="mt-2 text-xs font-semibold leading-5 text-slate-700">{item.text}</p></div><StackedFraction numerator={item.numerator} denominator={item.denominator} className="text-current" /></article>)}</div></section>}
+
+      {(comparison || remember) && <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(240px,1fr)]">
+        {comparison && <section className="min-w-0"><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><BookOpen className="size-5 text-nt-blue" />{comparison.title}</h2><div className="mt-2 overflow-x-auto rounded-[20px] border border-blue-100"><table className="w-full min-w-[620px] border-collapse bg-white text-left text-xs"><thead className="bg-blue-50 text-nt-blue"><tr><th className="px-3 py-2 font-black">{comparison.columns?.fraction}</th><th className="px-3 py-2 font-black">{comparison.columns?.numerator}</th><th className="px-3 py-2 font-black">{comparison.columns?.denominator}</th><th className="px-3 py-2 font-black">{comparison.columns?.interpretation}</th></tr></thead><tbody>{comparison.rows?.map((row) => <tr key={`${row.numerator}/${row.denominator}`} className="border-t border-blue-100"><td className="px-3 py-2"><StackedFraction numerator={row.numerator} denominator={row.denominator} className="text-nt-purple" /></td><td className="px-3 py-2 font-semibold text-slate-700"><strong className="mr-2 text-lg text-violet-600">{row.numerator}</strong>{row.numeratorText}</td><td className="px-3 py-2 font-semibold text-slate-700"><strong className="mr-2 text-lg text-blue-600">{row.denominator}</strong>{row.denominatorText}</td><td className="px-3 py-2 font-semibold leading-5 text-slate-700">{row.interpretation}</td></tr>)}</tbody></table></div></section>}
+        {remember && <aside className="grid overflow-hidden rounded-[22px] border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_110px] lg:grid-cols-1 xl:grid-cols-[minmax(0,1fr)_110px]"><div><h2 className="flex items-center gap-2 text-base font-black text-emerald-700"><Star className="size-5 fill-emerald-600 text-emerald-600" />{remember.title}</h2><p className="mt-3 text-xs font-semibold leading-5 text-slate-700">{remember.text}</p><p className="mt-3 text-sm font-black leading-6 text-nt-text-primary">{remember.detail}</p></div>{remember.image && <img src={assetUrl(remember.image)} alt="NEO recordando" className="mx-auto h-32 w-full self-end object-contain drop-shadow-md" />}</aside>}
+      </div>}
+
+      {neoHelp && <section className="grid items-center gap-3 overflow-hidden rounded-[20px] border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-violet-50 px-4 py-3 shadow-sm sm:grid-cols-[64px_minmax(0,1fr)]">{neoHelp.image && <img src={assetUrl(neoHelp.image)} alt="NEO ayudando" className="mx-auto size-16 object-contain drop-shadow-md" />}<div><h2 className="text-sm font-black text-nt-purple">{neoHelp.title}</h2><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{neoHelp.text}</p></div></section>}
+    </div>
+  );
+}
+
 function LessonSidebar({ lesson, lessons, position, progress, neoTip, nextLessonData, showNeoCard = true }) {
   const totalLessons = progress?.total_lessons ?? lessons.length;
   const completedLessons = progress?.completed_lessons ?? progress?.theory_completed_lessons ?? null;
@@ -304,6 +346,7 @@ function TheoryLesson() {
   const observeSection = contentSections.find((section) => section.type === "observe");
   const summarySection = contentSections.find((section) => section.type === "summary");
   const isLessonTwo = position === 2;
+  const isLessonThree = position === 3;
   const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
   const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
   const remainingSections = contentSections.filter((section) =>
@@ -399,7 +442,7 @@ function TheoryLesson() {
       <article className="rounded-nt-card border border-white/85 bg-white/95 p-3 shadow-nt-card sm:p-4 lg:p-5">
         <section className="relative overflow-hidden rounded-[24px] border border-blue-100 bg-gradient-to-br from-white via-blue-50 to-sky-50 px-4 py-4 shadow-[0_10px_26px_rgba(59,130,246,0.10)] sm:px-5">
           <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-sky-200/25 blur-3xl" />
-          <div className="relative grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)] md:gap-5">
+          <div className={`relative grid items-center gap-4 md:gap-5 ${isLessonThree ? "md:grid-cols-[minmax(0,42%)_minmax(360px,58%)]" : "md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)]"}`}>
             <div className="min-w-0">
               <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">
                 {heroContent?.badge ?? `Lección ${position}`}
@@ -409,15 +452,23 @@ function TheoryLesson() {
               </h1>
               {(heroContent?.subtitle ?? lesson.subtitle) && <p className="mt-1.5 text-sm font-black text-nt-purple sm:text-base">{heroContent?.subtitle ?? lesson.subtitle}</p>}
               {(heroContent?.description ?? lesson.summary) && (
-                <p className="mt-2 max-w-2xl text-sm font-semibold leading-5 text-slate-600">{heroContent?.description ?? lesson.summary}</p>
+                <p className="mt-2 max-w-2xl whitespace-pre-line text-sm font-semibold leading-5 text-slate-600">{heroContent?.description ?? lesson.summary}</p>
               )}
             </div>
             <div className="order-first flex min-h-[150px] items-center justify-center md:order-none md:min-h-[180px]">
-              <img
-                src={assetUrl(heroContent?.image) ?? (isLessonTwo ? "/assets/lecciones_basico2.png" : "/assets/lecciones_saludo.png")}
-                alt=""
-                className="max-h-[205px] w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]"
-              />
+              {isLessonThree && heroContent?.fraction ? (
+                <div className="grid w-full grid-cols-[72px_minmax(0,1fr)_130px] items-center gap-3">
+                  <StackedFraction numerator={heroContent.fraction.numerator} denominator={heroContent.fraction.denominator} className="text-4xl text-nt-text-primary" />
+                  <div className="grid gap-4"><div><p className="font-black text-orange-600">→ {heroContent.numeratorLabel}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{heroContent.numeratorText}</p></div><div><p className="font-black text-emerald-700">→ {heroContent.denominatorLabel}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{heroContent.denominatorText}</p></div></div>
+                  <img src={assetUrl(heroContent.image)} alt="NEO indicando las partes de una fracción" className="h-44 w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]" />
+                </div>
+              ) : (
+                <img
+                  src={assetUrl(heroContent?.image) ?? (isLessonTwo ? "/assets/lecciones_basico2.png" : "/assets/lecciones_saludo.png")}
+                  alt=""
+                  className="max-h-[205px] w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]"
+                />
+              )}
             </div>
           </div>
         </section>
@@ -429,7 +480,9 @@ function TheoryLesson() {
           />
         )}
 
-        {!isLessonTwo && (learningObjectives.length > 0 || importantSection || neoTip) && (
+        {isLessonThree && <LessonThreeContent sections={webSections} />}
+
+        {!isLessonTwo && !isLessonThree && (learningObjectives.length > 0 || importantSection || neoTip) && (
           <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
             {learningObjectives.length > 0 && (
               <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
@@ -473,7 +526,7 @@ function TheoryLesson() {
           </section>
         )}
 
-        {!isLessonTwo && webContent && contentSections.length > 0 && (
+        {!isLessonTwo && !isLessonThree && webContent && contentSections.length > 0 && (
           <div className="mt-4 grid gap-3">
             {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
               <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
