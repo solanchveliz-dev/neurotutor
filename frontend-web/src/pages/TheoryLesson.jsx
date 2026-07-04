@@ -417,10 +417,25 @@ function TheoryLesson() {
     if (typeof value === "object") return value;
     try {
       return JSON.parse(value);
-    } catch {
+    } catch (parseError) {
+      console.warn("[TheoryLesson] web_content_json inválido", {
+        lessonId: lesson?.id,
+        webContentJson: value,
+        parseError,
+      });
       return null;
     }
-  }, [lesson?.web_content_json, lesson?.webContent]);
+  }, [lesson?.id, lesson?.web_content_json, lesson?.webContent]);
+  useEffect(() => {
+    if (!lesson) return;
+    const rawWebContent = lesson.web_content_json ?? lesson.webContent ?? null;
+    console.info("[TheoryLesson] diagnóstico de contenido", {
+      lessonId: lesson.id,
+      webContentJson: rawWebContent,
+      parsedWebContent: webContent,
+      usingContentHtmlFallback: !webContent && Boolean(parsedLessonContent.contentHtml.trim()),
+    });
+  }, [lesson, parsedLessonContent.contentHtml, webContent]);
   const webSections = Array.isArray(webContent?.sections) ? webContent.sections : [];
   const learningObjectivesSection = webSections.find((section) => section.type === "learning_objectives");
   const learningObjectives = Array.isArray(learningObjectivesSection?.items)

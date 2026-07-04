@@ -184,7 +184,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     """;
             case 3 -> """
                     {
-                      "hero":{"badge":"Lección 3","title":"Partes de una fracción","subtitle":"Conoce el numerador y el denominador","description":"Cada fracción está formada por dos números.\nCada uno tiene un significado muy importante.","image":"neo_indicando.png","fraction":{"numerator":"3","denominator":"4"},"numeratorLabel":"Numerador","numeratorText":"Indica cuántas partes se toman.","denominatorLabel":"Denominador","denominatorText":"Indica en cuántas partes iguales se divide el todo."},
+                      "hero":{"badge":"Lección 3","title":"Partes de una fracción","subtitle":"Conoce el numerador y el denominador","description":"Cada fracción está formada por dos números.\\nCada uno tiene un significado muy importante.","image":"neo_indicando.png","fraction":{"numerator":"3","denominator":"4"},"numeratorLabel":"Numerador","numeratorText":"Indica cuántas partes se toman.","denominatorLabel":"Denominador","denominatorText":"Indica en cuántas partes iguales se divide el todo."},
                       "sections":[
                         {"type":"fraction_parts","fraction":{"numerator":"3","denominator":"4"},"numerator":{"title":"Numerador","text":"Es el número que está arriba de la línea fraccionaria.","detail":"Nos indica cuántas partes del total estamos tomando."},"denominator":{"title":"Denominador","text":"Es el número que está abajo de la línea fraccionaria.","detail":"Nos indica en cuántas partes iguales se ha dividido el todo."},"example":{"title":"Ejemplo:","text":"En esta pizza hay 4 partes iguales en total y tomamos 3 de ellas.","image":"pizza3.png"}},
                         {"type":"more_examples","title":"Más ejemplos","items":[
@@ -239,7 +239,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                         ]},
                         {"type":"important_ideas","title":"Ideas importantes","image":"idea.png","items":["Las fracciones nos ayudan a repartir, medir y comparar.","Siempre trabajamos con partes iguales.","El numerador está arriba y el denominador abajo.","Las fracciones propias son menores que 1.","Las fracciones impropias son mayores que 1."]},
                         {"type":"review_mistakes","title":"Errores comunes","image":"neo_recuerda.png","items":["Pensar que el denominador puede ser 0.","Olvidar que las partes deben ser iguales.","Confundir numerador y denominador.","Creer que todas las fracciones son menores que 1."]},
-                        {"type":"ready_for_practice","title":"¡Estás preparado!","text":"Ahora pondrás a prueba todo lo que aprendiste.\nEn la siguiente sección encontrarás ejercicios para seguir mejorando.","image":"neo_ideas.png"}
+                        {"type":"ready_for_practice","title":"¡Estás preparado!","text":"Ahora pondrás a prueba todo lo que aprendiste.\\nEn la siguiente sección encontrarás ejercicios para seguir mejorando.","image":"neo_ideas.png"}
                       ]
                     }
                     """;
