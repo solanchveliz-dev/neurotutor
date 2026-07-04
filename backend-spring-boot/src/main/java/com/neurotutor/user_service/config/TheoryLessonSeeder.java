@@ -121,12 +121,17 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.save(lesson);
             }
 
-            if ("INTERMEDIO".equals(expectedLevel) && orderNumber == 1) {
+            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber == 1 || orderNumber == 2)) {
                 lesson.setTitle("Bienvenida al nivel intermedio");
                 lesson.setSubtitle("Ahora vamos a resolver operaciones con fracciones 🚀");
                 lesson.setSummary("En este nivel aprenderás a sumar, restar, multiplicar y dividir fracciones para resolver problemas de la vida real.");
                 lesson.setIcon(seed.icon());
                 lesson.setContentHtml(seed.contentHtml());
+                if (orderNumber == 2) {
+                    lesson.setTitle("Fracciones equivalentes");
+                    lesson.setSubtitle("Distintas fracciones, pero el mismo valor ✨");
+                    lesson.setSummary("Dos fracciones son equivalentes cuando representan la misma cantidad de un todo, aunque tengan números diferentes.");
+                }
                 lesson.setWebContentJson(intermediateWebContent(orderNumber));
                 lesson.setActive(true);
                 theoryLessonRepository.saveAndFlush(lesson);
@@ -259,6 +264,25 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String intermediateWebContent(int lessonNumber) {
+        if (lessonNumber == 2) return """
+                {
+                  "layout":"intermediate_equivalent_fractions",
+                  "hero":{"badge":"Lección 2","title":"Fracciones equivalentes","subtitle":"Distintas fracciones, pero el mismo valor ✨","description":"Dos fracciones son equivalentes cuando representan la misma cantidad de un todo, aunque tengan números diferentes.","image":"leccion2_intermedio.png"},
+                  "sections":[
+                    {"type":"equivalent_meaning","title":"¿Qué significa \\\"equivalente\\\"?","items":["Representan la misma parte de un todo.","Cambian los números, pero no la cantidad."]},
+                    {"type":"equivalent_method","title":"¿Cómo obtener fracciones equivalentes?","text":"Multiplica o divide el numerador y el denominador por el mismo número.","multiplier":"×2","equation":{"from":{"numerator":"1","denominator":"2"},"operation":{"numerator":"1 × 2","denominator":"2 × 2"},"result":{"numerator":"2","denominator":"4"}}},
+                    {"type":"visual_examples","title":"Ejemplos visuales","items":[
+                      {"kind":"pizza","left":{"numerator":"1","denominator":"2"},"right":{"numerator":"2","denominator":"4"},"image":"pizza1.png","text":"La mitad es igual a dos de cuatro partes.","tone":"orange"},
+                      {"kind":"blocks","left":{"numerator":"1","denominator":"2"},"right":{"numerator":"3","denominator":"6"},"text":"Una de dos partes es igual a tres de seis partes.","tone":"green"},
+                      {"kind":"circles","left":{"numerator":"2","denominator":"3"},"right":{"numerator":"4","denominator":"6"},"text":"Dos de tres partes es igual a cuatro de seis partes.","tone":"blue"}
+                    ]},
+                    {"type":"key_idea","title":"Idea clave","text":"Las fracciones equivalentes cambian la forma de escribir, pero no el valor."},
+                    {"type":"think","title":"Observa y piensa","text":"Si tienes 2/4 de chocolate y lo divides en partes más pequeñas, ¿cambiaría la cantidad que tienes?","images":["chocolate1.png","chocolate2.png"]},
+                    {"type":"equivalent_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Cambiar solo el numerador o solo el denominador.","Multiplicar o dividir por números diferentes.","Pensar que las fracciones equivalentes son mayores o menores."]},
+                    {"type":"equivalent_summary","title":"En esta lección aprendiste que...","image":"neo_ideas.png","items":["Las fracciones equivalentes representan lo mismo.","Se obtienen multiplicando o dividiendo ambos números por igual.","Cambian los números, pero no el valor de la fracción."]}
+                  ]
+                }
+                """;
         if (lessonNumber != 1) return null;
         return """
                 {
