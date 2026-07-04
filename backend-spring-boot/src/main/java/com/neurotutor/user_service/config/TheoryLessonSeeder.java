@@ -121,7 +121,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.save(lesson);
             }
 
-            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber == 1 || orderNumber == 2 || orderNumber == 3)) {
+            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 4)) {
                 lesson.setTitle("Bienvenida al nivel intermedio");
                 lesson.setSubtitle("Ahora vamos a resolver operaciones con fracciones 🚀");
                 lesson.setSummary("En este nivel aprenderás a sumar, restar, multiplicar y dividir fracciones para resolver problemas de la vida real.");
@@ -135,6 +135,10 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     lesson.setTitle("Suma con igual denominador");
                     lesson.setSubtitle("Sumamos las partes, el tamaño no cambia.");
                     lesson.setSummary("Cuando dos fracciones tienen el mismo denominador, significa que las partes son del mismo tamaño.");
+                } else if (orderNumber == 4) {
+                    lesson.setTitle("Suma con diferente denominador");
+                    lesson.setSubtitle("Primero igualamos las partes, luego sumamos.");
+                    lesson.setSummary("Cuando las fracciones tienen partes de distinto tamaño, no podemos sumarlas directamente.");
                 }
                 lesson.setWebContentJson(intermediateWebContent(orderNumber));
                 lesson.setActive(true);
@@ -268,6 +272,24 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String intermediateWebContent(int lessonNumber) {
+        if (lessonNumber == 4) return """
+                {
+                  "layout":"intermediate_different_denominator",
+                  "hero":{"badge":"Lección 4","title":"Suma con diferente denominador","subtitle":"Primero igualamos las partes, luego sumamos.","description":"Cuando las fracciones tienen partes de distinto tamaño, no podemos sumarlas directamente.","image":"leccion4_intermedio.png"},
+                  "sections":[
+                    {"type":"different_key_idea","label":"Idea clave:","text":"primero hacemos que las partes tengan el mismo tamaño (mismo denominador), para poder sumarlas.","image":"idea.png"},
+                    {"type":"different_steps","title":"Paso a paso con un ejemplo","items":[
+                      {"number":"1","title":"Fracciones iniciales","subtitle":"(partes diferentes)","equation":[{"numerator":"1","denominator":"2"},"+",{"numerator":"1","denominator":"4"}],"visual":"different_circles","tone":"violet"},
+                      {"number":"2","title":"Buscamos un denominador común (4)","equation":[{"numerator":"1","denominator":"2"},"=",{"numerator":"2","denominator":"4"}],"visual":"equivalent_blocks","text":"Multiplicamos numerador y denominador por 2.","tone":"blue"},
+                      {"number":"3","title":"Ahora sumamos (mismo denominador)","equation":[{"numerator":"2","denominator":"4"},"+",{"numerator":"1","denominator":"4"},"="],"visual":"sum_blocks","text":"Solo sumamos los numeradores. El denominador se conserva.","tone":"green"},
+                      {"number":"4","title":"Resultado final","equation":[{"numerator":"3","denominator":"4"}],"visual":"result_circle","tone":"violet"}
+                    ]},
+                    {"type":"different_why","title":"¿Por qué hacemos esto?","image":"pizza_animada.png","items":["Las partes deben ser del mismo tamaño para poder juntarlas.","Usamos fracciones equivalentes para lograrlo.","Luego sí podemos sumar sin problema."]},
+                    {"type":"different_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Sumar los denominadores.","No convertir a fracciones equivalentes.","Cambiar el denominador después de sumar."]},
+                    {"type":"practice_more","title":"¡Practica y mejora!","text":"En la práctica resolverás muchos ejemplos como este. Recuerda: mismo tamaño de partes = podemos sumar.","image":"libro.png"}
+                  ]
+                }
+                """;
         if (lessonNumber == 3) return """
                 {
                   "layout":"intermediate_same_denominator",

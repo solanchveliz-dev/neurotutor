@@ -144,6 +144,41 @@ function SameDenominatorContent({ sections }) {
   </div>;
 }
 
+function FractionEquation({ values }) {
+  return <div className="flex min-h-12 items-center justify-center gap-2 text-nt-text-primary">{values?.map((value, index) => typeof value === "string" ? <span key={`${value}-${index}`} className="text-xl font-black">{value}</span> : <EquivalentFraction key={`${value.numerator}-${value.denominator}-${index}`} value={value} />)}</div>;
+}
+
+function MiniBlocks({ total, filled, color = "bg-blue-400" }) {
+  return <div className="grid h-14 w-20 overflow-hidden rounded-sm border-2 border-slate-500 bg-white" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>{Array.from({ length: total }, (_, index) => <span key={index} className={`border-r border-slate-400 last:border-r-0 ${index < filled ? color : ""}`} />)}</div>;
+}
+
+function DifferentStepVisual({ visual }) {
+  if (visual === "different_circles") return <div className="flex items-center justify-center gap-3"><span className="size-16 rounded-full border-2 border-violet-700" style={{ background: "conic-gradient(#8b5cf6 0 180deg, white 180deg)" }} /><Plus className="size-4" /><span className="size-16 rounded-full border-2 border-orange-600" style={{ background: "conic-gradient(#fb923c 0 90deg, white 90deg)" }} /></div>;
+  if (visual === "equivalent_blocks") return <div className="flex items-center justify-center gap-2"><MiniBlocks total={2} filled={1} color="bg-amber-300" /><ArrowRight className="size-4 text-blue-500" /><MiniBlocks total={4} filled={2} color="bg-sky-400" /></div>;
+  if (visual === "sum_blocks") return <div className="flex items-center justify-center gap-2"><MiniBlocks total={4} filled={2} color="bg-blue-500" /><Plus className="size-4" /><MiniBlocks total={4} filled={1} color="bg-green-500" /><span className="font-black">=</span><MiniBlocks total={4} filled={3} color="bg-violet-500" /></div>;
+  return <span className="mx-auto block size-24 rounded-full border-2 border-violet-700" style={{ background: "repeating-conic-gradient(transparent 0 89deg, #4c1d95 89deg 90deg), conic-gradient(#8b5cf6 0 270deg, white 270deg)" }} />;
+}
+
+function DifferentDenominatorContent({ sections }) {
+  const section = (type) => sections.find((item) => item.type === type);
+  const idea = section("different_key_idea");
+  const steps = section("different_steps");
+  const why = section("different_why");
+  const mistakes = section("different_mistakes");
+  const practice = section("practice_more");
+  const tones = { violet: "border-violet-200 bg-violet-50/60 text-violet-700", blue: "border-blue-200 bg-sky-50/60 text-blue-600", green: "border-emerald-200 bg-emerald-50/60 text-emerald-700" };
+
+  return <div className="mt-3 grid gap-3">
+    {idea && <section className="grid items-center gap-3 rounded-[20px] border border-amber-200 bg-amber-50/80 px-4 py-3 shadow-sm sm:grid-cols-[32px_minmax(0,1fr)_70px]"><Star className="size-7 fill-amber-400 text-amber-400" /><p className="text-sm font-semibold leading-6 text-amber-950"><strong>{idea.label}</strong> {idea.text}</p><img src={assetUrl(idea.image)} alt="Idea clave" className="mx-auto h-14 w-full object-contain" /></section>}
+    {steps && <section><h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><BookOpen className="size-5" />{steps.title}</h2><div className="mt-2 grid items-stretch gap-2 sm:grid-cols-2 xl:grid-cols-[1fr_auto_1.15fr_auto_1.25fr_auto_.85fr]">{steps.items?.map((item, index) => <div key={item.number} className="contents"><article className={`grid min-h-64 content-between rounded-[22px] border p-3 shadow-sm ${tones[item.tone]}`}><div><h3 className="flex items-start gap-2 text-sm font-black leading-5"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-current text-xs text-white [color:inherit]"><span className="text-white">{item.number}</span></span><span>{item.title}{item.subtitle && <small className="mt-1 block text-xs font-bold">{item.subtitle}</small>}</span></h3><FractionEquation values={item.equation} /></div><DifferentStepVisual visual={item.visual} />{item.text && <p className="mt-3 text-center text-xs font-semibold leading-5 text-slate-700">{item.text}</p>}</article>{index < steps.items.length - 1 && <ArrowRight className="hidden size-5 self-center text-violet-500 xl:block" />}</div>)}</div></section>}
+    <div className="grid gap-3 lg:grid-cols-2">
+      {why && <section className="relative overflow-hidden rounded-[22px] border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm"><div className="max-w-[78%]"><h2 className="flex items-center gap-2 font-black text-emerald-700"><CheckCircle2 className="size-5" />{why.title}</h2><div className="mt-3 grid gap-2">{why.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><Check className="size-4 shrink-0 text-emerald-500" strokeWidth={3} />{item}</p>)}</div></div><img src={assetUrl(why.image)} alt="Pizza" className="absolute bottom-2 right-3 h-20 w-[22%] object-contain drop-shadow-md" /></section>}
+      {mistakes && <section className="relative overflow-hidden rounded-[22px] border border-red-200 bg-red-50/70 p-4 shadow-sm"><div className="max-w-[75%]"><h2 className="flex items-center gap-2 font-black text-red-600"><AlertTriangle className="size-5" />{mistakes.title}</h2><div className="mt-3 grid gap-2">{mistakes.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><span className="grid size-4 shrink-0 place-items-center rounded-full bg-red-500 font-black text-white">×</span>{item}</p>)}</div></div><img src={assetUrl(mistakes.image)} alt="NEO advirtiendo sobre errores" className="absolute bottom-0 right-1 h-32 w-[28%] object-contain drop-shadow-md" /></section>}
+    </div>
+    {practice && <section className="grid items-center gap-3 rounded-[20px] border border-violet-200 bg-gradient-to-r from-violet-50 to-sky-50 px-4 py-3 shadow-sm sm:grid-cols-[48px_minmax(0,1fr)_150px]"><Target className="size-9 text-red-500" /><div><h2 className="font-black text-violet-700">{practice.title}</h2><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{practice.text}</p></div><img src={assetUrl(practice.image)} alt="Libro de práctica" className="mx-auto h-16 w-full object-contain" /></section>}
+  </div>;
+}
+
 function LessonTwoContent({ sections, onNext }) {
   const section = (type) => sections.find((item) => item.type === type);
   const objective = section("lesson_objective");
@@ -547,6 +582,7 @@ function TheoryLesson() {
   const isIntermediateWelcome = webContent?.layout === "intermediate_welcome";
   const isIntermediateEquivalent = webContent?.layout === "intermediate_equivalent_fractions";
   const isIntermediateSameDenominator = webContent?.layout === "intermediate_same_denominator";
+  const isIntermediateDifferentDenominator = webContent?.layout === "intermediate_different_denominator";
   const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
   const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
   const remainingSections = contentSections.filter((section) =>
@@ -698,7 +734,9 @@ function TheoryLesson() {
 
         {isIntermediateSameDenominator && <SameDenominatorContent sections={webSections} />}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && (learningObjectives.length > 0 || importantSection || neoTip) && (
+        {isIntermediateDifferentDenominator && <DifferentDenominatorContent sections={webSections} />}
+
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && (learningObjectives.length > 0 || importantSection || neoTip) && (
           <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
             {learningObjectives.length > 0 && (
               <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
@@ -742,7 +780,7 @@ function TheoryLesson() {
           </section>
         )}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && webContent && contentSections.length > 0 && (
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && webContent && contentSections.length > 0 && (
           <div className="mt-4 grid gap-3">
             {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
               <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
