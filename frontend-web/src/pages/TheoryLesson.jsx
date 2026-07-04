@@ -95,7 +95,7 @@ function EquivalentVisual({ item }) {
 }
 
 function EquivalentFraction({ value }) {
-  return <StackedFraction numerator={value?.numerator} denominator={value?.denominator} className="text-current" />;
+  return <span className="inline-flex items-center gap-1">{value?.whole && <strong className="text-xl font-black">{value.whole}</strong>}<StackedFraction numerator={value?.numerator} denominator={value?.denominator} className="text-current" /></span>;
 }
 
 function EquivalentFractionsContent({ sections }) {
@@ -240,6 +240,27 @@ function FractionMultiplicationContent({ sections }) {
       {smaller && <section className="rounded-[22px] border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm"><h2 className="flex items-center gap-2 font-black text-emerald-700"><CheckCircle2 className="size-5" />{smaller.title}</h2>{smaller.paragraphs?.map((paragraph) => <p key={paragraph} className="mt-2 text-xs font-semibold leading-5 text-slate-700">{paragraph}</p>)}<div className="mt-3"><FractionEquation values={smaller.equation} /></div></section>}
       {mistakes && <section className="relative overflow-hidden rounded-[22px] border border-red-200 bg-red-50/70 p-4 shadow-sm"><div className="max-w-[75%]"><h2 className="flex items-center gap-2 font-black text-red-600"><AlertTriangle className="size-5" />{mistakes.title}</h2><div className="mt-3 grid gap-2">{mistakes.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><span className="font-black text-red-500">×</span>{item}</p>)}</div></div><img src={assetUrl(mistakes.image)} alt="NEO señalando errores" className="absolute bottom-0 right-1 h-28 w-[27%] object-contain" /></section>}
       {summary && <section className="rounded-[22px] border border-blue-200 bg-blue-50/70 p-4 shadow-sm"><h2 className="font-black text-blue-700">{summary.title}</h2><div className="mt-3 grid gap-2">{summary.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><Check className="size-4 shrink-0 text-green-500" strokeWidth={3} />{item}</p>)}</div><img src={assetUrl(summary.image)} alt="Libros" className="ml-auto mt-2 h-14 w-24 object-contain" /></section>}
+    </div>
+  </div>;
+}
+
+function FractionDivisionContent({ sections }) {
+  const section = (type) => sections.find((item) => item.type === type);
+  const idea = section("division_key_idea");
+  const steps = section("division_steps");
+  const examples = section("division_examples");
+  const realLife = section("division_real_life");
+  const tips = section("division_tips");
+  const mistakes = section("division_mistakes");
+  const tones = { blue: "border-blue-200 bg-sky-50/60 text-blue-600", green: "border-emerald-200 bg-emerald-50/60 text-emerald-700", violet: "border-violet-200 bg-violet-50/60 text-violet-700", orange: "border-orange-200 bg-orange-50/60 text-orange-600", sky: "border-sky-200 bg-blue-50/60 text-sky-600" };
+
+  return <div className="mt-3 grid gap-3">
+    {idea && <section className="grid items-center gap-3 rounded-[20px] border border-amber-200 bg-amber-50/80 px-4 py-3 shadow-sm lg:grid-cols-[32px_minmax(0,1fr)_auto_60px]"><Star className="size-7 fill-amber-400 text-amber-400" /><div><h2 className="font-black text-amber-900">{idea.title}</h2><p className="mt-1 text-sm font-semibold leading-5 text-slate-700">{idea.text}</p></div><div className="rounded-2xl bg-white/60 px-4 py-2 text-emerald-700"><FractionEquation values={idea.formula} /></div><img src={assetUrl(idea.image)} alt="Idea clave" className="h-12 w-full object-contain" /></section>}
+    {steps && <section><h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><BookOpen className="size-5" />{steps.title}</h2><div className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{steps.items?.map((item) => <article key={item.number} className={`grid min-h-56 content-between rounded-[22px] border p-3 shadow-sm ${tones[item.tone]}`}><div><h3 className="flex items-start gap-2 text-sm font-black leading-5"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-current text-white"><span className="text-white">{item.number}</span></span>{item.title}</h3>{item.text && <p className="mt-3 text-xs font-semibold leading-5 text-slate-700">{item.text}</p>}</div>{item.formula && <FractionEquation values={item.formula} />}<div>{item.example && <><p className="mb-1 text-xs font-black text-slate-700">{steps.exampleLabel}</p><FractionEquation values={item.example} /></>}{item.result && <p className="rounded-xl bg-emerald-50 px-2 py-2 text-center text-xs font-bold leading-5 text-emerald-800">{item.result}</p>}</div></article>)}</div></section>}
+    {(examples || realLife) && <section><h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><BookOpen className="size-5" />{examples?.title}</h2><div className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{examples?.items?.map((item) => <article key={item.title} className={`grid min-h-48 content-between rounded-[22px] border p-3 text-center shadow-sm ${tones[item.tone]}`}><h3 className="font-black">{item.title}</h3><FractionEquation values={item.initial} /><FractionEquation values={item.solution} /><div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 px-2 py-2 text-emerald-700"><strong className="text-xs">{examples.resultLabel}</strong><FractionEquation values={[item.result]} /></div></article>)}{realLife && <article className="relative min-h-48 overflow-hidden rounded-[22px] border border-blue-200 bg-blue-50/70 p-3 shadow-sm"><div className="max-w-[72%]"><h3 className="font-black text-blue-700">{realLife.title}</h3><div className="mt-2 flex flex-wrap items-center gap-1 text-xs font-semibold leading-5 text-slate-700"><span>{realLife.prefix}</span><EquivalentFraction value={realLife.amount} /><span>{realLife.middle}</span><EquivalentFraction value={realLife.portion} /><span>{realLife.suffix}</span></div><FractionEquation values={realLife.equation} /><p className="text-xs font-black text-nt-text-primary">{realLife.result}</p></div><img src={assetUrl(realLife.image)} alt="Vaso de jugo" className="absolute bottom-2 right-2 h-28 w-[28%] object-contain" /></article>}</div></section>}
+    <div className="grid gap-3 lg:grid-cols-2">
+      {tips && <section className="relative overflow-hidden rounded-[22px] border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm"><div className="max-w-[76%]"><h2 className="flex items-center gap-2 font-black text-emerald-700"><CheckCircle2 className="size-5" />{tips.title}</h2><div className="mt-3 grid gap-2">{tips.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><Check className="size-4 shrink-0 text-green-500" strokeWidth={3} />{item}</p>)}</div></div><img src={assetUrl(tips.image)} alt="NEO compartiendo consejos" className="absolute bottom-0 right-1 h-28 w-[24%] object-contain" /></section>}
+      {mistakes && <section className="relative overflow-hidden rounded-[22px] border border-red-200 bg-red-50/70 p-4 shadow-sm"><div className="max-w-[75%]"><h2 className="flex items-center gap-2 font-black text-red-600"><AlertTriangle className="size-5" />{mistakes.title}</h2><div className="mt-3 grid gap-2">{mistakes.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><span className="font-black text-red-500">×</span>{item}</p>)}</div></div><img src={assetUrl(mistakes.image)} alt="NEO señalando errores" className="absolute bottom-0 right-1 h-28 w-[25%] object-contain" /></section>}
     </div>
   </div>;
 }
@@ -650,6 +671,7 @@ function TheoryLesson() {
   const isIntermediateDifferentDenominator = webContent?.layout === "intermediate_different_denominator";
   const isIntermediateFractionSubtraction = webContent?.layout === "intermediate_fraction_subtraction";
   const isIntermediateFractionMultiplication = webContent?.layout === "intermediate_fraction_multiplication";
+  const isIntermediateFractionDivision = webContent?.layout === "intermediate_fraction_division";
   const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
   const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
   const remainingSections = contentSections.filter((section) =>
@@ -807,7 +829,9 @@ function TheoryLesson() {
 
         {isIntermediateFractionMultiplication && <FractionMultiplicationContent sections={webSections} />}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && (learningObjectives.length > 0 || importantSection || neoTip) && (
+        {isIntermediateFractionDivision && <FractionDivisionContent sections={webSections} />}
+
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && (learningObjectives.length > 0 || importantSection || neoTip) && (
           <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
             {learningObjectives.length > 0 && (
               <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
@@ -851,7 +875,7 @@ function TheoryLesson() {
           </section>
         )}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && webContent && contentSections.length > 0 && (
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && webContent && contentSections.length > 0 && (
           <div className="mt-4 grid gap-3">
             {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
               <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
@@ -933,10 +957,10 @@ function TheoryLesson() {
           <Button
             type="button"
             disabled={isCompleting}
-            className="h-12 rounded-[18px] bg-gradient-to-r from-nt-green to-emerald-500 px-6 font-black text-white"
+            className={`h-12 rounded-[18px] px-6 font-black text-white ${webContent?.finalAction ? "bg-gradient-to-r from-nt-blue to-nt-purple" : "bg-gradient-to-r from-nt-green to-emerald-500"}`}
             onClick={completeTheory}
           >
-            {isCompleting ? "Guardando progreso..." : "Finalizar teoría e ir a práctica"}
+            {isCompleting ? (webContent?.finalAction?.loadingLabel ?? "Guardando progreso...") : (webContent?.finalAction?.label ?? "Finalizar teoría e ir a práctica")}
             <CheckCircle2 className="size-4" />
           </Button>
         )}

@@ -121,7 +121,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.save(lesson);
             }
 
-            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 6)) {
+            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 7)) {
                 lesson.setTitle("Bienvenida al nivel intermedio");
                 lesson.setSubtitle("Ahora vamos a resolver operaciones con fracciones 🚀");
                 lesson.setSummary("En este nivel aprenderás a sumar, restar, multiplicar y dividir fracciones para resolver problemas de la vida real.");
@@ -147,6 +147,10 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     lesson.setTitle("Multiplicación de fracciones");
                     lesson.setSubtitle("Tomar una parte de otra parte.");
                     lesson.setSummary("Multiplicar fracciones significa tomar una fracción de otra fracción.");
+                } else if (orderNumber == 7) {
+                    lesson.setTitle("División de fracciones");
+                    lesson.setSubtitle("¿Cuántas veces cabe una fracción en otra?");
+                    lesson.setSummary("Dividir fracciones es saber cuántas veces una cabe dentro de otra.");
                 }
                 lesson.setWebContentJson(intermediateWebContent(orderNumber));
                 lesson.setActive(true);
@@ -280,6 +284,31 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String intermediateWebContent(int lessonNumber) {
+        if (lessonNumber == 7) return """
+                {
+                  "layout":"intermediate_fraction_division",
+                  "hero":{"badge":"Lección 7","title":"División de fracciones","subtitle":"¿Cuántas veces cabe una fracción en otra?","description":"Dividir fracciones es saber cuántas veces una cabe dentro de otra.","image":"leccion7_intermedio.png"},
+                  "finalAction":{"label":"¡Felicidades! Has completado el nivel intermedio 🎉","loadingLabel":"Guardando progreso..."},
+                  "sections":[
+                    {"type":"division_key_idea","title":"Idea clave","text":"Para dividir fracciones, multiplicamos la primera fracción por el recíproco de la segunda fracción.","formula":[{"numerator":"a","denominator":"b"},"÷",{"numerator":"c","denominator":"d"},"=",{"numerator":"a","denominator":"b"},"×",{"numerator":"d","denominator":"c"}],"image":"idea.png"},
+                    {"type":"division_steps","title":"¿Cómo se hace?","exampleLabel":"Ejemplo:","items":[
+                      {"number":"1","title":"Escribimos la división","formula":[{"numerator":"a","denominator":"b"},"÷",{"numerator":"c","denominator":"d"}],"example":[{"numerator":"1","denominator":"2"},"÷",{"numerator":"1","denominator":"4"}],"tone":"blue"},
+                      {"number":"2","title":"Invertimos la segunda fracción (recíproco)","formula":[{"numerator":"c","denominator":"d"},"→",{"numerator":"d","denominator":"c"}],"example":[{"numerator":"1","denominator":"4"},"→",{"numerator":"4","denominator":"1"}],"tone":"green"},
+                      {"number":"3","title":"Multiplicamos","formula":[{"numerator":"a","denominator":"b"},"×",{"numerator":"d","denominator":"c"}],"example":[{"numerator":"1","denominator":"2"},"×",{"numerator":"4","denominator":"1"}],"tone":"violet"},
+                      {"number":"4","title":"Resolvemos","formula":[{"numerator":"1 × 4","denominator":"2 × 1"},"=",{"numerator":"4","denominator":"2"},"=","2"],"result":"Hay 2 cuartos en un medio.","tone":"orange"},
+                      {"number":"5","title":"¿Qué es el recíproco?","text":"Es la fracción que se obtiene al invertir numerador y denominador.","example":[{"numerator":"3","denominator":"5"},"→",{"numerator":"5","denominator":"3"}],"tone":"sky"}
+                    ]},
+                    {"type":"division_examples","title":"Más ejemplos","resultLabel":"Resultado:","items":[
+                      {"title":"Ejemplo 1","initial":[{"numerator":"3","denominator":"4"},"÷",{"numerator":"1","denominator":"2"}],"solution":[{"numerator":"3","denominator":"4"},"×",{"numerator":"2","denominator":"1"},"=",{"numerator":"6","denominator":"4"},"=",{"numerator":"3","denominator":"2"},"=",{"whole":"1","numerator":"1","denominator":"2"}],"result":{"whole":"1","numerator":"1","denominator":"2"},"tone":"green"},
+                      {"title":"Ejemplo 2","initial":[{"numerator":"2","denominator":"3"},"÷",{"numerator":"1","denominator":"6"}],"solution":[{"numerator":"2","denominator":"3"},"×",{"numerator":"6","denominator":"1"},"=",{"numerator":"12","denominator":"3"},"=","4"],"result":"4","tone":"violet"},
+                      {"title":"Ejemplo 3","initial":[{"numerator":"5","denominator":"6"},"÷",{"numerator":"5","denominator":"12"}],"solution":[{"numerator":"5","denominator":"6"},"×",{"numerator":"12","denominator":"5"},"=",{"numerator":"60","denominator":"30"},"=","2"],"result":"2","tone":"orange"}
+                    ]},
+                    {"type":"division_real_life","title":"En la vida real","prefix":"Si tienes","amount":{"numerator":"2","denominator":"3"},"middle":"de litro de jugo y cada vaso es de","portion":{"numerator":"1","denominator":"6"},"suffix":"de litro, ¿cuántos vasos puedes servir?","equation":[{"numerator":"2","denominator":"3"},"÷",{"numerator":"1","denominator":"6"},"=","4"],"result":"Puedes servir 4 vasos.","image":"vaso.png"},
+                    {"type":"division_tips","title":"Consejos de NÉO","image":"neo_ideas.png","items":["Recuerda invertir SOLO la segunda fracción.","Multiplica numeradores entre sí y denominadores entre sí.","Si el resultado es mayor que 1, puede ser número mixto."]},
+                    {"type":"division_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Invertir la fracción incorrecta.","Olvidar cambiar la división por multiplicación.","Multiplicar en cruz (incorrecto)."]}
+                  ]
+                }
+                """;
         if (lessonNumber == 6) return """
                 {
                   "layout":"intermediate_fraction_multiplication",
