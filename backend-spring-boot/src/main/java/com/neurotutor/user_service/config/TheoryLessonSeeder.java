@@ -121,7 +121,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.save(lesson);
             }
 
-            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber == 1 || orderNumber == 2)) {
+            if ("INTERMEDIO".equals(expectedLevel) && (orderNumber == 1 || orderNumber == 2 || orderNumber == 3)) {
                 lesson.setTitle("Bienvenida al nivel intermedio");
                 lesson.setSubtitle("Ahora vamos a resolver operaciones con fracciones 🚀");
                 lesson.setSummary("En este nivel aprenderás a sumar, restar, multiplicar y dividir fracciones para resolver problemas de la vida real.");
@@ -131,6 +131,10 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     lesson.setTitle("Fracciones equivalentes");
                     lesson.setSubtitle("Distintas fracciones, pero el mismo valor ✨");
                     lesson.setSummary("Dos fracciones son equivalentes cuando representan la misma cantidad de un todo, aunque tengan números diferentes.");
+                } else if (orderNumber == 3) {
+                    lesson.setTitle("Suma con igual denominador");
+                    lesson.setSubtitle("Sumamos las partes, el tamaño no cambia.");
+                    lesson.setSummary("Cuando dos fracciones tienen el mismo denominador, significa que las partes son del mismo tamaño.");
                 }
                 lesson.setWebContentJson(intermediateWebContent(orderNumber));
                 lesson.setActive(true);
@@ -264,6 +268,24 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String intermediateWebContent(int lessonNumber) {
+        if (lessonNumber == 3) return """
+                {
+                  "layout":"intermediate_same_denominator",
+                  "hero":{"badge":"Lección 3","title":"Suma con igual denominador","subtitle":"Sumamos las partes, el tamaño no cambia.","description":"Cuando dos fracciones tienen el mismo denominador, significa que las partes son del mismo tamaño.","image":"leccion3_intermedio.png"},
+                  "sections":[
+                    {"type":"denominator_reminder","text":"Recuerda: el denominador indica en cuántas partes iguales se ha dividido el todo."},
+                    {"type":"addition_example","title":"Veamos un ejemplo","items":[
+                      {"fraction":{"numerator":"2","denominator":"8"},"text":"Tomamos 2 de 8 partes","image":"pizza_verde.png","tone":"blue","operator":"+"},
+                      {"fraction":{"numerator":"3","denominator":"8"},"text":"Tomamos 3 de 8 partes","image":"pizza2.png","tone":"green","operator":"="},
+                      {"fraction":{"numerator":"5","denominator":"8"},"text":"Tomamos 5 de 8 partes","image":"pizza_morada.png","tone":"violet"}
+                    ]},
+                    {"type":"addition_key_idea","label":"Idea clave:","textBefore":"se suman los","highlightBlue":"numeradores","textMiddle":"y el denominador","highlightOrange":"se conserva.","formulaLabel":"Fórmula:","formula":{"left":{"numerator":"a","denominator":"n"},"right":{"numerator":"b","denominator":"n"},"result":{"numerator":"a + b","denominator":"n"}}},
+                    {"type":"why_it_works","title":"¿Por qué funciona?","text":"Como las partes tienen el mismo tamaño, podemos juntar las partes tomadas.","importantLabel":"Importante:","importantText":"el tamaño de las partes (no el denominador) debe ser igual.","image":"pizza_animada.png"},
+                    {"type":"addition_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Sumar también los denominadores.","Olvidar que los denominadores deben ser iguales.","Cambiar el denominador sin razón."]},
+                    {"type":"now_you","title":"Ahora tú","text":"En la siguiente sección podrás practicar sumas con fracciones con igual denominador."}
+                  ]
+                }
+                """;
         if (lessonNumber == 2) return """
                 {
                   "layout":"intermediate_equivalent_fractions",
