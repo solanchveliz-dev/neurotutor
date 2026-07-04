@@ -31,6 +31,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
         seedLevel(8L, "AVANZADO", advancedLessons());
         updateExistingLessonThree();
         updateExistingLessonFour();
+        updateExistingLessonFive();
     }
 
     /**
@@ -70,6 +71,22 @@ public class TheoryLessonSeeder implements ApplicationRunner {
         theoryLessonRepository.saveAndFlush(lesson);
     }
 
+    private void updateExistingLessonFive() {
+        TheoryLesson lesson = theoryLessonRepository.findById(5L).orElse(null);
+        if (lesson == null) return;
+
+        LessonSeed seed = basicLessons().get(4);
+        lesson.setTitle("Repaso antes de la práctica");
+        lesson.setSubtitle("¡Lo lograste! Estás listo para poner en práctica todo lo aprendido. 💪");
+        lesson.setSummary("Hagamos un repaso de los puntos más importantes.");
+        lesson.setIcon(seed.icon());
+        lesson.setContentHtml(seed.contentHtml());
+        lesson.setWebContentJson(basicWebContent(5));
+        lesson.setOrderNumber(5);
+        lesson.setActive(true);
+        theoryLessonRepository.saveAndFlush(lesson);
+    }
+
     private void seedLevel(Long levelId, String expectedLevel, List<LessonSeed> seeds) {
         Modulo module = moduloRepository.findById(levelId).orElse(null);
         if (module == null || !expectedLevel.equals(module.getNivelRequerido())) return;
@@ -98,7 +115,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
             }
 
             if ("BASICO".equals(expectedLevel)
-                    && (orderNumber == 1 || orderNumber == 2 || orderNumber == 3 || orderNumber == 4
+                    && (orderNumber == 1 || orderNumber == 2 || orderNumber == 3 || orderNumber == 4 || orderNumber == 5
                     || lesson.getWebContentJson() == null || lesson.getWebContentJson().isBlank())) {
                 lesson.setWebContentJson(basicWebContent(orderNumber));
                 theoryLessonRepository.save(lesson);
@@ -211,15 +228,18 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     """;
             case 5 -> """
                     {
-                      "hero":{"badge":"Lección 5","title":"Repaso antes de la práctica","subtitle":"Estás listo para poner a prueba lo aprendido","description":"Repasa las ideas principales del nivel antes de comenzar los ejercicios.","image":"lecciones_basico5.png"},
+                      "hero":{"badge":"Lección 5","title":"Repaso antes de la práctica","subtitle":"¡Lo lograste! Estás listo para poner en práctica todo lo aprendido. 💪","description":"Hagamos un repaso de los puntos más importantes.","image":"lecciones5.png"},
                       "sections":[
-                        {"type":"main_concept","title":"Resumen de lo aprendido","text":"Las fracciones representan partes iguales de un todo y se interpretan observando sus dos números.","visual":"lecciones_basico5.png"},
-                        {"type":"example","title":"Repaso rápido","text":"En 3/4 se toman 3 de 4 partes iguales. Como 3 es menor que 4, es una fracción propia.","visual":"pizza.png"},
-                        {"type":"important_idea","title":"Ideas importantes","text":"Las partes deben ser iguales; el numerador va arriba y el denominador abajo; compara ambos para clasificar."},
-                        {"type":"neo_tip","title":"NEO dice","text":"Explica cada respuesta con tus propias palabras antes de pasar a la práctica.","image":"neo_leccion.png"},
-                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Recordar qué representa una fracción.","Distinguir numerador y denominador.","Clasificar fracciones propias e impropias.","Prepararte para resolver ejercicios."]},
-                        {"type":"common_mistakes","title":"Errores comunes","items":["Olvidar que las partes deben ser iguales.","Intercambiar numerador y denominador.","Pensar que todas las fracciones son menores que uno."]},
-                        {"type":"reflection","title":"Antes de continuar","text":"¿Puedes explicar con un ejemplo qué es una fracción y clasificarla? Entonces estás listo para practicar."}
+                        {"type":"learning_summary","title":"Resumen de lo aprendido","items":[
+                          {"number":"1","title":"¿Qué son las fracciones?","text":"Representan una parte de un todo que ha sido dividido en partes iguales.","kind":"image","image":"pizza1.png","tone":"blue"},
+                          {"number":"2","title":"¿Qué es una fracción?","text":"Una fracción muestra cuántas partes iguales tomamos de un total.","kind":"image","image":"barra_chocolate.png","tone":"violet"},
+                          {"number":"3","title":"Partes de una fracción","text":"El numerador indica las partes que tomamos. El denominador, las partes en que se divide el todo.","kind":"fraction","numerator":"3","denominator":"4","numeratorLabel":"Numerador","denominatorLabel":"Denominador","tone":"amber"},
+                          {"number":"4","title":"Fracciones propias e impropias","text":"Propias: numerador menor que denominador. Impropias: numerador mayor que denominador.","kind":"classification","proper":{"numerator":"1","denominator":"2","label":"Propia"},"improper":{"numerator":"3","denominator":"2","label":"Impropia"},"tone":"green"},
+                          {"number":"5","title":"Repaso final","text":"Ya conoces, entiendes y puedes aplicar fracciones en diferentes situaciones.","kind":"image","image":"copa.png","tone":"rose"}
+                        ]},
+                        {"type":"important_ideas","title":"Ideas importantes","image":"idea.png","items":["Las fracciones nos ayudan a repartir, medir y comparar.","Siempre trabajamos con partes iguales.","El numerador está arriba y el denominador abajo.","Las fracciones propias son menores que 1.","Las fracciones impropias son mayores que 1."]},
+                        {"type":"review_mistakes","title":"Errores comunes","image":"neo_recuerda.png","items":["Pensar que el denominador puede ser 0.","Olvidar que las partes deben ser iguales.","Confundir numerador y denominador.","Creer que todas las fracciones son menores que 1."]},
+                        {"type":"ready_for_practice","title":"¡Estás preparado!","text":"Ahora pondrás a prueba todo lo que aprendiste.\nEn la siguiente sección encontrarás ejercicios para seguir mejorando.","image":"neo_ideas.png"}
                       ]
                     }
                     """;
