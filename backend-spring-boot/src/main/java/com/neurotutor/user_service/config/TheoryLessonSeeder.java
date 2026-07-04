@@ -121,6 +121,17 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.save(lesson);
             }
 
+            if ("INTERMEDIO".equals(expectedLevel) && orderNumber == 1) {
+                lesson.setTitle("Bienvenida al nivel intermedio");
+                lesson.setSubtitle("Ahora vamos a resolver operaciones con fracciones 🚀");
+                lesson.setSummary("En este nivel aprenderás a sumar, restar, multiplicar y dividir fracciones para resolver problemas de la vida real.");
+                lesson.setIcon(seed.icon());
+                lesson.setContentHtml(seed.contentHtml());
+                lesson.setWebContentJson(intermediateWebContent(orderNumber));
+                lesson.setActive(true);
+                theoryLessonRepository.saveAndFlush(lesson);
+            }
+
             if ("BASICO".equals(expectedLevel) && orderNumber == 2) {
                 lesson.setTitle("¿Qué es una fracción?");
                 lesson.setSubtitle("Fracciones: partes iguales de un todo");
@@ -245,6 +256,31 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     """;
             default -> null;
         };
+    }
+
+    private String intermediateWebContent(int lessonNumber) {
+        if (lessonNumber != 1) return null;
+        return """
+                {
+                  "layout":"intermediate_welcome",
+                  "hero":{"badge":"Lección 1","title":"Bienvenida al nivel intermedio","subtitle":"Ahora vamos a resolver operaciones con fracciones 🚀","description":"En este nivel aprenderás a sumar, restar, multiplicar y dividir fracciones para resolver problemas de la vida real.","image":"lecciones_intermedio.png"},
+                  "sections":[
+                    {"type":"level_objectives","title":"¿Qué aprenderás en este nivel?","text":"Resolverás operaciones con fracciones para aplicarlas en situaciones reales de tu día a día.","items":[
+                      {"label":"Suma y resta de fracciones","icon":"sum","tone":"violet"},
+                      {"label":"Multiplicación y división","icon":"multiply","tone":"amber"},
+                      {"label":"Problemas de la vida cotidiana","icon":"puzzle","tone":"green"},
+                      {"label":"Desafíos cada vez más difíciles","icon":"trophy","tone":"rose"}
+                    ]},
+                    {"type":"operation_uses","title":"¿Para qué sirven las operaciones con fracciones?","items":[
+                      {"title":"Recetas","text":"Si una receta usa 3/4 de taza de azúcar y quieres hacer la mitad, necesitas operar con fracciones.","image":"pastel.png","tone":"amber"},
+                      {"title":"Compras","text":"Si descuentas 1/4 del total de tu compra, usarás restas de fracciones.","image":"carrito_compras.png","tone":"green"},
+                      {"title":"Medidas","text":"Si mezclas 1/2 de litro con 1/4 de litro de jugo, estás sumando fracciones.","image":"vaso.png","tone":"blue"},
+                      {"title":"Reparto","text":"Si divides una pizza entre varias personas o porciones, necesitas multiplicar o dividir fracciones.","image":"pizza3.png","tone":"orange"}
+                    ]},
+                    {"type":"fraction_reminder","title":"Recordatorio rápido","text":"Cada fracción tiene dos partes importantes:","fraction":{"numerator":"3","denominator":"4"},"numeratorLabel":"Numerador","numeratorText":"Indica cuántas partes tomamos del todo.","denominatorLabel":"Denominador","denominatorText":"Indica en cuántas partes iguales se divide el todo.","image":"neo_lupa.png","reminderTitle":"¡Recuerda!","reminderText":"Siempre que operemos, usaremos bien estas dos partes."}
+                  ]
+                }
+                """;
     }
 
     private List<LessonSeed> basicLessons() {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, Eye, Lightbulb, Star, Target } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, Divide, Eye, Lightbulb, Plus, Puzzle, Star, Target, Trophy } from "lucide-react";
 import AppSidebar from "../components/layout/AppSidebar";
 import StudentLayout from "../components/layout/StudentLayout";
 import BackButton from "../components/student/BackButton";
@@ -276,6 +276,36 @@ function LessonFiveContent({ sections }) {
   );
 }
 
+function IntermediateWelcomeContent({ sections }) {
+  const section = (type) => sections.find((item) => item.type === type);
+  const objectives = section("level_objectives");
+  const uses = section("operation_uses");
+  const reminder = section("fraction_reminder");
+  const objectiveIcons = { sum: Plus, multiply: Divide, puzzle: Puzzle, trophy: Trophy };
+  const objectiveTones = {
+    violet: "bg-violet-100 text-violet-700",
+    amber: "bg-amber-100 text-orange-600",
+    green: "bg-emerald-100 text-emerald-700",
+    rose: "bg-rose-100 text-rose-600",
+  };
+  const useTones = {
+    amber: "border-amber-200 bg-amber-50/60 text-amber-800",
+    green: "border-emerald-200 bg-emerald-50/50 text-emerald-700",
+    blue: "border-blue-200 bg-sky-50/60 text-blue-700",
+    orange: "border-orange-200 bg-orange-50/50 text-orange-600",
+  };
+
+  return (
+    <div className="mt-3 grid gap-4">
+      {objectives && <section className="grid items-center gap-4 rounded-[22px] border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 p-4 shadow-sm lg:grid-cols-[minmax(240px,1fr)_minmax(0,2fr)]"><div className="flex items-start gap-3"><span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-100 text-nt-blue"><Target className="size-7" /></span><div><h2 className="text-lg font-black text-nt-blue">{objectives.title}</h2><p className="mt-1 text-sm font-semibold leading-6 text-slate-700">{objectives.text}</p></div></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{objectives.items?.map((item) => { const ObjectiveIcon = objectiveIcons[item.icon] ?? Star; return <article key={item.label} className="grid place-items-center gap-2 text-center"><span className={`grid size-14 place-items-center rounded-[18px] ${objectiveTones[item.tone] ?? objectiveTones.violet}`}><ObjectiveIcon className="size-7" strokeWidth={3} /></span><p className="text-xs font-black leading-5 text-nt-text-primary">{item.label}</p></article>; })}</div></section>}
+
+      {uses && <section><h2 className="flex items-center gap-2 text-xl font-black text-emerald-700"><Star className="size-5 fill-emerald-500 text-emerald-500" />{uses.title}</h2><div className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{uses.items?.map((item) => <article key={item.title} className={`grid min-h-48 grid-cols-[100px_minmax(0,1fr)] items-center gap-3 rounded-[22px] border p-3 shadow-sm ${useTones[item.tone] ?? useTones.blue}`}><img src={assetUrl(item.image)} alt={item.title} className="h-28 w-full object-contain drop-shadow-md" /><div><h3 className="text-sm font-black">{item.title}</h3><p className="mt-2 text-xs font-semibold leading-5 text-slate-700">{item.text}</p></div></article>)}</div></section>}
+
+      {reminder && <section className="grid items-center gap-4 overflow-hidden rounded-[22px] border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-sky-50 p-4 shadow-sm lg:grid-cols-[minmax(190px,1fr)_minmax(300px,1.5fr)_110px_minmax(160px,.8fr)]"><div><h2 className="flex items-center gap-2 text-lg font-black text-nt-purple"><Lightbulb className="size-5" />{reminder.title}</h2><p className="mt-2 text-xs font-semibold leading-5 text-slate-700">{reminder.text}</p></div><div className="grid grid-cols-[minmax(0,1fr)_56px_minmax(0,1fr)] items-center gap-3 rounded-[18px] border border-violet-100 bg-white/70 p-3"><div className="text-right"><p className="font-black text-orange-600">{reminder.numeratorLabel} →</p><p className="mt-1 text-[11px] font-semibold leading-4 text-slate-700">{reminder.numeratorText}</p></div><StackedFraction numerator={reminder.fraction?.numerator} denominator={reminder.fraction?.denominator} className="text-2xl text-nt-text-primary" /><div><p className="font-black text-emerald-700">← {reminder.denominatorLabel}</p><p className="mt-1 text-[11px] font-semibold leading-4 text-slate-700">{reminder.denominatorText}</p></div></div>{reminder.image && <img src={assetUrl(reminder.image)} alt="NEO observando" className="mx-auto h-28 w-full object-contain drop-shadow-md" />}<aside className="rounded-[18px] border border-violet-200 bg-white/80 p-3 shadow-sm"><h3 className="text-sm font-black text-nt-purple">{reminder.reminderTitle}</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{reminder.reminderText}</p></aside></section>}
+    </div>
+  );
+}
+
 function LessonSidebar({ lesson, lessons, position, progress, neoTip, nextLessonData, showNeoCard = true }) {
   const totalLessons = progress?.total_lessons ?? lessons.length;
   const completedLessons = progress?.completed_lessons ?? progress?.theory_completed_lessons ?? null;
@@ -450,10 +480,11 @@ function TheoryLesson() {
   const reflectionSection = contentSections.find((section) => section.type === "reflection");
   const observeSection = contentSections.find((section) => section.type === "observe");
   const summarySection = contentSections.find((section) => section.type === "summary");
-  const isLessonTwo = position === 2;
-  const isLessonThree = position === 3;
-  const isLessonFour = position === 4;
-  const isLessonFive = position === 5;
+  const isLessonTwo = position === 2 && webSections.some((section) => section.type === "lesson_objective");
+  const isLessonThree = position === 3 && webSections.some((section) => section.type === "fraction_parts");
+  const isLessonFour = position === 4 && webSections.some((section) => section.type === "proper_fractions");
+  const isLessonFive = position === 5 && webSections.some((section) => section.type === "learning_summary");
+  const isIntermediateWelcome = webContent?.layout === "intermediate_welcome";
   const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
   const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
   const remainingSections = contentSections.filter((section) =>
@@ -599,7 +630,9 @@ function TheoryLesson() {
 
         {isLessonFive && <LessonFiveContent sections={webSections} />}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && (learningObjectives.length > 0 || importantSection || neoTip) && (
+        {isIntermediateWelcome && <IntermediateWelcomeContent sections={webSections} />}
+
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && (learningObjectives.length > 0 || importantSection || neoTip) && (
           <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
             {learningObjectives.length > 0 && (
               <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
@@ -643,7 +676,7 @@ function TheoryLesson() {
           </section>
         )}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && webContent && contentSections.length > 0 && (
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && webContent && contentSections.length > 0 && (
           <div className="mt-4 grid gap-3">
             {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
               <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
