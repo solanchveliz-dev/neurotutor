@@ -59,7 +59,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
             }
 
             if ("BASICO".equals(expectedLevel)
-                    && (lesson.getWebContentJson() == null || lesson.getWebContentJson().isBlank())) {
+                    && (orderNumber == 1 || lesson.getWebContentJson() == null || lesson.getWebContentJson().isBlank())) {
                 lesson.setWebContentJson(basicWebContent(orderNumber));
                 theoryLessonRepository.save(lesson);
             }
@@ -82,16 +82,16 @@ public class TheoryLessonSeeder implements ApplicationRunner {
         return switch (lessonNumber) {
             case 1 -> """
                     {
-                      "hero":{"badge":"Lección 1","title":"Bienvenida al mundo de las fracciones","subtitle":"Tu aventura comienza aquí","description":"Descubre cómo las fracciones nos ayudan a compartir, medir y resolver situaciones cotidianas.","image":"lecciones_basico1.png"},
+                      "hero":{"badge":"Lección 1","title":"Bienvenida al mundo de las fracciones","subtitle":"🌟 Tu aventura comienza aquí","description":"Descubre cómo usamos fracciones al compartir alimentos y objetos.","image":"lecciones_saludo.png","time":"5 min","points":5},
                       "sections":[
-                        {"type":"main_concept","title":"¿Para qué sirven las fracciones?","text":"Las fracciones expresan una parte de algo completo y nos ayudan a repartir de manera justa.","visual":"pizza.png"},
-                        {"type":"example","title":"Las vemos todos los días","text":"Aparecen al compartir una pizza, una torta o una barra de chocolate en partes iguales.","visual":"lecciones_saludo.png"},
-                        {"type":"important_idea","title":"Una idea para comenzar","text":"Una fracción permite hablar de una o varias partes de un todo."},
-                        {"type":"neo_tip","title":"NEO dice","text":"Observa cómo repartes objetos en casa: probablemente ya utilizas fracciones sin darte cuenta.","image":"neo_leccion.png"},
-                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Qué son las fracciones de forma sencilla.","Dónde aparecen en la vida diaria.","Cómo repartir objetos en partes iguales.","Qué descubrirás durante este nivel."]},
-                        {"type":"common_mistakes","title":"Errores comunes","items":["Creer que las fracciones solo aparecen en los libros.","Repartir un objeto en partes de distinto tamaño."]},
-                        {"type":"reflection","title":"Antes de continuar","text":"Piensa en algo que hayas compartido hoy. ¿Cómo podrías describir cada parte?"}
-                      ]
+                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Qué representa una fracción.","Dónde usamos fracciones en la vida diaria.","Cómo repartir objetos en partes iguales.","Qué aprenderás durante este nivel."]},
+                        {"type":"important_idea","title":"Idea importante","text":"Las fracciones nos ayudan a representar partes de un todo cuando compartimos, repartimos o medimos algo."},
+                        {"type":"neo_tip","title":"NEO recomienda","text":"Antes de seguir, observa ejemplos de tu vida diaria: una pizza, una torta o una barra de chocolate pueden ayudarte a entender mejor.","image":"neo_leccion.png"},
+                        {"type":"example","title":"Ejemplo: Pizza dividida","text":"Si compartes una pizza entre varias personas, cada porción representa una parte de la pizza completa.","visual":"pizza.png","items":[{"label":"1/2","description":"La pizza se divide en 2 partes iguales."},{"label":"1/4","description":"La pizza se divide en 4 partes iguales."},{"label":"3/4","description":"Se toman 3 de 4 partes iguales."}]},
+                        {"type":"observe","title":"Observa","text":"Cuando compartes una pizza entre dos personas, cada una recibe una parte igual. Si la partes en cuatro, cada parte es más pequeña, pero sigue siendo una fracción del todo.","image":"lecciones_saludo.png"},
+                        {"type":"summary","title":"Resumen de la lección","items":["Una fracción representa una parte de un todo.","Las fracciones aparecen cuando repartimos algo en partes iguales.","Puedes encontrar fracciones en alimentos, tiempo, medidas y juegos."]}
+                      ],
+                      "nextLesson":{"title":"¿Qué es una fracción?","description":"Descubriremos qué es una fracción y cómo se representa."}
                     }
                     """;
             case 2 -> """

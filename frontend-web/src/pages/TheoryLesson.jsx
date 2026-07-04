@@ -54,7 +54,7 @@ function StructuredSection({ section }) {
   const visual = assetUrl(section.visual);
   if (section.type === "main_concept" || section.type === "example") {
     const Icon = section.type === "main_concept" ? Target : BookOpen;
-    return <section className="grid items-center gap-4 rounded-[22px] border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-4 sm:grid-cols-[minmax(0,1fr)_140px]"><div><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><Icon className="size-5 text-nt-blue" />{section.title}</h2>{section.text && <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p>}</div>{visual && <img src={visual} alt="" className="mx-auto size-32 object-contain drop-shadow-md" />}</section>;
+    return <section className="grid items-center gap-4 rounded-[22px] border border-blue-100 bg-gradient-to-br from-white to-sky-50 p-4 sm:grid-cols-[minmax(0,1fr)_140px]"><div><h2 className="flex items-center gap-2 text-lg font-black text-nt-text-primary"><Icon className="size-5 text-nt-blue" />{section.title}</h2>{section.text && <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p>}</div>{visual && <img src={visual} alt="" className="mx-auto size-32 object-contain drop-shadow-md" />}{Array.isArray(section.items) && <div className="grid gap-2 sm:col-span-2 sm:grid-cols-3">{section.items.map((item) => <article key={item.label} className="rounded-2xl border border-amber-100 bg-white/85 px-4 py-3 text-center shadow-sm"><strong className="text-xl font-black text-nt-purple">{item.label}</strong><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{item.description}</p></article>)}</div>}</section>;
   }
   if (section.type === "important_idea") {
     return <aside className="rounded-[22px] border border-amber-200 bg-amber-50 p-4"><h2 className="flex items-center gap-2 text-base font-black text-amber-900"><Lightbulb className="size-5 text-amber-500" />{section.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-amber-900">{section.text}</p></aside>;
@@ -65,10 +65,16 @@ function StructuredSection({ section }) {
   if (section.type === "reflection") {
     return <section className="rounded-[22px] border border-violet-100 bg-gradient-to-r from-violet-50 to-sky-50 p-4"><h2 className="text-base font-black text-nt-purple">{section.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p></section>;
   }
+  if (section.type === "observe") {
+    return <section className="grid items-center gap-4 rounded-[22px] border border-sky-100 bg-sky-50 p-4 sm:grid-cols-[minmax(0,1fr)_180px]"><div><h2 className="text-lg font-black text-nt-blue">{section.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{section.text}</p></div>{section.image && <img src={assetUrl(section.image)} alt="" className="mx-auto h-32 w-full object-contain" />}</section>;
+  }
+  if (section.type === "summary" && Array.isArray(section.items)) {
+    return <section className="rounded-[22px] border border-emerald-100 bg-emerald-50 p-4"><h2 className="text-lg font-black text-emerald-800">{section.title}</h2><div className="mt-3 grid gap-2">{section.items.map((item) => <div key={item} className="flex items-start gap-2"><span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-emerald-500 text-white"><Check className="size-3" strokeWidth={3} /></span><p className="text-sm font-semibold text-slate-700">{item}</p></div>)}</div></section>;
+  }
   return null;
 }
 
-function LessonSidebar({ lesson, lessons, position, level, progress, neoTip }) {
+function LessonSidebar({ lesson, lessons, position, level, progress, neoTip, nextLessonData, heroContent }) {
   const totalLessons = progress?.total_lessons ?? lessons.length;
   const completedLessons = progress?.completed_lessons
     ?? progress?.theory_completed_lessons
@@ -88,8 +94,8 @@ function LessonSidebar({ lesson, lessons, position, level, progress, neoTip }) {
       ?? lessonProgressData?.progress
       ?? (completedFlag === true || String(lessonStatus ?? "").toUpperCase() === "COMPLETADO" ? 100 : null)
   );
-  const estimatedMinutes = lesson?.estimated_minutes ?? lesson?.estimated_duration_minutes;
-  const completionPoints = lesson?.completion_points ?? lesson?.points;
+  const estimatedMinutes = heroContent?.time ?? lesson?.estimated_minutes ?? lesson?.estimated_duration_minutes;
+  const completionPoints = heroContent?.points ?? lesson?.completion_points ?? lesson?.points;
 
   return (
     <div className="space-y-5">
@@ -127,7 +133,7 @@ function LessonSidebar({ lesson, lessons, position, level, progress, neoTip }) {
           {lessonPercentage === null && lessonStatus && <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Estado</dt><dd className="font-black text-nt-blue">{lessonStatus}</dd></div>}
           <div className="flex items-center justify-between gap-3"><dt className="flex items-center gap-1.5 text-nt-text-secondary"><GraduationCap className="size-3.5" />Nivel</dt><dd className="font-black text-nt-text-primary">{level.name}</dd></div>
           <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Contenido</dt><dd className="font-black text-nt-text-primary">Teoría</dd></div>
-          {estimatedMinutes !== null && estimatedMinutes !== undefined && <div className="flex items-center justify-between gap-3"><dt className="flex items-center gap-1.5 text-nt-text-secondary"><Clock3 className="size-3.5" />Tiempo</dt><dd className="font-black text-nt-text-primary">{estimatedMinutes} min</dd></div>}
+          {estimatedMinutes !== null && estimatedMinutes !== undefined && <div className="flex items-center justify-between gap-3"><dt className="flex items-center gap-1.5 text-nt-text-secondary"><Clock3 className="size-3.5" />Tiempo</dt><dd className="font-black text-nt-text-primary">{typeof estimatedMinutes === "string" ? estimatedMinutes : `${estimatedMinutes} min`}</dd></div>}
           {completionPoints !== null && completionPoints !== undefined && <div className="flex items-center justify-between gap-3"><dt className="text-nt-text-secondary">Puntos</dt><dd className="font-black text-emerald-700">+{completionPoints}</dd></div>}
         </dl>
       </section>
@@ -141,7 +147,13 @@ function LessonSidebar({ lesson, lessons, position, level, progress, neoTip }) {
           </div>
           <div className="absolute -bottom-10 -right-8 size-32 rounded-full bg-white/50 blur-2xl" />
           <img src={assetUrl(neoTip?.image) ?? "/assets/neo_leccion.png"} alt="NEO" className="absolute bottom-0 right-1 z-10 size-38 object-contain drop-shadow-[0_12px_18px_rgba(76,29,149,0.18)]" />
+      </aside>
+      {nextLessonData && (
+        <aside className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-white to-sky-50 p-4 shadow-sm">
+          <div className="max-w-[68%]"><p className="text-xs font-black text-nt-blue">Próxima lección</p><h2 className="mt-1 text-sm font-black text-nt-text-primary">{nextLessonData.title}</h2><p className="mt-2 text-xs font-semibold leading-5 text-nt-text-secondary">{nextLessonData.description}</p></div>
+          <img src="/assets/libro.png" alt="" className="absolute bottom-1 right-1 size-20 object-contain" />
         </aside>
+      )}
     </div>
   );
 }
@@ -322,7 +334,7 @@ function TheoryLesson() {
         </div>
       }
       rightPanel={
-        <LessonSidebar lesson={lesson} lessons={lessons} position={position} level={level} progress={moduleProgress} neoTip={neoTip} />
+        <LessonSidebar lesson={lesson} lessons={lessons} position={position} level={level} progress={moduleProgress} neoTip={neoTip} nextLessonData={webContent?.nextLesson} heroContent={heroContent} />
       }
     >
       <article className="rounded-nt-card border border-white/85 bg-white/95 p-3 shadow-nt-card sm:p-4 lg:p-5">
@@ -339,6 +351,13 @@ function TheoryLesson() {
               {(heroContent?.subtitle ?? lesson.subtitle) && <p className="mt-1.5 text-sm font-black text-nt-purple sm:text-base">{heroContent?.subtitle ?? lesson.subtitle}</p>}
               {(heroContent?.description ?? lesson.summary) && (
                 <p className="mt-2 max-w-2xl text-sm font-semibold leading-5 text-slate-600">{heroContent?.description ?? lesson.summary}</p>
+              )}
+              {heroContent && (heroContent.time || heroContent.points !== undefined) && (
+                <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                  {heroContent.time && <span className="rounded-xl border border-blue-100 bg-white/80 px-3 py-2 font-black text-nt-blue">{heroContent.time}</span>}
+                  <span className="rounded-xl border border-violet-100 bg-white/80 px-3 py-2 font-black text-nt-purple">{position} de {lessons.length}</span>
+                  {heroContent.points !== null && heroContent.points !== undefined && <span className="rounded-xl border border-amber-100 bg-white/80 px-3 py-2 font-black text-amber-700">+{heroContent.points} pts</span>}
+                </div>
               )}
             </div>
             <div className="order-first flex min-h-[150px] items-center justify-center md:order-none md:min-h-[180px]">
