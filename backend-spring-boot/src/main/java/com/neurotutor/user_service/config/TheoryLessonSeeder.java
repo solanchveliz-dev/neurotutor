@@ -30,6 +30,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
         seedLevel(7L, "INTERMEDIO", intermediateLessons());
         seedLevel(8L, "AVANZADO", advancedLessons());
         updateExistingLessonThree();
+        updateExistingLessonFour();
     }
 
     /**
@@ -49,6 +50,22 @@ public class TheoryLessonSeeder implements ApplicationRunner {
         lesson.setContentHtml(seed.contentHtml());
         lesson.setWebContentJson(basicWebContent(3));
         lesson.setOrderNumber(3);
+        lesson.setActive(true);
+        theoryLessonRepository.saveAndFlush(lesson);
+    }
+
+    private void updateExistingLessonFour() {
+        TheoryLesson lesson = theoryLessonRepository.findById(4L).orElse(null);
+        if (lesson == null) return;
+
+        LessonSeed seed = basicLessons().get(3);
+        lesson.setTitle("Fracciones propias e impropias");
+        lesson.setSubtitle("Compara el numerador y el denominador");
+        lesson.setSummary("Ahora que conoces las partes de una fracción, podemos clasificarlas en propias o impropias.");
+        lesson.setIcon(seed.icon());
+        lesson.setContentHtml(seed.contentHtml());
+        lesson.setWebContentJson(basicWebContent(4));
+        lesson.setOrderNumber(4);
         lesson.setActive(true);
         theoryLessonRepository.saveAndFlush(lesson);
     }
@@ -81,7 +98,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
             }
 
             if ("BASICO".equals(expectedLevel)
-                    && (orderNumber == 1 || orderNumber == 2 || orderNumber == 3
+                    && (orderNumber == 1 || orderNumber == 2 || orderNumber == 3 || orderNumber == 4
                     || lesson.getWebContentJson() == null || lesson.getWebContentJson().isBlank())) {
                 lesson.setWebContentJson(basicWebContent(orderNumber));
                 theoryLessonRepository.save(lesson);
@@ -170,15 +187,25 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     """;
             case 4 -> """
                     {
-                      "hero":{"badge":"Lección 4","title":"Fracciones propias e impropias","subtitle":"Compara el numerador y el denominador","description":"Diferencia fracciones menores que una unidad de aquellas que representan una unidad o más.","image":"lecciones_basico4.png"},
+                      "hero":{"badge":"Lección 4","title":"Fracciones propias e impropias","subtitle":"Compara el numerador y el denominador","description":"Ahora que conoces las partes de una fracción, podemos clasificarlas en propias o impropias.","image":"neo_indicando.png","comparisons":[
+                        {"title":"Propia","numerator":"1","denominator":"4","text":"El numerador es menor que el denominador.","tone":"green"},
+                        {"title":"Impropia","numerator":"5","denominator":"3","text":"El numerador es mayor que el denominador.","tone":"orange"}
+                      ]},
                       "sections":[
-                        {"type":"main_concept","title":"Propias e impropias","text":"Una fracción es propia cuando el numerador es menor que el denominador. Es impropia cuando el numerador es mayor o igual.","visual":"lecciones_basico4.png"},
-                        {"type":"example","title":"Compara 1/4 y 5/3","text":"1/4 es propia porque 1 es menor que 4. 5/3 es impropia porque 5 es mayor que 3.","visual":"pizza.png"},
-                        {"type":"important_idea","title":"Compara los dos números","text":"La relación entre numerador y denominador permite clasificar rápidamente la fracción."},
-                        {"type":"neo_tip","title":"NEO dice","text":"Fíjate si el número de arriba es menor, igual o mayor que el número de abajo.","image":"neo_leccion.png"},
-                        {"type":"learning_objectives","title":"Hoy aprenderás","items":["Reconocer fracciones propias.","Reconocer fracciones impropias.","Comparar numerador y denominador.","Relacionar fracciones con representaciones visuales."]},
-                        {"type":"common_mistakes","title":"Errores comunes","items":["Pensar que toda fracción es menor que uno.","Clasificar sin comparar los dos números.","Confundir propia con impropia."]},
-                        {"type":"reflection","title":"Antes de continuar","text":"¿La fracción 7/5 es propia o impropia? Explica por qué."}
+                        {"type":"proper_fractions","title":"1. Fracciones propias","text":"El numerador es menor que el denominador.","items":[
+                          {"numerator":"1","denominator":"2","comparison":"1 < 2","result":"Es propia","visual":"circle"},
+                          {"numerator":"1","denominator":"4","comparison":"1 < 4","result":"Es propia","visual":"circle"},
+                          {"numerator":"3","denominator":"5","comparison":"3 < 5","result":"Es propia","visual":"circle"},
+                          {"numerator":"2","denominator":"7","comparison":"2 < 7","result":"Es propia","visual":"circle"}
+                        ],"note":{"title":"Recuerda","text":"En las fracciones propias, siempre tomamos menos partes de las que hay en total."}},
+                        {"type":"improper_fractions","title":"2. Fracciones impropias","text":"El numerador es mayor que el denominador.","items":[
+                          {"numerator":"3","denominator":"2","comparison":"3 > 2","result":"Es impropia","visual":"circle"},
+                          {"numerator":"5","denominator":"4","comparison":"5 > 4","result":"Es impropia","visual":"blocks"},
+                          {"numerator":"7","denominator":"5","comparison":"7 > 5","result":"Es impropia","visual":"blocks"},
+                          {"numerator":"4","denominator":"3","comparison":"4 > 3","result":"Es impropia","visual":"circle"}
+                        ],"note":{"title":"Importante","text":"En las fracciones impropias, se toman más partes de las que hay en total."}},
+                        {"type":"life_example","title":"Ejemplo en la vida diaria","text":"Si tienes 2 pizzas y divides cada una en 4 partes, en total tienes 8 partes. Si tomas 5 partes, has tomado más de una pizza completa.","numerator":"5","denominator":"4","message":"Es una fracción impropia.","image":"pizza.png","neoImage":"neo_indicando.png"},
+                        {"type":"continue_learning","title":"¡Continúa aprendiendo!","text":"Ya sabes diferenciar entre fracciones propias e impropias. En la siguiente lección haremos un repaso antes de la práctica.","image":"neo_ideas.png"}
                       ]
                     }
                     """;
