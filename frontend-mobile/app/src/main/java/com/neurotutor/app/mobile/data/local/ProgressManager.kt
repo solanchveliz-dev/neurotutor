@@ -19,10 +19,24 @@ class ProgressManager(context: Context) {
         return prefs.getStringSet(key, emptySet())?.size ?: 0
     }
 
+    // --- RECOMPENSAS ---
+
+    fun isRewardClaimed(studentId: String, moduleId: String, level: String): Boolean {
+        val key = "reward_${studentId}_${moduleId}_${level}_claimed"
+        return prefs.getBoolean(key, false)
+    }
+
+    fun markRewardAsClaimed(studentId: String, moduleId: String, level: String) {
+        val key = "reward_${studentId}_${moduleId}_${level}_claimed"
+        prefs.edit().putBoolean(key, true).apply()
+    }
+
+    // --- LIMPIEZA ---
+
     fun clearAllProgressForStudent(studentId: String) {
         val keyPrefix = "${studentId}_"
         val allKeys = prefs.all.keys
-        allKeys.filter { it.startsWith(keyPrefix) }.forEach { key ->
+        allKeys.filter { it.startsWith(keyPrefix) || it.contains("_$studentId") }.forEach { key ->
             prefs.edit().remove(key).apply()
         }
         println("Progreso limpiado para estudiante: $studentId")

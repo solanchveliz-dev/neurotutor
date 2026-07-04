@@ -24,6 +24,9 @@ public class AchievementSeeder implements ApplicationRunner {
                 new SeedAchievement("FIRST_PRACTICE_PASSED", "Manos a la práctica", "Aprobaste tu primera práctica.", "pencil-ruler", "PRACTICE", null),
                 new SeedAchievement("FIRST_EXAM_PASSED", "Examen superado", "Aprobaste tu primer examen final.", "trophy", "EXAM", null),
                 new SeedAchievement("FIRST_MODULE_COMPLETED", "Módulo dominado", "Completaste teoría, práctica y examen de un nivel.", "medal", "PROGRESS", null),
+                new SeedAchievement("BASIC_LEVEL_COMPLETED", "Nivel Básico completado", "Completaste teoría, práctica y examen del nivel Básico.", "icon_trophy", "PROGRESS", null),
+                new SeedAchievement("INTERMEDIATE_LEVEL_COMPLETED", "Nivel Intermedio completado", "Completaste teoría, práctica y examen del nivel Intermedio.", "icon_trophy", "PROGRESS", null),
+                new SeedAchievement("ADVANCED_LEVEL_COMPLETED", "Nivel Avanzado completado", "Completaste teoría, práctica y examen del nivel Avanzado.", "icon_trophy", "PROGRESS", null),
                 new SeedAchievement("POINTS_100", "Centena brillante", "Alcanzaste 100 puntos en NeuroTutor.", "star", "POINTS", 100)
         );
 

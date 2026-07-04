@@ -1,5 +1,7 @@
 package com.neurotutor.user_service.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class ModuleItem {
     private String id;
     private String titulo;
@@ -8,6 +10,10 @@ public class ModuleItem {
     private String estado;
     private String temaNombre;
     private String nivelRequerido;// EN_CURSO, BLOQUEADO, COMPLETADO
+    private int progressPercentage;
+    private boolean theoryCompleted;
+    private boolean practiceCompleted;
+    private boolean examPassed;
 
     public ModuleItem(String id, String titulo, int ejerciciosCompletados,
                       int ejerciciosTotales, String estado , String temaNombre, String nivelRequerido) {
@@ -18,6 +24,18 @@ public class ModuleItem {
         this.estado = estado;
         this.temaNombre=temaNombre;
         this.nivelRequerido = nivelRequerido;
+    }
+
+    public ModuleItem(String id, String titulo, int ejerciciosCompletados,
+                      int ejerciciosTotales, String estado, String temaNombre,
+                      String nivelRequerido, int progressPercentage,
+                      boolean theoryCompleted, boolean practiceCompleted,
+                      boolean examPassed) {
+        this(id, titulo, ejerciciosCompletados, ejerciciosTotales, estado, temaNombre, nivelRequerido);
+        this.progressPercentage = progressPercentage;
+        this.theoryCompleted = theoryCompleted;
+        this.practiceCompleted = practiceCompleted;
+        this.examPassed = examPassed;
     }
 
     // Getters
@@ -41,4 +59,16 @@ public class ModuleItem {
     public void setNivelRequerido(String nivelRequerido) {
         this.nivelRequerido = nivelRequerido;
     }
+
+    @JsonProperty("progress_percentage")
+    public int getProgressPercentage() { return progressPercentage; }
+
+    @JsonProperty("theory_completed")
+    public boolean isTheoryCompleted() { return theoryCompleted; }
+
+    @JsonProperty("practice_completed")
+    public boolean isPracticeCompleted() { return practiceCompleted; }
+
+    @JsonProperty("exam_passed")
+    public boolean isExamPassed() { return examPassed; }
 }

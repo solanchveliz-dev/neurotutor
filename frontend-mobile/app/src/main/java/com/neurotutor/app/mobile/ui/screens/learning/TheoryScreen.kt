@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neurotutor.app.mobile.R
 import com.neurotutor.app.mobile.ui.theme.*
 
@@ -33,13 +35,15 @@ data class TheoryStep(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TheoryScreen(
+    studentId: String,
     studentName: String,
     moduleId: String,
     level: String, // "B", "I", "A"
     onStartExercise: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: TheoryViewModel = viewModel()
 ) {
-    var currentStepIndex by remember { mutableIntStateOf(0) }
+    var currentStepIndex by rememberSaveable(level) { mutableIntStateOf(0) }
 
     // Pasos asignados según nivel con tipos explícitos <TheoryStep>
     val theorySteps = remember(level, studentName) {
@@ -93,21 +97,29 @@ fun TheoryScreen(
     val totalPages = theorySteps.size
     val currentStep = theorySteps.getOrNull(currentStepIndex) ?: TheoryStep("", "")
 
-    val actionButtonColor = Color(0xFF6366F1)
+    // Función auxiliar para manejar el fin de la teoría y la notificación al backend
+    val handleFinishTheory = {
+        viewModel.markTheoryAsCompleted(studentId, moduleId)
+        onStartExercise()
+    }
 
-    val welcomeGradient = Brush.verticalGradient(
-        colors = listOf(Color(0xFF0EA5E9), Color(0xFF38BDF8), Color(0xFFBAE6FD))
-    )
-    val standardGradient = Brush.verticalGradient(
-        colors = listOf(Color(0xFFEDF4FF), Color(0xFFFFFFFF))
-    )
+    val welcomeGradient = remember {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFF0EA5E9), Color(0xFF38BDF8), Color(0xFFBAE6FD))
+        )
+    }
+    val standardGradient = remember {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFEDF4FF), Color(0xFFFFFFFF))
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(if (currentStepIndex == 0) welcomeGradient else standardGradient)
     ) {
-        if (currentStepIndex == 0) {
+        if (currentStepIndex == 0 && level != "A") {
             Image(
                 painter = painterResource(id = R.drawable.cloud_bottom),
                 contentDescription = null,
@@ -127,8 +139,8 @@ fun TheoryScreen(
                     title = {
                         val levelTitle = when(level) {
                             "B" -> "Teoría - Básico"
-                            "I" -> "Teoría - Intermedio"
-                            "A" -> "Teoría - Avanzado"
+                            "I" -> "Fracciones - Nivel Intermedio"
+                            "A" -> "Fracciones - Nivel Avanzado"
                             else -> "Teoría"
                         }
                         Column(
@@ -143,14 +155,19 @@ fun TheoryScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                val displayedStep = if (level == "A") 0 else currentStepIndex + 1
+                                val displayedTotal = if (level == "A") 5 else totalPages
                                 LinearProgressIndicator(
-                                    progress = { (currentStepIndex + 1).toFloat() / totalPages.toFloat() },
+                                    progress = {
+                                        if (level == "A") 0f
+                                        else displayedStep.toFloat() / displayedTotal.toFloat()
+                                    },
                                     modifier = Modifier.width(150.dp).height(10.dp).clip(RoundedCornerShape(5.dp)),
-                                    color = if (currentStepIndex == 0) Color.White else actionButtonColor,
+                                    color = if (currentStepIndex == 0) Color.White else MoradoActivo,
                                     trackColor = if (currentStepIndex == 0) Color.White.copy(alpha = 0.3f) else Color(0xFFE2E8F0),
                                 )
                                 Text(
-                                    text = "${currentStepIndex + 1}/$totalPages",
+                                    text = "$displayedStep/$displayedTotal",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Black,
                                     color = if (currentStepIndex == 0) Color.White else TextGray
@@ -192,7 +209,7 @@ fun TheoryScreen(
                             1 -> FractionIntroductionStep(onNext = { currentStepIndex++ }, onBack = { currentStepIndex-- })
                             2 -> FractionPartsStep(onNext = { currentStepIndex++ }, onBack = { currentStepIndex-- })
                             3 -> ProperFractionsStep(onNext = { currentStepIndex++ }, onBack = { currentStepIndex-- })
-                            4 -> ImproperFractionsStep(onFinish = onStartExercise, onBack = { currentStepIndex-- })
+                            4 -> ImproperFractionsStep(onFinish = handleFinishTheory, onBack = { currentStepIndex-- })
                         }
                     }
                     "I" -> {
@@ -226,15 +243,13 @@ fun TheoryScreen(
                             )
 
                             5 -> MultiplyFractionsStep(
-                                onNext = onStartExercise,
+                                onNext = handleFinishTheory,
                                 onBack = { currentStepIndex-- }
                             )
                         }
                     }
                     "A" -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Nivel Avanzado - Próximamente", fontSize = 20.sp, color = Color.Gray)
-                        }
+                        AdvancedWelcomeTheoryStep(onStartLesson = {})
                     }
                 }
             }

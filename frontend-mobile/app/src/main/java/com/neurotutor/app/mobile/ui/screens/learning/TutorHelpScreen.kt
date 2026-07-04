@@ -1,5 +1,6 @@
 package com.neurotutor.app.mobile.ui.screens.learning
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -70,8 +71,7 @@ fun TutorHelpScreen(
     exerciseQuestion: String = "",
     exerciseOptions: List<String> = emptyList(),
     correctAnswer: String = "",
-    onClose: () -> Unit,
-    viewModel: ExerciseViewModel
+    onBack: () -> Unit
 ) {
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(Color(0xFF007AFF), Color(0xFF5AC8FA), Color(0xFFFFFFFF))
@@ -87,11 +87,12 @@ fun TutorHelpScreen(
     var isAssistantLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Función para llamar a la IA Neo
     fun askNeo(question: String) {
         if (question.isBlank()) return
         
-        // Agregar mensaje del usuario
+        // 🔍 LOG DE AUDITORÍA: Verificar parámetros antes de llamar al backend
+        Log.d("AUDITORIA_TUTOR", "Enviando pregunta. StudentId: $studentId, ModuleId: $moduleId, Context: $moduleName - $topicName")
+        
         messages.add(ChatMessage(text = question, isFromUser = true))
         isAssistantLoading = true
 
@@ -136,7 +137,7 @@ fun TutorHelpScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
                     }
                 },
@@ -173,7 +174,6 @@ fun TutorHelpScreen(
     ) { paddingValues ->
         val listState = rememberLazyListState()
         
-        // Auto-scroll al recibir nuevos mensajes
         LaunchedEffect(messages.size) {
             if (messages.isNotEmpty()) {
                 listState.animateScrollToItem(messages.size + 5)

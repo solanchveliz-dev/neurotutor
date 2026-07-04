@@ -95,9 +95,8 @@ fun StudentModuleCard(
                 if (!isBloqueado) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    val progreso = if (modulo.ejerciciosTotales > 0) 
-                        modulo.ejerciciosCompletados.toFloat() / modulo.ejerciciosTotales.toFloat() 
-                        else 0f
+                    // 🚀 UNIFICACIÓN: Usar progreso oficial del backend
+                    val progreso = modulo.progressPercentage / 100f
                     
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(

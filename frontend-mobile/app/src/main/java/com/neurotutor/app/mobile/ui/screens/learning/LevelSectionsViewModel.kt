@@ -3,13 +3,14 @@ package com.neurotutor.app.mobile.ui.screens.learning
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.neurotutor.app.mobile.data.local.ProgressManager
+import com.neurotutor.app.mobile.data.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class LevelSectionsUiState(
     val isLoading: Boolean = true,
@@ -18,7 +19,9 @@ data class LevelSectionsUiState(
     val ejerciciosCompletados: Int = 0,
     val totalEjercicios: Int = 10,
     val examenDisponible: Boolean = false,
-    val mensajeTutor: String = ""
+    val examPassed: Boolean = false,
+    val mensajeTutor: String = "",
+    val errorMessage: String? = null
 )
 
 class LevelSectionsViewModel(
@@ -30,37 +33,52 @@ class LevelSectionsViewModel(
     private val _uiState = MutableStateFlow(LevelSectionsUiState())
     val uiState: StateFlow<LevelSectionsUiState> = _uiState.asStateFlow()
 
-    private lateinit var progressManager: ProgressManager
-
-    init {
-        progressManager = ProgressManager(context)
-    }
-
     fun loadProgress() {
+        val cleanStudentId = studentId.replace("\"", "").trim()
+        
         viewModelScope.launch(Dispatchers.IO) {
-            val completados = progressManager.getCompletedExercisesCount(studentId, moduleId)
-            val total = 10  // 10 ejercicios prácticos por módulo
-            val progreso = if (total > 0) completados.toFloat() / total else 0f
-            val teoriaCompletada = progreso > 0f  // O podrías tener un flag específico
-            val examenDisponible = completados >= total  // Examen disponible solo con todos los ejercicios completados
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                // 🚀 CONSUMO DE MÉTRICA OFICIAL DEL BACKEND (Lógica 33/66/100)
+                val response = RetrofitClient.apiService.getModuleProgress(cleanStudentId, moduleId)
 
-            val mensaje = when {
-                completados == 0 -> "¡Comienza con la teoría y luego practica! 📚"
-                completados < total / 2 -> "¡Vas bien! Sigue practicando 💪"
-                completados < total -> "¡Muy bien! Ya casi completas los ejercicios 🎯"
-                else -> "¡Excelente! Ya puedes dar el examen final 🎉"
-            }
+                if (response.isSuccessful && response.body() != null) {
+                    val data = response.body()!!
+                    
+                    val mensaje = when {
+                        !data.theoryCompleted -> "¡Comienza con la teoría para empezar tu camino! 📚"
+                        !data.practiceCompleted -> "¡Vas bien! Completa la práctica para desbloquear el examen 💪"
+                        !data.examPassed -> "¡Excelente! Ya puedes dar el examen final 🎉"
+                        else -> "¡Felicidades! Has dominado este nivel por completo 🏆"
+                    }
 
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    progreso = progreso,
-                    teoriaCompletada = teoriaCompletada,
-                    ejerciciosCompletados = completados,
-                    totalEjercicios = total,
-                    examenDisponible = examenDisponible,
-                    mensajeTutor = mensaje
-                )
+                    withContext(Dispatchers.Main) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                progreso = data.progressPercentage / 100f,
+                                teoriaCompletada = data.theoryCompleted,
+                                ejerciciosCompletados = data.practiceCompletedCount,
+                                totalEjercicios = data.practiceTotalCount,
+                                examenDisponible = data.practiceCompleted,
+                                examPassed = data.examPassed,
+                                mensajeTutor = mensaje
+                            )
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { 
+                            it.copy(isLoading = false, errorMessage = "Error al sincronizar progreso.") 
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.update { 
+                        it.copy(isLoading = false, errorMessage = "Fallo de conexión: ${e.message}") 
+                    }
+                }
             }
         }
     }

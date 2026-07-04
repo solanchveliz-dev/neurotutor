@@ -42,6 +42,9 @@ public class LearningService {
     @Autowired
     private TheoryLessonRepository theoryLessonRepository;
 
+    @Autowired
+    private StudentModuleProgressRepository studentModuleProgressRepository;
+
     @Transactional(readOnly = true)
     public LearningModuleDetailsResponse getModuleDetails(Long moduleId) {
         Modulo requestedModule = findModule(moduleId);
@@ -125,27 +128,57 @@ public class LearningService {
         Estudiante estudiante = estudianteRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Estudiante no encontrado"));
 
-        List<Modulo> niveles = tema.getNiveles();
         List<ModuleItem> ruta = new ArrayList<>();
+        for (Modulo modulo : tema.getNiveles()) {
+            StudentModuleProgress progress = studentModuleProgressRepository
+                    .findByStudentIdAndModuloId(studentId, modulo.getId())
+                    .orElse(null);
+            boolean theoryCompleted = progress != null && progress.isTheoryCompleted();
+            boolean practiceCompleted = progress != null && progress.isPracticeCompleted();
+            boolean examPassed = progress != null && progress.isExamPassed();
+            boolean completed = theoryCompleted && practiceCompleted && examPassed;
+            boolean unlocked = levelRank(estudiante.getNivelDiagnostico())
+                    >= levelRank(modulo.getNivelRequerido());
+            int progressPercentage = calculateAcademicProgress(
+                    theoryCompleted, practiceCompleted, examPassed);
+            String estado = !unlocked
+                    ? "BLOQUEADO"
+                    : completed ? "COMPLETADO" : "EN_CURSO";
 
-        for (Modulo m : niveles) {
-            String estado = "BLOQUEADO";
-            String nivelEstudiante = estudiante.getNivelDiagnostico(); // BASICO, INTERMEDIO, AVANZADO
-
-            // Reglas de la Épica 3:
-            if (m.getNivelRequerido().equals("BASICO")) {
-                estado = (nivelEstudiante.equals("BASICO")) ? "EN_CURSO" : "COMPLETADO";
-            } else if (m.getNivelRequerido().equals("INTERMEDIO")) {
-                if (nivelEstudiante.equals("INTERMEDIO")) estado = "EN_CURSO";
-                if (nivelEstudiante.equals("AVANZADO")) estado = "COMPLETADO";
-            } else if (m.getNivelRequerido().equals("AVANZADO")) {
-                if (nivelEstudiante.equals("AVANZADO")) estado = "EN_CURSO";
-            }
-
-            ruta.add(new ModuleItem(m.getId().toString(), m.getTitulo(), 0, m.getEjerciciosTotales(), estado,m.getTema().getNombre(),
-                    m.getNivelRequerido()));
+            ruta.add(new ModuleItem(
+                    modulo.getId().toString(),
+                    modulo.getTitulo(),
+                    progress == null ? 0 : progress.getPracticeCompletedCount(),
+                    modulo.getEjerciciosTotales(),
+                    estado,
+                    modulo.getTema().getNombre(),
+                    modulo.getNivelRequerido(),
+                    progressPercentage,
+                    theoryCompleted,
+                    practiceCompleted,
+                    examPassed
+            ));
         }
         return ruta;
+    }
+
+    private int levelRank(String level) {
+        return switch (level == null ? "" : level) {
+            case "BASICO", "B" -> 0;
+            case "INTERMEDIO", "I" -> 1;
+            case "AVANZADO", "A" -> 2;
+            default -> -1;
+        };
+    }
+
+    private int calculateAcademicProgress(boolean theoryCompleted,
+                                          boolean practiceCompleted,
+                                          boolean examPassed) {
+        int percentage = 0;
+        if (theoryCompleted) percentage += 33;
+        if (practiceCompleted) percentage += 33;
+        if (examPassed) percentage += 34;
+        return percentage;
     }
 
     /**
@@ -268,15 +301,14 @@ public class LearningService {
         int totalQuestions = examQuestions.size();
         int scorePercentage = Math.round((correctAnswers * 100f) / totalQuestions);
         boolean passed = scorePercentage >= 70;
-        boolean alreadyPassed = student.getModulosCompletados().stream()
-                .anyMatch(completedModule -> completedModule.getId().equals(modulo.getId()));
+        boolean alreadyPassed = progressService
+                .getModuleProgress(student.getId(), modulo.getId())
+                .isExamPassed();
         int pointsEarned = 0;
 
         if (passed && !alreadyPassed) {
             pointsEarned = 100;
             student.setPuntosTotales(student.getPuntosTotales() + pointsEarned);
-            student.getModulosCompletados().add(modulo);
-            promoteStudentLevel(student, modulo);
             estudianteRepository.save(student);
         }
 
@@ -294,19 +326,30 @@ public class LearningService {
         answersToSave.forEach(answer -> answer.setAttempt(savedAttempt));
         finalExamAnswerRepository.saveAll(answersToSave);
 
-        progressService.updateExamProgress(
+        List<String> unlockedAchievementCodes = progressService.updateExamProgress(
                 student.getId(), modulo.getId(), scorePercentage, passed, pointsEarned);
         int moduleProgress = progressService
                 .getModuleProgress(student.getId(), modulo.getId())
                 .getProgressPercentage();
+        boolean alreadyCompleted = student.getModulosCompletados().stream()
+                .anyMatch(completedModule -> completedModule.getId().equals(modulo.getId()));
+        if (moduleProgress >= 100 && !alreadyCompleted) {
+            student.getModulosCompletados().add(modulo);
+            promoteStudentLevel(student, modulo);
+            estudianteRepository.save(student);
+        }
 
         String message = passed
                 ? (alreadyPassed ? "Ya habias aprobado este examen." : "¡Aprobaste el examen!")
                 : "Necesitas 70% para aprobar.";
 
+        String unlockedBadgeId = passed && !alreadyPassed
+                ? examBadgeId(modulo.getNivelRequerido())
+                : null;
         return new SubmitFinalExamAttemptResponse(
                 savedAttempt.getId(), correctAnswers, totalQuestions, scorePercentage,
-                passed, pointsEarned, message, moduleProgress);
+                passed, pointsEarned, message, moduleProgress, unlockedBadgeId,
+                unlockedAchievementCodes);
     }
 
     private void validateFinalExamAttempt(SubmitFinalExamAttemptRequest request) {
@@ -329,18 +372,39 @@ public class LearningService {
     }
 
     // 🚀 HU-24: Promoción de nivel automática
+    private String examBadgeId(String level) {
+        return switch (level) {
+            case "BASICO" -> "basic_3";
+            case "INTERMEDIO" -> "intermediate_3";
+            case "AVANZADO" -> "advanced_3";
+            default -> null;
+        };
+    }
+
     @Transactional
     public String procesarResultadoExamen(Long studentId, Long moduloId, int score) {
         if (score < 70) return "Necesitas 70% para aprobar.";
         Estudiante e = estudianteRepository.findById(studentId).get();
         Modulo m = moduloRepository.findById(moduloId).get();
 
-        if (m.getNivelRequerido().equals("BASICO") && e.getNivelDiagnostico().equals("BASICO")) {
-            e.setNivelDiagnostico("INTERMEDIO");
-        } else if (m.getNivelRequerido().equals("INTERMEDIO") && e.getNivelDiagnostico().equals("INTERMEDIO")) {
-            e.setNivelDiagnostico("AVANZADO");
+        progressService.updateExamProgress(studentId, moduloId, score, true, 0);
+        ModuleProgressResponse progress = progressService.getModuleProgress(studentId, moduloId);
+        if (progress.getProgressPercentage() < 100) {
+            return "Examen aprobado. Completa teoría y práctica para finalizar el módulo.";
         }
-        estudianteRepository.save(e);
+
+        boolean alreadyCompleted = e.getModulosCompletados().stream()
+                .anyMatch(modulo -> modulo.getId().equals(moduloId));
+        if (!alreadyCompleted) {
+            e.getModulosCompletados().add(m);
+            if ("BASICO".equals(m.getNivelRequerido()) && "BASICO".equals(e.getNivelDiagnostico())) {
+                e.setNivelDiagnostico("INTERMEDIO");
+            } else if ("INTERMEDIO".equals(m.getNivelRequerido())
+                    && "INTERMEDIO".equals(e.getNivelDiagnostico())) {
+                e.setNivelDiagnostico("AVANZADO");
+            }
+            estudianteRepository.save(e);
+        }
         return "¡Nivel superado! Has desbloqueado el siguiente desafío.";
     }
 
@@ -365,7 +429,6 @@ public class LearningService {
     public SubmitExamResponse procesarExamenV2(SubmitExamRequest request) {
         Long studentId = request.getStudentId();
         Long moduloId = request.getModuloId();
-        String nivelExamen = request.getLevel(); // "B", "I", "A"
         int score = request.getScore();
 
         Estudiante estudiante = estudianteRepository.findById(studentId)
@@ -380,52 +443,56 @@ public class LearningService {
             return new SubmitExamResponse(false, "No alcanzaste el 70%. ¡Sigue practicando!", 0, false, null, false);
         }
 
-        // Verificar si ya había aprobado este examen antes
-        boolean alreadyPassed = estudiante.getModulosCompletados().stream()
-                .anyMatch(m -> m.getId().equals(moduloId));
+        ModuleProgressResponse progressBefore =
+                progressService.getModuleProgress(studentId, moduloId);
+        boolean alreadyPassed = progressBefore.isExamPassed();
 
         int pointsEarned = 0;
         boolean levelUp = false;
         String newLevel = null;
         boolean topicCompleted = false;
 
-        // 🎯 REGLA: Solo dar puntos la PRIMERA VEZ que aprueba el examen
+        // Solo dar puntos la primera vez que aprueba el examen.
         if (!alreadyPassed) {
             pointsEarned = 100;
             estudiante.setPuntosTotales(estudiante.getPuntosTotales() + 100);
+        }
 
-            // Marcar módulo como completado
+        estudianteRepository.save(estudiante);
+        progressService.updateExamProgress(studentId, moduloId, score, true, pointsEarned);
+        ModuleProgressResponse updatedProgress =
+                progressService.getModuleProgress(studentId, moduloId);
+
+        boolean moduleCompleted = updatedProgress.getProgressPercentage() >= 100;
+        boolean alreadyCompleted = estudiante.getModulosCompletados().stream()
+                .anyMatch(m -> m.getId().equals(moduloId));
+
+        if (moduleCompleted && !alreadyCompleted) {
             estudiante.getModulosCompletados().add(modulo);
-
-            // Lógica de desbloqueo de nivel global
             String nivelActual = estudiante.getNivelDiagnostico();
 
-            if ("B".equals(nivelExamen) && "BASICO".equals(nivelActual)) {
+            if ("BASICO".equals(modulo.getNivelRequerido()) && "BASICO".equals(nivelActual)) {
                 estudiante.setNivelDiagnostico("INTERMEDIO");
                 levelUp = true;
                 newLevel = "I";
-            } else if ("I".equals(nivelExamen) && "INTERMEDIO".equals(nivelActual)) {
+            } else if ("INTERMEDIO".equals(modulo.getNivelRequerido())
+                    && "INTERMEDIO".equals(nivelActual)) {
                 estudiante.setNivelDiagnostico("AVANZADO");
                 levelUp = true;
                 newLevel = "A";
             }
 
-            // Verificar si completó el tema completo (aprobó los 3 niveles)
-            if (modulo.getTema() != null && modulo.getTema().getId() != null) {
-                long nivelesCompletados = estudiante.getModulosCompletados().stream()
-                        .filter(m -> m.getTema() != null &&
-                                m.getTema().getId() != null &&
-                                m.getTema().getId().equals(modulo.getTema().getId()))
-                        .count();
-
-                if (nivelesCompletados == 3) {
-                    topicCompleted = true;
-                }
-            }
+            estudianteRepository.save(estudiante);
         }
 
-        estudianteRepository.save(estudiante);
-        progressService.updateExamProgress(studentId, moduloId, score, true, pointsEarned);
+        if (moduleCompleted && modulo.getTema() != null && modulo.getTema().getId() != null) {
+            long nivelesCompletados = estudiante.getModulosCompletados().stream()
+                    .filter(m -> m.getTema() != null
+                            && m.getTema().getId() != null
+                            && m.getTema().getId().equals(modulo.getTema().getId()))
+                    .count();
+            topicCompleted = nivelesCompletados == 3;
+        }
 
         String mensaje = alreadyPassed ?
                 "¡Buen repaso! Ya habías aprobado este examen." :

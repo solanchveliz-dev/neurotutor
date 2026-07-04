@@ -1,6 +1,7 @@
 package com.neurotutor.app.mobile.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -15,6 +16,8 @@ import com.neurotutor.app.mobile.ui.screens.dashboard.StudentDashboardScreen
 import com.neurotutor.app.mobile.ui.screens.dashboard.StudentDashboardViewModel
 import com.neurotutor.app.mobile.ui.screens.diagnostic.*
 import com.neurotutor.app.mobile.ui.screens.learning.*
+import com.neurotutor.app.mobile.ui.screens.profile.ProfileScreen
+import com.neurotutor.app.mobile.ui.screens.achievements.AchievementsScreen
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -152,12 +155,76 @@ fun AppNavigation(
                 onModuloSeleccionado = { modulo, studentName ->
                     navController.navigate(Screen.TopicDetail.createRoute(studentId, studentName, modulo.id, modulo.temaNombre))
                 },
+                onNavigateToTab = { tab ->
+                    when (tab) {
+                        "perfil" -> navController.navigate(Screen.Profile.createRoute(studentId))
+                        "logros" -> navController.navigate(Screen.Achievements.createRoute(studentId))
+                        "inicio" -> { /* Ya estamos aquí */ }
+                    }
+                },
                 onNavigateToTutor = { name: String, module: String ->
                     navController.navigate(Screen.TutorHelp.createRoute(
                         mode = "DASHBOARD",
                         studentName = name,
                         moduleName = module
                     ))
+                }
+            )
+        }
+
+        // ==================== LOGROS ====================
+
+        composable(
+            route = Screen.Achievements.route,
+            arguments = listOf(navArgument("studentId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val studentId = backStackEntry.arguments?.getString("studentId") ?: ""
+            AchievementsScreen(
+                studentId = studentId,
+                onBack = { navController.popBackStack() },
+                onNavigateToTab = { tab ->
+                    when (tab) {
+                        "inicio" -> navController.navigate(Screen.StudentDashboard.createRoute(studentId)) {
+                            popUpTo(Screen.StudentDashboard.route) { inclusive = true }
+                        }
+                        "perfil" -> navController.navigate(Screen.Profile.createRoute(studentId)) {
+                            popUpTo(Screen.StudentDashboard.route)
+                        }
+                        "logros" -> { /* Ya estamos aquí */ }
+                    }
+                },
+                onNavigateToTutor = {
+                    navController.navigate(Screen.TutorHelp.createRoute(
+                        mode = "DASHBOARD",
+                        studentName = "", // Opcional: pasar nombre si está disponible
+                        moduleName = "Fracciones"
+                    ))
+                }
+            )
+        }
+
+        // ==================== PERFIL ====================
+
+        composable(
+            route = Screen.Profile.route,
+            arguments = listOf(navArgument("studentId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val studentId = backStackEntry.arguments?.getString("studentId") ?: ""
+            ProfileScreen(
+                studentId = studentId,
+                onBack = { navController.popBackStack() },
+                onNavigateToTab = { tab ->
+                    when (tab) {
+                        "inicio" -> navController.navigate(Screen.StudentDashboard.createRoute(studentId)) {
+                            popUpTo(Screen.StudentDashboard.route) { inclusive = true }
+                        }
+                        "logros" -> navController.navigate(Screen.Achievements.createRoute(studentId)) {
+                            popUpTo(Screen.StudentDashboard.route)
+                        }
+                        "login" -> navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 }
             )
         }
@@ -251,6 +318,7 @@ fun AppNavigation(
             val topicTitle = backStackEntry.arguments?.getString("topicTitle") ?: ""
 
             TheoryScreen(
+                studentId = studentId,
                 studentName = studentName,
                 moduleId = moduleId,
                 level = level,
@@ -310,18 +378,20 @@ fun AppNavigation(
             val studentId = backStackEntry.arguments?.getString("studentId") ?: ""
             val moduleId = backStackEntry.arguments?.getString("moduleId") ?: ""
             val level = backStackEntry.arguments?.getString("level") ?: ""
-            val topicTitle = backStackEntry.arguments?.getString("topicTitle") ?: ""
-            val finalExamViewModel: FinalExamViewModel = viewModel()
+
+            val examViewModel: FinalExamViewModel = viewModel()
+
+            LaunchedEffect(moduleId, level) {
+                examViewModel.loadExam(moduleId, level)
+            }
 
             FinalExamScreen(
                 studentId = studentId,
                 moduleId = moduleId,
                 level = level,
-                viewModel = finalExamViewModel,
+                viewModel = examViewModel,
                 onFinish = {
-                    navController.navigate(Screen.StudentDashboard.createRoute(studentId)) {
-                        popUpTo(Screen.StudentDashboard.route) { inclusive = true }
-                    }
+                    navController.popBackStack()
                 }
             )
         }
@@ -331,6 +401,8 @@ fun AppNavigation(
             route = Screen.TutorHelp.route,
             arguments = listOf(
                 navArgument("mode") { type = NavType.StringType },
+                navArgument("studentId") { type = NavType.StringType; defaultValue = "1" },
+                navArgument("moduleId") { type = NavType.StringType; defaultValue = "1" },
                 navArgument("studentName") { type = NavType.StringType; defaultValue = "" },
                 navArgument("moduleName") { type = NavType.StringType; defaultValue = "" },
                 navArgument("topicName") { type = NavType.StringType; defaultValue = "" },
@@ -343,38 +415,26 @@ fun AppNavigation(
         ) { backStackEntry ->
             val modeStr = backStackEntry.arguments?.getString("mode") ?: "DASHBOARD"
             val mode = TutorMode.valueOf(modeStr)
+            val studentIdStr = backStackEntry.arguments?.getString("studentId") ?: "1"
+            val moduleIdStr = backStackEntry.arguments?.getString("moduleId") ?: "1"
             val studentName = backStackEntry.arguments?.getString("studentName") ?: ""
             val moduleName = backStackEntry.arguments?.getString("moduleName") ?: ""
             val topicName = backStackEntry.arguments?.getString("topicName") ?: ""
             val questionStatus = backStackEntry.arguments?.getString("questionStatus") ?: ""
             val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
-
-            val rawQuestion = backStackEntry.arguments?.getString("exerciseQuestion") ?: ""
-            val exerciseQuestion = URLDecoder.decode(rawQuestion, StandardCharsets.UTF_8.toString())
-
-            val rawOptions = backStackEntry.arguments?.getString("exerciseOptions") ?: ""
-            val decodedOptions = URLDecoder.decode(rawOptions, StandardCharsets.UTF_8.toString())
-            val exerciseOptions = decodedOptions.split("|").filter { it.isNotEmpty() }
-
-            val rawAnswer = backStackEntry.arguments?.getString("correctAnswer") ?: ""
-            val correctAnswer = URLDecoder.decode(rawAnswer, StandardCharsets.UTF_8.toString())
-
-            val parentEntry = remember(backStackEntry) {
-                try {
-                    navController.getBackStackEntry(Screen.ExercisePlayer.route)
-                } catch (e: Exception) {
-                    null
-                }
+            val exerciseQuestion = backStackEntry.arguments?.getString("exerciseQuestion") ?: ""
+            val exerciseOptionsRaw = backStackEntry.arguments?.getString("exerciseOptions") ?: ""
+            val exerciseOptions = try {
+                URLDecoder.decode(exerciseOptionsRaw, StandardCharsets.UTF_8.toString()).split("|")
+            } catch (e: Exception) {
+                emptyList()
             }
-
-            val exerciseViewModel: ExerciseViewModel = if (parentEntry != null) {
-                viewModel(parentEntry)
-            } else {
-                viewModel()
-            }
+            val correctAnswer = backStackEntry.arguments?.getString("correctAnswer") ?: ""
 
             TutorHelpScreen(
                 mode = mode,
+                studentId = studentIdStr.toLongOrNull() ?: 1L,
+                moduleId = moduleIdStr.toLongOrNull() ?: 1L,
                 studentName = studentName,
                 moduleName = moduleName,
                 topicName = topicName,
@@ -383,8 +443,7 @@ fun AppNavigation(
                 exerciseQuestion = exerciseQuestion,
                 exerciseOptions = exerciseOptions,
                 correctAnswer = correctAnswer,
-                onClose = { navController.popBackStack() },
-                viewModel = exerciseViewModel
+                onBack = { navController.popBackStack() }
             )
         }
     }

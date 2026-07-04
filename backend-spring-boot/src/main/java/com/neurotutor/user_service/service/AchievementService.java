@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,9 @@ public class AchievementService {
     public static final String FIRST_PRACTICE_PASSED = "FIRST_PRACTICE_PASSED";
     public static final String FIRST_EXAM_PASSED = "FIRST_EXAM_PASSED";
     public static final String FIRST_MODULE_COMPLETED = "FIRST_MODULE_COMPLETED";
+    public static final String BASIC_LEVEL_COMPLETED = "BASIC_LEVEL_COMPLETED";
+    public static final String INTERMEDIATE_LEVEL_COMPLETED = "INTERMEDIATE_LEVEL_COMPLETED";
+    public static final String ADVANCED_LEVEL_COMPLETED = "ADVANCED_LEVEL_COMPLETED";
     public static final String POINTS_100 = "POINTS_100";
 
     private final AchievementRepository achievementRepository;
@@ -67,38 +71,62 @@ public class AchievementService {
     }
 
     @Transactional
-    public void evaluateStudentAchievements(Long studentId) {
+    public List<String> evaluateStudentAchievements(Long studentId) {
         Estudiante student = estudianteRepository.findById(studentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Estudiante no encontrado"));
         List<StudentModuleProgress> progressItems = progressRepository.findByStudentId(studentId);
+        List<String> unlockedCodes = new ArrayList<>();
 
-        if (student.isExamenCompletado()) unlock(student, DIAGNOSTIC_COMPLETED);
+        if (student.isExamenCompletado() && unlock(student, DIAGNOSTIC_COMPLETED)) {
+            unlockedCodes.add(DIAGNOSTIC_COMPLETED);
+        }
         if (progressItems.stream().anyMatch(StudentModuleProgress::isTheoryCompleted)) {
-            unlock(student, FIRST_THEORY_COMPLETED);
+            if (unlock(student, FIRST_THEORY_COMPLETED)) unlockedCodes.add(FIRST_THEORY_COMPLETED);
         }
         if (progressItems.stream().anyMatch(StudentModuleProgress::isPracticeCompleted)) {
-            unlock(student, FIRST_PRACTICE_PASSED);
+            if (unlock(student, FIRST_PRACTICE_PASSED)) unlockedCodes.add(FIRST_PRACTICE_PASSED);
         }
         if (progressItems.stream().anyMatch(StudentModuleProgress::isExamPassed)) {
-            unlock(student, FIRST_EXAM_PASSED);
+            if (unlock(student, FIRST_EXAM_PASSED)) unlockedCodes.add(FIRST_EXAM_PASSED);
         }
         if (progressItems.stream().anyMatch(item -> item.getProgressPercentage() >= 100)) {
-            unlock(student, FIRST_MODULE_COMPLETED);
+            if (unlock(student, FIRST_MODULE_COMPLETED)) unlockedCodes.add(FIRST_MODULE_COMPLETED);
         }
-        if (student.getPuntosTotales() >= 100) unlock(student, POINTS_100);
+        unlockCompletedLevel(student, progressItems, "BASICO", BASIC_LEVEL_COMPLETED, unlockedCodes);
+        unlockCompletedLevel(student, progressItems, "INTERMEDIO", INTERMEDIATE_LEVEL_COMPLETED, unlockedCodes);
+        unlockCompletedLevel(student, progressItems, "AVANZADO", ADVANCED_LEVEL_COMPLETED, unlockedCodes);
+        if (student.getPuntosTotales() >= 100 && unlock(student, POINTS_100)) {
+            unlockedCodes.add(POINTS_100);
+        }
+        return unlockedCodes;
     }
 
-    private void unlock(Estudiante student, String code) {
+    private void unlockCompletedLevel(Estudiante student,
+                                      List<StudentModuleProgress> progressItems,
+                                      String level,
+                                      String achievementCode,
+                                      List<String> unlockedCodes) {
+        boolean completed = progressItems.stream().anyMatch(item ->
+                item.getProgressPercentage() >= 100
+                        && item.getModulo() != null
+                        && level.equals(item.getModulo().getNivelRequerido()));
+        if (completed && unlock(student, achievementCode)) {
+            unlockedCodes.add(achievementCode);
+        }
+    }
+
+    private boolean unlock(Estudiante student, String code) {
         Achievement achievement = achievementRepository.findByCode(code).orElse(null);
         if (achievement == null || !achievement.isActive()
                 || studentAchievementRepository.existsByStudentIdAndAchievementId(student.getId(), achievement.getId())) {
-            return;
+            return false;
         }
 
         StudentAchievement studentAchievement = new StudentAchievement();
         studentAchievement.setStudent(student);
         studentAchievement.setAchievement(achievement);
         studentAchievementRepository.save(studentAchievement);
+        return true;
     }
 
     private AchievementResponse toResponse(Achievement achievement, StudentAchievement unlocked) {

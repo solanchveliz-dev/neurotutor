@@ -53,12 +53,20 @@ fun ExercisePlayerScreen(
     var lastAnswerWasCorrect by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(moduleId) {
+    LaunchedEffect(moduleId, level) {
         viewModel.loadExercises(moduleId)
         answerSubmitted = false
         lastAnswerWasCorrect = false
         selectedOption = null
+    }
+
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSubmissionError()
+        }
     }
 
     LaunchedEffect(state.isFinished) {
@@ -74,6 +82,7 @@ fun ExercisePlayerScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -209,10 +218,19 @@ fun ExercisePlayerScreen(
                         Button(
                             onClick = { viewModel.goToNextExercise(studentId) },
                             modifier = Modifier.fillMaxWidth().height(56.dp),
+                            enabled = !state.isSubmitting,
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF22C55E)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text(if (isLastQuestion) "🎉 Finalizar Práctica" else "➡️ Siguiente Ejercicio", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            if (state.isSubmitting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(if (isLastQuestion) "🎉 Finalizar Práctica" else "➡️ Siguiente Ejercicio", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            }
                         }
                     } else {
                         Button(

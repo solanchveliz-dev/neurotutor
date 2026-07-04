@@ -163,13 +163,13 @@ public class ProgressService {
     }
 
     @Transactional
-    public void updateExamProgress(Long studentId, Long moduloId, int score, boolean passed, int pointsEarned) {
+    public List<String> updateExamProgress(Long studentId, Long moduloId, int score, boolean passed, int pointsEarned) {
         StudentModuleProgress progress = getOrCreateProgress(studentId, moduloId);
         progress.setExamBestScore(Math.max(progress.getExamBestScore(), score));
         progress.setExamPassed(progress.isExamPassed() || passed);
         touchAndRecalculate(progress);
         progressRepository.save(progress);
-        achievementService.evaluateStudentAchievements(studentId);
+        return achievementService.evaluateStudentAchievements(studentId);
     }
 
     private void validatePracticeRequest(SubmitPracticeAttemptRequest request) {
