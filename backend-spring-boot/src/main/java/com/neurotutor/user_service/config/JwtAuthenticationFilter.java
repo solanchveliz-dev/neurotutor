@@ -20,6 +20,13 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final List<String> PUBLIC_AUTH_PATHS = List.of(
+            "/api/register",
+            "/api/login",
+            "/api/forgot-password",
+            "/api/reset-password"
+    );
+
     private final JwtService jwtService;
     private final EstudianteRepository estudianteRepository;
 
@@ -27,6 +34,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                    EstudianteRepository estudianteRepository) {
         this.jwtService = jwtService;
         this.estudianteRepository = estudianteRepository;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return PUBLIC_AUTH_PATHS.contains(request.getServletPath());
     }
 
     @Override
