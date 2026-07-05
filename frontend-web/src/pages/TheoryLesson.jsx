@@ -368,6 +368,50 @@ function AdvancedQuantityContent({ sections }) {
   </div>;
 }
 
+function CompactFractionEquation({ values, prefix }) {
+  return <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-1.5 gap-y-2 text-nt-text-primary">
+    {prefix && <span className="text-base font-black">{prefix}</span>}
+    {values?.map((value, index) => typeof value === "string"
+      ? <span key={`${value}-${index}`} className="whitespace-nowrap text-base font-black">{value}</span>
+      : <EquivalentFraction key={`${value.numerator}-${value.denominator}-${index}`} value={value} />)}
+  </div>;
+}
+
+function AdvancedCombinedOperationsContent({ sections }) {
+  const section = (type) => sections.find((item) => item.type === type);
+  const examples = section("combined_examples");
+  const importance = section("order_importance");
+  const mistakes = section("combined_mistakes");
+  const summary = section("combined_summary");
+  const finalCard = section("combined_final");
+  const tones = {
+    green: "border-emerald-100 bg-emerald-50/55 text-emerald-700",
+    blue: "border-blue-100 bg-blue-50/55 text-blue-700",
+    violet: "border-violet-100 bg-violet-50/55 text-violet-700",
+  };
+
+  return <div className="mt-3 grid gap-3">
+    {(examples || importance) && <section>
+      <h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><BookOpen className="size-5" />{examples?.title}</h2>
+      <div className="mt-2 grid items-stretch gap-3 xl:grid-cols-[minmax(0,3fr)_minmax(190px,1fr)]">
+        <div className="grid min-w-0 gap-3 md:grid-cols-3">
+          {examples?.items?.map((item) => <article key={item.title} className={`min-w-0 overflow-hidden rounded-[22px] border p-3 shadow-sm ${tones[item.tone]}`}>
+            <div className="flex min-h-12 flex-wrap items-center justify-center gap-1 text-center"><h3 className="text-sm font-black">{item.title}</h3><CompactFractionEquation prefix={item.titlePrefix} values={item.titleEquation} /></div>
+            <div className="mt-3 grid gap-4">{item.steps?.map((step) => <div key={step.number} className="min-w-0"><h4 className="flex items-center gap-2 text-xs font-black text-nt-text-primary"><span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-700 text-[11px] text-white">{step.number}</span>{step.title}</h4><div className="mt-2 rounded-xl bg-white/65 px-1 py-2"><CompactFractionEquation values={step.equation} /></div></div>)}</div>
+            <div className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-xl bg-white/80 px-3 py-2 text-sm font-black shadow-sm"><span>{examples.resultLabel}</span><EquivalentFraction value={item.result} /></div>
+          </article>)}
+        </div>
+        {importance && <aside className="min-w-0 overflow-hidden rounded-[22px] border border-amber-200 bg-amber-50/70 p-3 shadow-sm"><h3 className="flex items-center gap-2 text-sm font-black text-orange-600"><Star className="size-5 fill-amber-400 text-amber-400" />{importance.title}</h3><p className="mt-3 text-xs font-semibold leading-5 text-slate-700">{importance.text}</p><div className="mt-3 grid gap-2">{importance.comparison?.map((item, index) => <div key={index}><div className="overflow-hidden rounded-xl border border-red-100 bg-white/70 px-1 py-3 text-red-600"><CompactFractionEquation prefix={item.prefix} values={item.equation} /></div>{index === 0 && <p className="py-1 text-center text-xl font-black text-red-500">{importance.separator}</p>}</div>)}</div></aside>}
+      </div>
+    </section>}
+    <div className="grid gap-3 lg:grid-cols-2">
+      {mistakes && <section className="relative min-h-44 overflow-hidden rounded-[22px] border border-red-200 bg-red-50/70 p-4 shadow-sm"><div className="max-w-[76%]"><h2 className="flex items-center gap-2 font-black text-red-600"><AlertTriangle className="size-5" />{mistakes.title}</h2><div className="mt-3 grid gap-2">{mistakes.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold leading-5 text-slate-700"><span className="font-black text-red-500">×</span>{item}</p>)}</div></div><img src={assetUrl(mistakes.image)} alt="NEO con una duda" className="absolute bottom-0 right-1 h-32 w-[25%] object-contain" /></section>}
+      {summary && <section className="grid min-h-44 items-center gap-3 overflow-hidden rounded-[22px] border border-amber-200 bg-amber-50/70 p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_150px]"><div><h2 className="flex items-center gap-2 font-black text-orange-600"><Star className="size-5 fill-amber-400 text-amber-400" />{summary.title}</h2><div className="mt-3 grid gap-2">{summary.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold text-slate-700"><Check className="size-4 shrink-0 text-green-600" strokeWidth={3} />{item}</p>)}</div></div><img src={assetUrl(summary.image)} alt="Lista de resumen" className="h-32 w-full object-contain" /></section>}
+    </div>
+    {finalCard && <section className="grid items-center gap-3 overflow-hidden rounded-[20px] border border-blue-100 bg-gradient-to-r from-sky-50 to-blue-100/70 px-4 py-3 shadow-sm sm:grid-cols-[72px_minmax(0,1fr)_70px]"><img src={assetUrl(finalCard.image)} alt="Cerebrito" className="mx-auto h-16 w-full object-contain" /><div className="min-w-0"><h2 className="font-black text-nt-blue">{finalCard.title}</h2><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{finalCard.text}</p></div><img src={assetUrl(finalCard.sideImage)} alt="Idea" className="mx-auto h-14 w-full object-contain" /></section>}
+  </div>;
+}
+
 function LessonTwoContent({ sections, onNext }) {
   const section = (type) => sections.find((item) => item.type === type);
   const objective = section("lesson_objective");
@@ -779,6 +823,7 @@ function TheoryLesson() {
   const isAdvancedSimplification = webContent?.layout === "advanced_fraction_simplification";
   const isAdvancedComparison = webContent?.layout === "advanced_fraction_comparison";
   const isAdvancedQuantity = webContent?.layout === "advanced_fraction_of_quantity";
+  const isAdvancedCombinedOperations = webContent?.layout === "advanced_combined_operations";
   const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
   const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
   const remainingSections = contentSections.filter((section) =>
@@ -874,7 +919,7 @@ function TheoryLesson() {
       <article className="rounded-nt-card border border-white/85 bg-white/95 p-3 shadow-nt-card sm:p-4 lg:p-5">
         <section className="relative overflow-hidden rounded-[24px] border border-blue-100 bg-gradient-to-br from-white via-blue-50 to-sky-50 px-4 py-4 shadow-[0_10px_26px_rgba(59,130,246,0.10)] sm:px-5">
           <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-sky-200/25 blur-3xl" />
-          <div className={`relative grid items-center gap-4 md:gap-5 ${isLessonThree || isLessonFour || isAdvancedWelcome || isAdvancedSimplification || isAdvancedComparison || isAdvancedQuantity ? "md:grid-cols-[minmax(0,42%)_minmax(360px,58%)]" : "md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)]"}`}>
+          <div className={`relative grid items-center gap-4 md:gap-5 ${isLessonThree || isLessonFour || isAdvancedWelcome || isAdvancedSimplification || isAdvancedComparison || isAdvancedQuantity || isAdvancedCombinedOperations ? "md:grid-cols-[minmax(0,42%)_minmax(360px,58%)]" : "md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)]"}`}>
             <div className="min-w-0">
               <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">
                 {heroContent?.badge ?? `Lección ${position}`}
@@ -904,7 +949,7 @@ function TheoryLesson() {
                 <img
                   src={assetUrl(heroContent?.image) ?? (isLessonTwo ? "/assets/lecciones_basico2.png" : "/assets/lecciones_saludo.png")}
                   alt=""
-                  className={`${isAdvancedWelcome || isAdvancedSimplification || isAdvancedComparison || isAdvancedQuantity ? "max-h-[260px]" : "max-h-[205px]"} w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]`}
+                  className={`${isAdvancedWelcome || isAdvancedSimplification || isAdvancedComparison || isAdvancedQuantity || isAdvancedCombinedOperations ? "max-h-[260px]" : "max-h-[205px]"} w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]`}
                 />
               )}
             </div>
@@ -946,7 +991,9 @@ function TheoryLesson() {
 
         {isAdvancedQuantity && <AdvancedQuantityContent sections={webSections} />}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && !isAdvancedComparison && !isAdvancedQuantity && (learningObjectives.length > 0 || importantSection || neoTip) && (
+        {isAdvancedCombinedOperations && <AdvancedCombinedOperationsContent sections={webSections} />}
+
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && !isAdvancedComparison && !isAdvancedQuantity && !isAdvancedCombinedOperations && (learningObjectives.length > 0 || importantSection || neoTip) && (
           <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
             {learningObjectives.length > 0 && (
               <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
@@ -990,7 +1037,7 @@ function TheoryLesson() {
           </section>
         )}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && !isAdvancedComparison && !isAdvancedQuantity && webContent && contentSections.length > 0 && (
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && !isAdvancedComparison && !isAdvancedQuantity && !isAdvancedCombinedOperations && webContent && contentSections.length > 0 && (
           <div className="mt-4 grid gap-3">
             {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
               <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">

@@ -157,7 +157,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.saveAndFlush(lesson);
             }
 
-            if ("AVANZADO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 4)) {
+            if ("AVANZADO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 5)) {
                 if (orderNumber == 1) {
                     lesson.setTitle("¡Bienvenido al nivel avanzado!");
                     lesson.setSubtitle("Es momento de llevar tus habilidades con fracciones al siguiente nivel.");
@@ -170,10 +170,14 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     lesson.setTitle("Comparación de fracciones");
                     lesson.setSubtitle("¿Qué fracción es mayor?");
                     lesson.setSummary("Comparamos fracciones para saber cuál representa una cantidad mayor.");
-                } else {
+                } else if (orderNumber == 4) {
                     lesson.setTitle("Fracción de una cantidad");
                     lesson.setSubtitle("¿Cuánto representa una fracción dentro de un número?");
                     lesson.setSummary("Para encontrar una fracción de una cantidad, dividimos y luego multiplicamos.");
+                } else {
+                    lesson.setTitle("Operaciones combinadas");
+                    lesson.setSubtitle("¡El orden correcto lo es todo!");
+                    lesson.setSummary("Cuando hay varias operaciones con fracciones, debemos seguir un orden para obtener el resultado correcto.");
                 }
                 lesson.setIcon(seed.icon());
                 lesson.setContentHtml(seed.contentHtml());
@@ -447,6 +451,23 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String advancedWebContent(int lessonNumber) {
+        if (lessonNumber == 5) return """
+                {
+                  "layout":"advanced_combined_operations",
+                  "hero":{"badge":"Lección 5","title":"Operaciones combinadas","subtitle":"¡El orden correcto lo es todo!","description":"Cuando hay varias operaciones con fracciones, debemos seguir un orden para obtener el resultado correcto.","image":"leccion5_avanzado.png"},
+                  "sections":[
+                    {"type":"combined_examples","title":"Ejemplos paso a paso","resultLabel":"Resultado:","items":[
+                      {"title":"Ejemplo 1:","titlePrefix":"(","titleEquation":[{"numerator":"1","denominator":"2"},"+",{"numerator":"1","denominator":"4"},") × 2"],"tone":"green","steps":[{"number":"1","title":"Paréntesis primero","equation":[{"numerator":"1","denominator":"2"},"+",{"numerator":"1","denominator":"4"},"=",{"numerator":"2","denominator":"4"},"+",{"numerator":"1","denominator":"4"},"=",{"numerator":"3","denominator":"4"}]},{"number":"2","title":"Multiplicación","equation":[{"numerator":"3","denominator":"4"},"× 2","=",{"numerator":"6","denominator":"4"},"=",{"numerator":"3","denominator":"2"}]}],"result":{"numerator":"3","denominator":"2"}},
+                      {"title":"Ejemplo 2:","titleEquation":[{"numerator":"2","denominator":"3"},"−",{"numerator":"1","denominator":"6"}],"tone":"blue","steps":[{"number":"1","title":"Mismo denominador","equation":[{"numerator":"2","denominator":"3"},"=",{"numerator":"4","denominator":"6"}]},{"number":"2","title":"Resta","equation":[{"numerator":"4","denominator":"6"},"−",{"numerator":"1","denominator":"6"},"=",{"numerator":"3","denominator":"6"},"=",{"numerator":"1","denominator":"2"}]}],"result":{"numerator":"1","denominator":"2"}},
+                      {"title":"Ejemplo 3:","titleEquation":[{"numerator":"2","denominator":"3"},"÷",{"numerator":"1","denominator":"2"},"+",{"numerator":"1","denominator":"6"}],"tone":"violet","steps":[{"number":"1","title":"División","equation":[{"numerator":"2","denominator":"3"},"÷",{"numerator":"1","denominator":"2"},"=",{"numerator":"2","denominator":"3"},"×",{"numerator":"2","denominator":"1"},"=",{"numerator":"4","denominator":"3"}]},{"number":"2","title":"Suma","equation":[{"numerator":"4","denominator":"3"},"+",{"numerator":"1","denominator":"6"},"=",{"numerator":"8","denominator":"6"},"+",{"numerator":"1","denominator":"6"},"=",{"numerator":"9","denominator":"6"},"=",{"numerator":"3","denominator":"2"}]}],"result":{"numerator":"3","denominator":"2"}}
+                    ]},
+                    {"type":"order_importance","title":"¿Por qué el orden importa?","text":"Si cambiamos el orden, el resultado puede ser diferente.","comparison":[{"prefix":"(","equation":[{"numerator":"1","denominator":"2"},"+",{"numerator":"1","denominator":"4"},") × 2","=",{"numerator":"3","denominator":"2"}]},{"equation":[{"numerator":"1","denominator":"2"},"+ (",{"numerator":"1","denominator":"4"},"× 2) = 1"]}],"separator":"≠"},
+                    {"type":"combined_mistakes","title":"Errores frecuentes","image":"neo_pensando.png","items":["Operar de izquierda a derecha sin tomar en cuenta el orden.","Ignorar los paréntesis.","Multiplicar en lugar de dividir, o dividir en lugar de multiplicar.","Olvidar convertir a un mismo denominador en sumas y restas."]},
+                    {"type":"combined_summary","title":"Resumen","image":"libro.png","items":["Paréntesis siempre primero.","Luego multiplicación o división.","Por último, suma o resta.","Resolver paso a paso evita errores."]},
+                    {"type":"combined_final","title":"Pon a prueba lo aprendido","text":"En la próxima lección resolverás problemas de la vida real usando todo lo que aprendiste en este nivel.","image":"cerebrito.png","sideImage":"idea.png"}
+                  ]
+                }
+                """;
         if (lessonNumber == 4) return """
                 {
                   "layout":"advanced_fraction_of_quantity",
