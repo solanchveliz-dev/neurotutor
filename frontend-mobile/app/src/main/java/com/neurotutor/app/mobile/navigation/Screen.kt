@@ -55,9 +55,11 @@ sealed class Screen(val route: String) {
     }
 
     // ✅ RUTA UNIFICADA PARA TUTOR IA: Soporta modo DASHBOARD y PRACTICE
-    object TutorHelp : Screen("tutor_help/{mode}?studentName={studentName}&moduleName={moduleName}&topicName={topicName}&questionStatus={questionStatus}&exerciseId={exerciseId}&exerciseQuestion={exerciseQuestion}&exerciseOptions={exerciseOptions}&correctAnswer={correctAnswer}") {
+    object TutorHelp : Screen("tutor_help/{mode}?studentId={studentId}&moduleId={moduleId}&studentName={studentName}&moduleName={moduleName}&topicName={topicName}&questionStatus={questionStatus}&exerciseId={exerciseId}&exerciseQuestion={exerciseQuestion}&exerciseOptions={exerciseOptions}&correctAnswer={correctAnswer}") {
         fun createRoute(
             mode: String,
+            studentId: String? = null,
+            moduleId: String? = null,
             studentName: String? = null,
             moduleName: String? = null,
             topicName: String? = null,
@@ -67,7 +69,9 @@ sealed class Screen(val route: String) {
             exerciseOptions: String? = null,
             correctAnswer: String? = null
         ) = "tutor_help/$mode" +
-                "?studentName=${studentName ?: ""}" +
+                "?studentId=${studentId ?: ""}" +
+                "&moduleId=${moduleId ?: ""}" +
+                "&studentName=${studentName ?: ""}" +
                 "&moduleName=${moduleName ?: ""}" +
                 "&topicName=${topicName ?: ""}" +
                 "&questionStatus=${questionStatus ?: ""}" +

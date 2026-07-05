@@ -61,7 +61,12 @@ fun TheoryScreen(
                 TheoryStep(title = "Multiplicación de fracciones 🎯", description = "")
             )
             "A" -> listOf<TheoryStep>(
-                TheoryStep(title = "Nivel Avanzado", description = "Próximamente")
+                TheoryStep(title = "Nivel Avanzado", description = ""),
+                TheoryStep(title = "Simplificación de Fracciones ✂️", description = ""),
+                TheoryStep(title = "Comparación de Fracciones ⚖️", description = ""),
+                TheoryStep(title = "Fracción de una Cantidad 🎯", description = ""),
+                TheoryStep(title = "Operaciones Combinadas 🧩", description = ""),
+                TheoryStep(title = "Problemas de la Vida Real 🕵️", description = "")
             )
             else -> listOf<TheoryStep>( // "B" (Básico) original intacto
                 TheoryStep(
@@ -151,20 +156,32 @@ fun TheoryScreen(
                                 text = levelTitle,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp,
-                                color = if (currentStepIndex == 0) Color.White else Color(0xFF1E293B)
+                                color = if (currentStepIndex == 0) {
+                                    Color.White
+                                } else {
+                                    Color(0xFF1E293B)
+                                }
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                val displayedStep = if (level == "A") 0 else currentStepIndex + 1
+                                val displayedStep =
+                                    if (level == "A") currentStepIndex else currentStepIndex + 1
                                 val displayedTotal = if (level == "A") 5 else totalPages
                                 LinearProgressIndicator(
                                     progress = {
-                                        if (level == "A") 0f
-                                        else displayedStep.toFloat() / displayedTotal.toFloat()
+                                        displayedStep.toFloat() / displayedTotal.toFloat()
                                     },
                                     modifier = Modifier.width(150.dp).height(10.dp).clip(RoundedCornerShape(5.dp)),
-                                    color = if (currentStepIndex == 0) Color.White else MoradoActivo,
-                                    trackColor = if (currentStepIndex == 0) Color.White.copy(alpha = 0.3f) else Color(0xFFE2E8F0),
+                                    color = if (currentStepIndex == 0) {
+                                        Color.White
+                                    } else {
+                                        MoradoActivo
+                                    },
+                                    trackColor = if (currentStepIndex == 0) {
+                                        Color.White.copy(alpha = 0.3f)
+                                    } else {
+                                        Color(0xFFE2E8F0)
+                                    },
                                 )
                                 Text(
                                     text = "$displayedStep/$displayedTotal",
@@ -182,7 +199,11 @@ fun TheoryScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Volver",
-                                tint = if (currentStepIndex == 0) Color.White else Color(0xFF1E293B)
+                                tint = if (currentStepIndex == 0) {
+                                    Color.White
+                                } else {
+                                    Color(0xFF1E293B)
+                                }
                             )
                         }
                     },
@@ -249,7 +270,31 @@ fun TheoryScreen(
                         }
                     }
                     "A" -> {
-                        AdvancedWelcomeTheoryStep(onStartLesson = {})
+                        when (currentStepIndex) {
+                            0 -> AdvancedWelcomeTheoryStep(
+                                onStartLesson = { currentStepIndex++ }
+                            )
+                            1 -> SimplificationFractionsStep(
+                                onNext = { currentStepIndex++ },
+                                onBack = { currentStepIndex-- }
+                            )
+                            2 -> ComparisonFractionsStep(
+                                onNext = { currentStepIndex++ },
+                                onBack = { currentStepIndex-- }
+                            )
+                            3 -> FractionOfQuantityStep(
+                                onNext = { currentStepIndex++ },
+                                onBack = { currentStepIndex-- }
+                            )
+                            4 -> CombinedOperationsStep(
+                                onNext = { currentStepIndex++ },
+                                onBack = { currentStepIndex-- }
+                            )
+                            5 -> RealLifeProblemsStep(
+                                onFinish = handleFinishTheory,
+                                onBack = { currentStepIndex-- }
+                            )
+                        }
                     }
                 }
             }

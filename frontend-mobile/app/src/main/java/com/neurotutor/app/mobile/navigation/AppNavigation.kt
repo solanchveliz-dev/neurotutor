@@ -18,6 +18,7 @@ import com.neurotutor.app.mobile.ui.screens.diagnostic.*
 import com.neurotutor.app.mobile.ui.screens.learning.*
 import com.neurotutor.app.mobile.ui.screens.profile.ProfileScreen
 import com.neurotutor.app.mobile.ui.screens.achievements.AchievementsScreen
+import com.neurotutor.app.mobile.data.network.RetrofitClient
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -108,6 +109,11 @@ fun AppNavigation(
                 viewModel = sharedViewModel,
                 onNavigateToDetails = {
                     navController.navigate(Screen.MapResults.createRoute(studentId))
+                },
+                onStartAdventure = {
+                    navController.navigate(Screen.StudentDashboard.createRoute(studentId)) {
+                        popUpTo(Screen.LevelAssignment.route) { inclusive = true }
+                    }
                 }
             )
         }
@@ -165,6 +171,7 @@ fun AppNavigation(
                 onNavigateToTutor = { name: String, module: String ->
                     navController.navigate(Screen.TutorHelp.createRoute(
                         mode = "DASHBOARD",
+                        studentId = studentId,
                         studentName = name,
                         moduleName = module
                     ))
@@ -196,7 +203,8 @@ fun AppNavigation(
                 onNavigateToTutor = {
                     navController.navigate(Screen.TutorHelp.createRoute(
                         mode = "DASHBOARD",
-                        studentName = "", // Opcional: pasar nombre si está disponible
+                        studentId = studentId,
+                        studentName = "",
                         moduleName = "Fracciones"
                     ))
                 }
@@ -221,8 +229,11 @@ fun AppNavigation(
                         "logros" -> navController.navigate(Screen.Achievements.createRoute(studentId)) {
                             popUpTo(Screen.StudentDashboard.route)
                         }
-                        "login" -> navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
+                        "login" -> {
+                            RetrofitClient.clearAuthToken()
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     }
                 }
@@ -296,6 +307,17 @@ fun AppNavigation(
                 },
                 onNavigateToExam = {
                     navController.navigate(Screen.FinalExam.createRoute(studentId, moduleId, level, topicTitle))
+                },
+                onNavigateToTutor = { sId, sName, mId, topic ->
+                    navController.navigate(
+                        Screen.TutorHelp.createRoute(
+                            mode = "PRACTICE",
+                            studentId = sId,
+                            studentName = sName,
+                            moduleId = mId,
+                            moduleName = topic
+                        )
+                    )
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -401,22 +423,52 @@ fun AppNavigation(
             route = Screen.TutorHelp.route,
             arguments = listOf(
                 navArgument("mode") { type = NavType.StringType },
-                navArgument("studentId") { type = NavType.StringType; defaultValue = "1" },
-                navArgument("moduleId") { type = NavType.StringType; defaultValue = "1" },
-                navArgument("studentName") { type = NavType.StringType; defaultValue = "" },
-                navArgument("moduleName") { type = NavType.StringType; defaultValue = "" },
-                navArgument("topicName") { type = NavType.StringType; defaultValue = "" },
-                navArgument("questionStatus") { type = NavType.StringType; defaultValue = "" },
-                navArgument("exerciseId") { type = NavType.StringType; defaultValue = "" },
-                navArgument("exerciseQuestion") { type = NavType.StringType; defaultValue = "" },
-                navArgument("exerciseOptions") { type = NavType.StringType; defaultValue = "" },
-                navArgument("correctAnswer") { type = NavType.StringType; defaultValue = "" }
+                navArgument("studentId") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("moduleId") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("studentName") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("moduleName") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("topicName") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("questionStatus") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("exerciseId") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("exerciseQuestion") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("exerciseOptions") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                },
+                navArgument("correctAnswer") { 
+                    type = NavType.StringType
+                    defaultValue = "" 
+                }
             )
         ) { backStackEntry ->
             val modeStr = backStackEntry.arguments?.getString("mode") ?: "DASHBOARD"
             val mode = TutorMode.valueOf(modeStr)
-            val studentIdStr = backStackEntry.arguments?.getString("studentId") ?: "1"
-            val moduleIdStr = backStackEntry.arguments?.getString("moduleId") ?: "1"
+            val studentIdStr = backStackEntry.arguments?.getString("studentId") ?: ""
+            val moduleIdStr = backStackEntry.arguments?.getString("moduleId") ?: ""
             val studentName = backStackEntry.arguments?.getString("studentName") ?: ""
             val moduleName = backStackEntry.arguments?.getString("moduleName") ?: ""
             val topicName = backStackEntry.arguments?.getString("topicName") ?: ""

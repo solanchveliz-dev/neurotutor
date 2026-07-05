@@ -34,24 +34,9 @@ class DiagnosticResultsViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val plantillaCorrectas = listOf("C", "C", "C", "B", "C", "B", "C", "B", "C", "D")
-                val temas = listOf(
-                    "Sustracción y Cantidades", "Multiplicación", "División y Reparto",
-                    "Fracciones", "Decimales", "Ecuaciones", "Perímetros",
-                    "Proporcionalidad", "Operaciones combinadas", "Promedios"
-                )
-                val explicaciones = listOf(
-                    "Se suma 1826 + 478 para hallar el total de primaria.",
-                    "8 cajas x 6 latas x S/20 = S/960.",
-                    "1980 / 50 = 39.6, se redondea a 40 bolsas.",
-                    "Hay 9 naranjas de 14 frutas totales (9/14).",
-                    "1.8m + 2.4m = 4.2m.",
-                    "X = 42 - 26 = 16.",
-                    "24+24+12+12 = 72m de cerco.",
-                    "18 paquetes son 6 grupos de 3. 6 x S/5 = S/30.",
-                    "56 - 8 = 48. 48 / 4 = 12 bizcochos.",
-                    "Suma total S/24 / 4 amigos = S/6."
-                )
+                val plantillaCorrectas = DiagnosticEducationCatalog.lessons.map { it.correctLetter }
+                val temas = DiagnosticEducationCatalog.lessons.map { it.topic }
+                val explicaciones = DiagnosticEducationCatalog.lessons.map { it.conclusion }
 
                 var aciertos = 0
                 val resultados = ArrayList<QuestionResult>()

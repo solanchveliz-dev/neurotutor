@@ -265,7 +265,7 @@ private fun AdvancedTopicCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = topic.title,
-                    color = AdvancedPurple,
+                        color = AdvancedPurple,
                     fontSize = 15.sp,
                     lineHeight = 19.sp,
                     fontWeight = FontWeight.Black

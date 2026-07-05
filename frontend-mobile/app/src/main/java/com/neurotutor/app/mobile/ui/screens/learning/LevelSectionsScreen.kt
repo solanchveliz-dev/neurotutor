@@ -1,6 +1,7 @@
 package com.neurotutor.app.mobile.ui.screens.learning
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,7 +23,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -46,6 +46,7 @@ fun LevelSectionsScreen(
     onNavigateToTheory: () -> Unit,
     onNavigateToExercises: () -> Unit,
     onNavigateToExam: () -> Unit,
+    onNavigateToTutor: (String, String, String, String) -> Unit, // 🆕 Fase 2
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -63,11 +64,10 @@ fun LevelSectionsScreen(
 
     val backgroundGradient = Brush.verticalGradient(
         colors = listOf(
-            NeuroBlue,
-            NeuroBlue,
-            NeuroBlue,
-            Color(0xFFBAE6FD),
-            Color(0xFFE0F2FE)
+            Color(0xFF007AFF),
+            Color(0xFF5AC8FA),
+            Color(0xFFF1F5F9),
+            Color(0xFFF8FAFC)
         )
     )
 
@@ -99,19 +99,18 @@ fun LevelSectionsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(190.dp)
                 ) {
                     IconButton(
                         onClick = onBack,
                         modifier = Modifier
-                            .align(Alignment.TopStart)
                             .statusBarsPadding()
-                            .padding(start = 8.dp, top = 4.dp)
+                            .padding(start = 8.dp, top = 8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = NeuroWhite,
+                            tint = Color.White,
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -120,7 +119,7 @@ fun LevelSectionsScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .statusBarsPadding()
-                            .padding(start = 56.dp, end = 56.dp, bottom = 36.dp),
+                            .padding(start = 62.dp, end = 62.dp, top = 22.dp, bottom = 20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -132,19 +131,20 @@ fun LevelSectionsScreen(
 
                         Text(
                             text = "$topicTitle - $cleanLevelLabel",
-                            fontSize = 23.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 27.sp,
+                            lineHeight = 32.sp,
+                            fontWeight = FontWeight.Black,
                             color = NeuroWhite,
                             textAlign = TextAlign.Center,
-                            maxLines = 1
+                            maxLines = 2
                         )
 
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
                             text = "¿Qué quieres hacer?",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Medium,
                             color = NeuroWhite.copy(alpha = 0.95f),
                             textAlign = TextAlign.Center
                         )
@@ -156,19 +156,18 @@ fun LevelSectionsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
-                        .padding(top = 24.dp),
+                        .padding(top = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // --- 📚 SECCIONES ---
                     Column(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
                         // TARJETA TEORÍA
                         ActionSectionCard(
                             title = "Teoría",
                             subtitle = if (state.teoriaCompletada) "✓ Completado" else "📖 Por estudiar",
-                            icon = Icons.AutoMirrored.Filled.ArrowBack,
                             color = if (state.teoriaCompletada) NeuroGreen else MoradoActivo,
                             onClick = onNavigateToTheory
                         )
@@ -177,12 +176,11 @@ fun LevelSectionsScreen(
                         ActionSectionCard(
                             title = "Práctica",
                             subtitle = if (state.examenDisponible) "✓ Completado" else "${state.ejerciciosCompletados}/${state.totalEjercicios} completados",
-                            icon = Icons.AutoMirrored.Filled.ArrowBack,
                             color = if (state.examenDisponible) NeuroGreen else MoradoActivo,
                             onClick = onNavigateToExercises
                         )
 
-                        // TARJETA EXAMEN
+                        // TARJETAS EXAMEN
                         ActionSectionCard(
                             title = "Examen Final",
                             subtitle = when {
@@ -190,7 +188,6 @@ fun LevelSectionsScreen(
                                 state.examenDisponible -> "🎯 Disponible"
                                 else -> "🔒 Bloqueado"
                             },
-                            icon = Icons.AutoMirrored.Filled.ArrowBack,
                             color = when {
                                 state.examPassed -> NeuroGreen
                                 state.examenDisponible -> Color(0xFFF59E0B)
@@ -203,10 +200,13 @@ fun LevelSectionsScreen(
 
                     Spacer(modifier = Modifier.height(28.dp))
 
-                    // TUTOR IA
-                    if (state.mensajeTutor.isNotEmpty()) {
-                        TutorIAFeedbackMessage(message = state.mensajeTutor)
-                    }
+                    // TUTOR IA (Fase 2: Interactividad Proactiva)
+                    TutorIAFeedbackMessage(
+                        message = state.mensajeTutor.ifEmpty { "¡Hola $studentName! Soy Neo. ¿Tienes alguna duda sobre este nivel?" },
+                        onClick = {
+                            onNavigateToTutor(studentId, studentName, moduleId, topicTitle)
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(32.dp))
                 }
@@ -219,7 +219,6 @@ fun LevelSectionsScreen(
 fun ActionSectionCard(
     title: String,
     subtitle: String,
-    icon: ImageVector,
     color: Color,
     isLocked: Boolean = false,
     onClick: () -> Unit
@@ -241,16 +240,16 @@ fun ActionSectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
-            .clip(RoundedCornerShape(26.dp))
+            .height(172.dp)
+            .clip(RoundedCornerShape(28.dp))
             .clickable(enabled = !isLocked) { onClick() }
             .border(
-                width = 2.dp,
-                color = borderStrokeColor,
-                shape = RoundedCornerShape(26.dp)
+                width = 1.dp,
+                color = borderStrokeColor.copy(alpha = 0.72f),
+                shape = RoundedCornerShape(28.dp)
             ),
         colors = CardDefaults.cardColors(containerColor = cardBgColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isLocked) 1.dp else 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isLocked) 3.dp else 7.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -259,13 +258,17 @@ fun ActionSectionCard(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.40f)
+                    .fillMaxWidth(0.43f)
                     .background(
-                        brush = Brush.verticalGradient(
+                        brush = Brush.horizontalGradient(
                             colors = if (isLocked) {
-                                listOf(Color(0xFFE5E7EB), Color(0xFFD1D5DB))
+                                listOf(Color(0xFFEFF3F7), Color(0xFFE4EAF1))
+                            } else if (visualTitle == "Teoría") {
+                                listOf(Color(0xFFECFDF5), Color(0xFFDCFCE7))
+                            } else if (visualTitle == "Práctica") {
+                                listOf(Color(0xFFF5F3FF), Color(0xFFEDE9FE))
                             } else {
-                                listOf(Color(0xFFE0F2FE), Color(0xFFBAE6FD))
+                                listOf(Color(0xFFEFF6FF), Color(0xFFDBEAFE))
                             }
                         )
                     ),
@@ -277,52 +280,65 @@ fun ActionSectionCard(
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(14.dp),
-                    alpha = if (isLocked) 0.4f else 1.0f
+                        .padding(10.dp),
+                    alpha = if (isLocked) 0.52f else 1.0f
                 )
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 14.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = visualTitle,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 23.sp,
+                    lineHeight = 27.sp,
+                    fontWeight = FontWeight.Black,
                     color = if (isLocked) TextGray else TextoBase
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
                     text = description,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = TextoBase.copy(alpha = 0.6f)
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = subtitle,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = color
+                    lineHeight = 19.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextoBase.copy(alpha = 0.66f),
+                    maxLines = 2
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Surface(
+                    color = color.copy(alpha = 0.11f),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, color.copy(alpha = 0.12f))
+                ) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 13.sp,
+                        lineHeight = 17.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = color,
+                        maxLines = 2,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun TutorIAFeedbackMessage(message: String) {
+fun TutorIAFeedbackMessage(message: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 24.dp)
+            .clickable { onClick() },
         contentAlignment = Alignment.BottomEnd
     ) {
         Card(
@@ -332,7 +348,7 @@ fun TutorIAFeedbackMessage(message: String) {
             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("🧠 Tutor IA", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = MoradoActivo)
+                Text("🧠 Tutor Neo", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = MoradoActivo)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = message, fontSize = 13.sp, color = TextoBase.copy(alpha = 0.8f))
             }
@@ -346,7 +362,11 @@ fun TutorIAFeedbackMessage(message: String) {
             shadowElevation = 4.dp
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text("🤩", fontSize = 32.sp)
+                Image(
+                    painter = painterResource(id = R.drawable.neo_head),
+                    contentDescription = "Consultar a Neo",
+                    modifier = Modifier.size(42.dp)
+                )
             }
         }
     }

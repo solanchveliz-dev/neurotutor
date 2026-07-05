@@ -5,12 +5,14 @@ import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -43,18 +45,15 @@ fun DiagnosticScreen(
     onNavigateToAssignment: (String, List<String>) -> Unit
 ) {
     val localQuestions = remember {
-        listOf(
-            Question("Como parte de una campaña de reciclaje, los estudiantes de secundaria de una escuela recolectaron 1826 botellas de plástico. Ellos recolectaron 478 botellas de plástico menos que los estudiantes de primaria. ¿Cuántas botellas de plástico recolectaron los estudiantes de primaria?", options = listOf("478 botellas de plástico.", "1348 botellas de plástico.", "2294 botellas de plástico.", "2304 botellas de plástico."), correctAnswer = 2),
-            Question("Mariana recibió 8 cajas con latas de pintura para su ferretería. En cada caja, hay media docena de latas de pintura. Ella venderá cada lata a S/20. ¿Cuánto dinero recibirá Mariana por la venta de todas las latas de pintura?", options = listOf("S/34", "S/160", "S/960", "S/1920"), correctAnswer = 2),
-            Question("Sergio tiene una piscigranja y necesita comprar 1980 kg de alimento balanceado para peces. El tipo de alimento que utiliza para sus peces solo se vende en bolsas de 50 kg. ¿Cuántas bolsas de alimento balanceado debe comprar Sergio?", options = listOf("98 bolsas.", "50 bolsas.", "40 bolsas.", "39 bolsas."), correctAnswer = 2),
-            Question("En la bandeja, hay frutas. Algunas son naranjas y antes son manzanas. Observa la imagen.", imageRes = R.drawable.imagen_pregunta4_frutas, textAfterImage = "¿Qué parte del total de frutas de la bandeja son naranjas?", options = listOf("9/5", "9/14", "5/14", "1/14"), correctAnswer = 1),
-            Question("Abigail tiene dos piezas de soga de diferente longitud sobre una mesa. Observa.", imageRes = R.drawable.imagen_pregunta5_sogas, textAfterImage = "Ella usó completamente las dos piezas de soga para amarrar unos troncos de su corral de ovejas. ¿Qué longitud de soga usó Abigail en total?", options = listOf("1,5 m", "1,8 m", "4,2 m", "15 m"), correctAnswer = 2),
-            Question("¿Qué número debe escribirse dentro del recuadro para que se cumpla la igualdad?", imageRes = R.drawable.imagen_pregunta6_ecuacion, options = listOf("13", "16", "22", "30"), correctAnswer = 1),
-            Question("El siguiente gráfico representa el terreno que utilizará Corina para construir un restaurante.", imageRes = R.drawable.imagen_pregunta7_terreno, textAfterImage = "Corina colocará un cerco en el contorno de todo el terreno. ¿Cuál es la longitud del cerco que colocará Corina?", options = listOf("24 m", "27 m", "72 m", "180 m"), correctAnswer = 2),
-            Question("Juan vende tres paquetes de mantequilla por S/5. Él elaboró la siguiente tabla para calcular la cantidad de dinero que tendría que cobrar según la cantidad de paquetes que venda.", imageRes = R.drawable.imagen_pregunta8_tabla, textAfterImage = "Juan vendió una docena y media de paquetes de mantequilla. ¿Cuánto dinero cobrará por esa venta?", options = listOf("S/60", "S/30", "S/20", "S/18"), correctAnswer = 1),
-            Question("Eloísa preparó 56 bizcochos. Luego, los colocó en 4 cajas con igual cantidad de bizcochos en cada una. Al terminar de guardarlos, le sobraron 8 bizcochos. ¿Cuántos bizcochos colocó en cada caja?", options = listOf("12 bizcochos", "14 bizcochos", "16 bizcochos", "22 bizcochos"), correctAnswer = 2),
-            Question("Cuatro amigos quieren tomar un vaso de jugo de naranja cada uno, pero tienen diferentes cantidades de dinero. Mario tiene S/5, Eliana tiene S/7, José tiene S/8 y Lucía tiene S/4. Todos están de acuerdo en prestarse dinero entre ellos...", imageRes = R.drawable.imagen_pregunta10_jugonaranja, textAfterImage = "¿Cuál es el mayor precio que podrán pagar los cuatro amigos por cada vaso de jugo de naranja?", options = listOf("S/3", "S/4", "S/5", "S/6"), correctAnswer = 3)
-        )
+        DiagnosticEducationCatalog.lessons.map { lesson ->
+            Question(
+                textBeforeImage = lesson.prompt,
+                imageRes = lesson.imageRes,
+                textAfterImage = lesson.promptAfterImage,
+                options = lesson.options,
+                correctAnswer = lesson.correctIndex
+            )
+        }
     }
     var questions by remember { mutableStateOf(localQuestions) }
 
@@ -80,7 +79,10 @@ fun DiagnosticScreen(
                             },
                             textAfterImage = question.textAfterImage,
                             options = question.options,
-                            correctAnswer = localQuestions[index].correctAnswer
+                            correctAnswer = DiagnosticEducationCatalog
+                                .lesson(question.order)
+                                ?.correctIndex
+                                ?: localQuestions[index].correctAnswer
                         )
                     }
             }
@@ -90,8 +92,13 @@ fun DiagnosticScreen(
     }
 
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
-    var selectedOption by remember { mutableStateOf<Int?>(null) }
+    val selectedAnswers = remember {
+        mutableStateListOf<Int?>().apply {
+            repeat(localQuestions.size) { add(null) }
+        }
+    }
     val scrollState = rememberScrollState()
+    val selectedOption = selectedAnswers.getOrNull(currentQuestionIndex)
 
     val calificaciones = remember { mutableStateListOf<String>() }
     val labels = listOf("a", "b", "c", "d")
@@ -114,6 +121,10 @@ fun DiagnosticScreen(
         label = "NeoFloatingOffset"
     )
 
+    LaunchedEffect(currentQuestionIndex) {
+        scrollState.scrollTo(0)
+    }
+
     // Controlador del tiempo y textos secuenciales del overlay de análisis (2 segundos totales)
     LaunchedEffect(showAnalyzingOverlay) {
         if (showAnalyzingOverlay) {
@@ -126,79 +137,134 @@ fun DiagnosticScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            val currentQuestion = questions.getOrNull(currentQuestionIndex)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC))
+    ) {
+        val currentQuestion = questions.getOrNull(currentQuestionIndex)
 
-            if (currentQuestion != null) {
-                Text(text = "Evaluación de Diagnóstico", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), modifier = Modifier.padding(top = 8.dp))
-                Text(text = "Pregunta ${currentQuestionIndex + 1} de ${questions.size}", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 20.dp))
+        if (currentQuestion != null) {
+            DiagnosticHeader(
+                currentQuestion = currentQuestionIndex + 1,
+                totalQuestions = questions.size,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+            )
 
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(text = currentQuestion.textBeforeImage, fontSize = 17.sp, lineHeight = 24.sp, color = Color(0xFF334155))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 126.dp, bottom = 88.dp)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(Modifier.height(20.dp))
 
-                        if (currentQuestion.imageRes != null) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Box(modifier = Modifier.fillMaxWidth().height(180.dp).border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                                Image(painter = painterResource(id = currentQuestion.imageRes), contentDescription = null, modifier = Modifier.padding(8.dp), contentScale = ContentScale.Fit)
-                            }
-                        }
+                Surface(
+                    color = Color(0xFFEDE9FE),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.align(Alignment.Start)
+                ) {
+                    Text(
+                        text = "Pregunta ${currentQuestionIndex + 1}",
+                        color = Color(0xFF7C3AED),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
 
-                        if (currentQuestion.textAfterImage != null) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(text = currentQuestion.textAfterImage, fontSize = 17.sp, lineHeight = 24.sp, color = Color(0xFF334155))
-                        }
+                Spacer(Modifier.height(20.dp))
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = currentQuestion.textBeforeImage,
+                    fontSize = 17.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF111B5C),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                        currentQuestion.options.forEachIndexed { index, option ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .selectable(selected = (selectedOption == index), onClick = { selectedOption = index })
-                                    .padding(vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(selected = (selectedOption == index), onClick = { selectedOption = index })
-                                Text(text = "${labels[index]})  $option", fontSize = 16.sp, color = if (selectedOption == index) MaterialTheme.colorScheme.primary else Color(0xFF1E293B), fontWeight = if (selectedOption == index) FontWeight.SemiBold else FontWeight.Normal, modifier = Modifier.padding(start = 10.dp))
-                            }
-                        }
+                if (currentQuestion.imageRes != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE4E7F2))
+                    ) {
+                        Image(
+                            painter = painterResource(id = currentQuestion.imageRes),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 150.dp, max = 210.dp)
+                                .padding(12.dp),
+                            contentScale = ContentScale.Fit
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(30.dp))
-
-                Button(
-                    onClick = {
-                        selectedOption?.let { idx ->
-                            calificaciones.add(labels[idx].uppercase())
-                        }
-
-                        if (currentQuestionIndex < questions.size - 1) {
-                            currentQuestionIndex++
-                            selectedOption = null
-                        } else {
-                            // En lugar de navegar directo, activamos la transición visual de análisis
-                            showAnalyzingOverlay = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(0.8f).height(48.dp),
-                    enabled = selectedOption != null
-                ) {
+                if (currentQuestion.textAfterImage != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = if (currentQuestionIndex < questions.size - 1) "Siguiente" else "Finalizar Examen",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        text = currentQuestion.textAfterImage,
+                        fontSize = 17.sp,
+                        lineHeight = 24.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF111B5C),
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                currentQuestion.options.forEachIndexed { index, option ->
+                    DiagnosticOptionCard(
+                        label = ('A' + index).toString(),
+                        text = option,
+                        selected = selectedOption == index,
+                        onClick = { selectedAnswers[currentQuestionIndex] = index }
+                    )
+                    if (index < currentQuestion.options.lastIndex) {
+                        Spacer(Modifier.height(10.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(22.dp))
             }
+
+            DiagnosticNavigationButtons(
+                currentQuestionIndex = currentQuestionIndex,
+                isLastQuestion = currentQuestionIndex == questions.lastIndex,
+                nextEnabled = selectedOption != null,
+                onPrevious = {
+                    if (currentQuestionIndex > 0) {
+                        currentQuestionIndex--
+                    }
+                },
+                onNext = {
+                    if (currentQuestionIndex < questions.size - 1) {
+                        currentQuestionIndex++
+                    } else {
+                        calificaciones.clear()
+                        calificaciones.addAll(
+                            selectedAnswers.map { answerIndex ->
+                                answerIndex?.let { labels[it].uppercase() }.orEmpty()
+                            }
+                        )
+                        showAnalyzingOverlay = true
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            )
         }
 
         // Overlay Introductorio inicial
@@ -268,7 +334,7 @@ fun DiagnosticScreen(
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // OVERLAY TEMPORAL DE ANÁLISIS INTERMEDIO (NEO_ANALYZING)
+        // OVERLAY TEMPORAL DE ANÁLISIS INTERMEDIO
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         AnimatedVisibility(
             visible = showAnalyzingOverlay,
@@ -283,41 +349,300 @@ fun DiagnosticScreen(
                     .clickable(enabled = true, onClick = {}),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(24.dp)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
                 ) {
-                    // Globo de diálogo superior dinámico
-                    Box(
-                        modifier = Modifier
-                            .wrapContentSize()
-                            .shadow(6.dp, RoundedCornerShape(16.dp))
-                            .background(Color.White, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 20.dp)
                     ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.neo_explain),
+                            contentDescription = "Neo explica que está analizando las respuestas",
+                            modifier = Modifier.size(180.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(Modifier.height(4.dp))
                         Text(
-                            text = analyzingText,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
+                            text = "¡Terminaste el diagnóstico!",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF5B21E8),
                             textAlign = TextAlign.Center
                         )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Neo está revisando cuidadosamente tus respuestas para encontrar tu nivel ideal.",
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF111B5C),
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Color(0xFFF5F1FF),
+                            shape = RoundedCornerShape(18.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                DiagnosticAnalysisStage(
+                                    icon = "📋",
+                                    text = "Revisando tus\nrespuestas",
+                                    modifier = Modifier.weight(1f)
+                                )
+                                DiagnosticAnalysisStage(
+                                    icon = "🔍",
+                                    text = "Analizando tu\ndesempeño",
+                                    modifier = Modifier.weight(1f)
+                                )
+                                DiagnosticAnalysisStage(
+                                    icon = "📊",
+                                    text = "Calculando tu\nnivel ideal",
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = analyzingText,
+                            color = Color(0xFF5B21E8),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(7.dp),
+                            color = Color(0xFF7C3AED),
+                            trackColor = Color(0xFFE9E7F5),
+                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        Surface(
+                            color = Color(0xFFF2EDFF),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text(
+                                text = "💡  Sigue así, cada paso te acerca a tu mejor versión.",
+                                color = Color(0xFF111B5C),
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Mascota Inteligente Libre (Con Lentes / Analizando)
-                    Image(
-                        painter = painterResource(id = R.drawable.neo_analyzing),
-                        contentDescription = "Neo Analizando respuestas",
-                        modifier = Modifier
-                            .size(200.dp)
-                            .offset(y = dy.dp),
-                        contentScale = ContentScale.Fit
-                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DiagnosticAnalysisStage(
+    icon: String,
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = icon, fontSize = 28.sp)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = text,
+            color = Color(0xFF111B5C),
+            fontSize = 11.sp,
+            lineHeight = 15.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun DiagnosticHeader(
+    currentQuestion: Int,
+    totalQuestions: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(126.dp),
+        color = Color.White,
+        shadowElevation = 2.dp
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Text(
+                text = "Diagnóstico inicial",
+                color = Color(0xFF111B5C),
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 18.dp, start = 24.dp, end = 24.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 28.dp, end = 28.dp, bottom = 18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LinearProgressIndicator(
+                    progress = { currentQuestion.toFloat() / totalQuestions.coerceAtLeast(1) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(8.dp),
+                    color = Color(0xFF7C3AED),
+                    trackColor = Color(0xFFE9E7F5),
+                    strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+                Spacer(Modifier.width(18.dp))
+                Text(
+                    text = "$currentQuestion/$totalQuestions",
+                    color = Color(0xFF7C3AED),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiagnosticOptionCard(
+    label: String,
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val accent = Color(0xFF7C3AED)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onClick),
+        color = if (selected) Color(0xFFF5F1FF) else Color.White,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) accent else Color(0xFFDADDEF)
+        ),
+        shadowElevation = if (selected) 2.dp else 1.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(42.dp),
+                shape = CircleShape,
+                color = if (selected) Color(0xFF8661FA) else Color(0xFFE2D8FF)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = label,
+                        color = if (selected) Color.White else accent,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Text(
+                text = text,
+                color = if (selected) accent else Color(0xFF111B5C),
+                fontSize = 16.sp,
+                lineHeight = 22.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DiagnosticNavigationButtons(
+    currentQuestionIndex: Int,
+    isLastQuestion: Boolean,
+    nextEnabled: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (currentQuestionIndex > 0) {
+            DiagnosticNavigationButton(
+                text = "Anterior",
+                enabled = true,
+                onClick = onPrevious,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        DiagnosticNavigationButton(
+            text = if (isLastQuestion) "Finalizar examen  ✓" else "Siguiente  →",
+            enabled = nextEnabled,
+            onClick = onNext,
+            modifier = if (currentQuestionIndex > 0) {
+                Modifier.weight(1.35f)
+            } else {
+                Modifier.fillMaxWidth()
+            }
+        )
+    }
+}
+
+@Composable
+private fun DiagnosticNavigationButton(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .height(54.dp)
+            .shadow(
+                elevation = if (enabled) 4.dp else 0.dp,
+                shape = RoundedCornerShape(18.dp)
+            ),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF7C3AED),
+            contentColor = Color.White,
+            disabledContainerColor = Color(0xFFD9D0F8),
+            disabledContentColor = Color(0xFF8276A8)
+        ),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Black
+        )
     }
 }

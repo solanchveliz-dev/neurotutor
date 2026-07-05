@@ -43,6 +43,7 @@ class AuthViewModel : ViewModel() {
         errorMessage = null
         isLoginSuccess = false
         loggedStudentId = null
+        RetrofitClient.clearAuthToken()
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -53,6 +54,7 @@ class AuthViewModel : ViewModel() {
                     isLoading = false
                     if (response.isSuccessful) {
                         val authResponse = response.body()
+                        RetrofitClient.updateAuthToken(authResponse?.token)
                         successMessage = authResponse?.mensaje ?: "¡Bienvenido!"
                         loggedStudentId = authResponse?.id 
                         hasCompletedExam = authResponse?.examenCompletado ?: false

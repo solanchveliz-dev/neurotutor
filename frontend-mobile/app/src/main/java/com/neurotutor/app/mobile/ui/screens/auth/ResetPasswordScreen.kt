@@ -1,14 +1,36 @@
 package com.neurotutor.app.mobile.ui.screens.auth
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -25,11 +47,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.*
 import com.neurotutor.app.mobile.data.model.auth.ResetPasswordRequest
 import com.neurotutor.app.mobile.data.network.RetrofitClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPasswordScreen(
     email: String,
@@ -87,152 +111,236 @@ fun ResetPasswordScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onNavigateToLogin) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        Text(
-            text = "🔐 Restablecer contraseña",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF1E3A8A)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Ingresa el código de 6 números enviado a tu correo y tu nueva contraseña",
-            fontSize = 14.sp,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Código de verificación",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF1E3A8A),
-            modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, bottom = 8.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            for (i in 0..5) {
-                OutlinedTextField(
-                    value = digits[i],
-                    onValueChange = { input ->
-                        if (input.length <= 1) {
-                            digits[i] = input
-                            if (input.isNotEmpty() && i < 5) {
-                                focusRequesters[i + 1].requestFocus()
-                            }
-                        } else if (input.length == 2) {
-                            val nuevoChar = input.last().toString()
-                            digits[i] = nuevoChar
-                            if (i < 5) focusRequesters[i + 1].requestFocus()
-                        }
-                    },
-                    modifier = Modifier
-                        .width(48.dp)
-                        .height(56.dp)
-                        .focusRequester(focusRequesters[i])
-                        .onPreviewKeyEvent { keyEvent ->
-                            if (keyEvent.key == Key.Backspace && digits[i].isEmpty() && i > 0) {
-                                digits[i - 1] = ""
-                                focusRequesters[i - 1].requestFocus()
-                                true
-                            } else {
-                                false
-                            }
-                        },
-                    textStyle = TextStyle(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = Color(0xFF1E3A8A)
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF1E3A8A),
-                        unfocusedBorderColor = Color.LightGray
-                    )
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = newPassword,
-            onValueChange = { newPassword = it },
-            label = { Text("Nueva contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(30.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Confirmar contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(30.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = { performResetPassword() },
-            enabled = !isLoading,
+    AuthBackground {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(30.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1E3A8A)
-            )
+                .fillMaxSize()
+                .systemBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-            } else {
-                Text("Restablecer contraseña", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        if (errorMessage != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = errorMessage!!,
-                color = Color.Red,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center
+            Spacer(Modifier.height(12.dp))
+            AuthHeader(
+                title = "Restablecer contraseña",
+                onBack = onNavigateToLogin
             )
+
+            Spacer(Modifier.height(8.dp))
+            NeoSpeechHero(
+                headline = "¡Ya casi terminamos! 🚀",
+                message = "Ingresa el código que enviamos a tu correo y crea tu nueva contraseña."
+            )
+            Spacer(Modifier.height(10.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 7.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 22.dp)
+                ) {
+                    Text(
+                        text = "Código de verificación",
+                        color = AuthNavy,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        for (i in 0..5) {
+                            OutlinedTextField(
+                                value = digits[i],
+                                onValueChange = { input ->
+                                    if (input.length <= 1) {
+                                        digits[i] = input
+                                        if (input.isNotEmpty() && i < 5) {
+                                            focusRequesters[i + 1].requestFocus()
+                                        }
+                                    } else if (input.length == 2) {
+                                        val nuevoChar = input.last().toString()
+                                        digits[i] = nuevoChar
+                                        if (i < 5) focusRequesters[i + 1].requestFocus()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(56.dp)
+                                    .focusRequester(focusRequesters[i])
+                                    .onPreviewKeyEvent { keyEvent ->
+                                        if (keyEvent.key == Key.Backspace && digits[i].isEmpty() && i > 0) {
+                                            digits[i - 1] = ""
+                                            focusRequesters[i - 1].requestFocus()
+                                            true
+                                        } else {
+                                            false
+                                        }
+                                    },
+                                textStyle = TextStyle(
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Black,
+                                    textAlign = TextAlign.Center,
+                                    color = AuthNavy
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White,
+                                    focusedBorderColor = AuthPurple,
+                                    unfocusedBorderColor = AuthBorder,
+                                    cursorColor = AuthPurple
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "ℹ️  El código tiene 6 dígitos.",
+                        color = AuthMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(Modifier.height(18.dp))
+                    Text(
+                        text = "Nueva contraseña",
+                        color = AuthNavy,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(Modifier.height(7.dp))
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        placeholder = {
+                            Text(
+                                text = "Ingresa tu nueva contraseña",
+                                color = AuthMuted,
+                                fontSize = 14.sp
+                            )
+                        },
+                        leadingIcon = {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Outlined.Lock,
+                                contentDescription = null,
+                                tint = AuthMuted
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = AuthPurple,
+                            unfocusedBorderColor = AuthBorder,
+                            focusedTextColor = AuthNavy,
+                            unfocusedTextColor = AuthNavy,
+                            cursorColor = AuthPurple
+                        )
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = "Confirmar contraseña",
+                        color = AuthNavy,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(Modifier.height(7.dp))
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        placeholder = {
+                            Text(
+                                text = "Confirma tu nueva contraseña",
+                                color = AuthMuted,
+                                fontSize = 14.sp
+                            )
+                        },
+                        leadingIcon = {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Outlined.Lock,
+                                contentDescription = null,
+                                tint = AuthMuted
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = AuthPurple,
+                            unfocusedBorderColor = AuthBorder,
+                            focusedTextColor = AuthNavy,
+                            unfocusedTextColor = AuthNavy,
+                            cursorColor = AuthPurple
+                        )
+                    )
+
+                    Spacer(Modifier.height(20.dp))
+                    AuthPrimaryButton(
+                        text = "Restablecer contraseña",
+                        enabled = !isLoading,
+                        loading = isLoading,
+                        onClick = { performResetPassword() }
+                    )
+
+                    errorMessage?.let { error ->
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = error,
+                            color = Color(0xFFB91C1C),
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+                    Surface(
+                        color = Color(0xFFF4F2FF),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE6E1FF))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "🛡️", fontSize = 20.sp)
+                            Spacer(Modifier.size(10.dp))
+                            Text(
+                                text = "Tu contraseña debe tener al menos 8 caracteres.",
+                                color = AuthNavy,
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(22.dp))
         }
     }
 }

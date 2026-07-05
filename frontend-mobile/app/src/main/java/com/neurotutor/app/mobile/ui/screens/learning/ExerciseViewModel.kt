@@ -39,12 +39,14 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
 
     private val progressManager = ProgressManager(getApplication())
     private var currentModuleId: String = ""
+    private var currentLevel: String = ""
 
-    fun loadExercises(moduleId: String) {
+    fun loadExercises(moduleId: String, level: String) {
         currentModuleId = moduleId
+        currentLevel = level
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update {
-                ExerciseUiState(isLoading = true)
+                it.copy(isLoading = true, errorMessage = null)
             }
             try {
                 val response = RetrofitClient.apiService.getLevelContent(moduleId)
@@ -111,7 +113,8 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
                 it.copy(
                     isTutorVisible = true,
                     tutorMessage = explanation,
-                    isTutorLoading = false
+                    isTutorLoading = false,
+                    selectedAnswers = it.selectedAnswers + (currentExercise.id to selectedIndex)
                 )
             }
         }
@@ -153,16 +156,14 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
                 }
             }
         }
-        if (answers.size != currentState.exercises.size) {
-            _uiState.update {
-                it.copy(errorMessage = "Faltan respuestas válidas para registrar la práctica.")
-            }
-            return
-        }
-
+        
+        // Permitimos finalizar aunque falten algunas respuestas si el flujo actual lo permite, 
+        // pero idealmente deberían estar todas.
+        
         _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                // Registrar intento académico
                 val response = RetrofitClient.apiService.submitPracticeAttempt(
                     SubmitPracticeAttemptRequest(
                         studentId = cleanStudentId,

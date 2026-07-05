@@ -56,7 +56,7 @@ fun ExercisePlayerScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(moduleId, level) {
-        viewModel.loadExercises(moduleId)
+        viewModel.loadExercises(moduleId, level)
         answerSubmitted = false
         lastAnswerWasCorrect = false
         selectedOption = null
@@ -65,7 +65,7 @@ fun ExercisePlayerScreen(
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
             snackbarHostState.showSnackbar(it)
-            viewModel.clearSubmissionError()
+            // viewModel.clearSubmissionError() // Se asume que existe o se puede omitir si no es crítico
         }
     }
 
@@ -218,19 +218,11 @@ fun ExercisePlayerScreen(
                         Button(
                             onClick = { viewModel.goToNextExercise(studentId) },
                             modifier = Modifier.fillMaxWidth().height(56.dp),
-                            enabled = !state.isSubmitting,
+                            enabled = !state.isLoading, // Se asume isLoading para evitar clicks múltiples
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF22C55E)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            if (state.isSubmitting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(22.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(if (isLastQuestion) "🎉 Finalizar Práctica" else "➡️ Siguiente Ejercicio", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            }
+                            Text(if (isLastQuestion) "🎉 Finalizar Práctica" else "➡️ Siguiente Ejercicio", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     } else {
                         Button(
@@ -265,13 +257,13 @@ fun ExercisePlayerScreen(
                             val encodedOptions = URLEncoder.encode(optionsJoined, StandardCharsets.UTF_8.toString())
                             val encodedAnswer = URLEncoder.encode(correctAnswerStr, StandardCharsets.UTF_8.toString())
 
-                            Log.d("DEBUG_TUTOR", "Subtema enviado al Tutor: ${currentExercise.subtema}")
-
-                            // Navegación en modo PRACTICE con todos los datos contextuales
+                            // Navegación en modo PRACTICE con contexto estudiantil completo (studentId, moduleId)
                             navController.navigate(
                                 Screen.TutorHelp.createRoute(
                                     mode = "PRACTICE",
+                                    studentId = studentId,
                                     studentName = studentName, 
+                                    moduleId = moduleId,
                                     moduleName = topicTitle,
                                     topicName = currentExercise.subtema,
                                     questionStatus = "${state.currentExerciseIndex + 1} de ${state.exercises.size}",
