@@ -157,7 +157,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.saveAndFlush(lesson);
             }
 
-            if ("AVANZADO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 5)) {
+            if ("AVANZADO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 6)) {
                 if (orderNumber == 1) {
                     lesson.setTitle("¡Bienvenido al nivel avanzado!");
                     lesson.setSubtitle("Es momento de llevar tus habilidades con fracciones al siguiente nivel.");
@@ -174,10 +174,14 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     lesson.setTitle("Fracción de una cantidad");
                     lesson.setSubtitle("¿Cuánto representa una fracción dentro de un número?");
                     lesson.setSummary("Para encontrar una fracción de una cantidad, dividimos y luego multiplicamos.");
-                } else {
+                } else if (orderNumber == 5) {
                     lesson.setTitle("Operaciones combinadas");
                     lesson.setSubtitle("¡El orden correcto lo es todo!");
                     lesson.setSummary("Cuando hay varias operaciones con fracciones, debemos seguir un orden para obtener el resultado correcto.");
+                } else {
+                    lesson.setTitle("Problemas de la vida real");
+                    lesson.setSubtitle("¡Hora de aplicar todo lo que aprendiste!");
+                    lesson.setSummary("Las fracciones están presentes en muchas situaciones de nuestro día a día. Analiza, piensa y elige la mejor estrategia para resolver cada desafío.");
                 }
                 lesson.setIcon(seed.icon());
                 lesson.setContentHtml(seed.contentHtml());
@@ -451,6 +455,24 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String advancedWebContent(int lessonNumber) {
+        if (lessonNumber == 6) return """
+                {
+                  "layout":"advanced_real_life_problems",
+                  "hero":{"badge":"Lección 6","title":"Problemas de la vida real","subtitle":"¡Hora de aplicar todo lo que aprendiste!","description":"Las fracciones están presentes en muchas situaciones de nuestro día a día.\nAnaliza, piensa y elige la mejor estrategia para resolver cada desafío.","image":"leccion6_avanzado.png"},
+                  "sections":[
+                    {"type":"real_life_challenges","title":"Desafíos de la vida real","buttonLabel":"Ver ejemplo","items":[
+                      {"id":"recipes","title":"Recetas","icon":"gorro_chef.png","tone":"rose","problem":["Para una receta se necesita ",{"numerator":"3","denominator":"4"}," de taza de harina. Si quiero hacer la receta 2 veces, ¿cuánta harina necesito en total?"],"image":"ejemplo_recetas.png","exampleTitle":"Ejemplo:","steps":[[{"numerator":"3","denominator":"4"}," de taza × 2"],[{"numerator":"3","denominator":"4"}," × 2 = ",{"numerator":"6","denominator":"4"}],[{"numerator":"6","denominator":"4"}," = 1 ",{"numerator":"2","denominator":"4"}," = 1 ",{"numerator":"1","denominator":"2"}]],"answerLabel":"Respuesta:","answer":["Necesito 1 ",{"numerator":"1","denominator":"2"}," tazas de harina."],"answerImage":"ejemplo_recetas.png"},
+                      {"id":"shopping","title":"Compras y descuentos","icon":"carrito.png","tone":"green","problem":["Un producto cuesta S/ 120 y tiene un descuento del ",{"numerator":"1","denominator":"5"},". ¿Cuánto dinero me descuentan y cuánto pagaré?"],"image":"descuento.png","exampleTitle":"Ejemplo:","steps":[[{"numerator":"1","denominator":"5"}," de 120 = 120 ÷ 5 = 24"],["Descuento: S/ 24"],["Total a pagar: 120 − 24 = 96"]],"answerLabel":"Respuesta:","answer":["Me descuentan S/ 24 y pago S/ 96."],"answerImage":"monedas.png"},
+                      {"id":"sports","title":"Deportes","icon":"pelota.png","tone":"blue","problem":["Un jugador corrió ",{"numerator":"3","denominator":"5"}," de la pista en 15 minutos. ¿Cuánto tiempo le tomará correr toda la pista si mantiene el mismo ritmo?"],"image":"deporte.png","exampleTitle":"Ejemplo:","steps":[[{"numerator":"3","denominator":"5"}," de pista → 15 min"],["1 unidad (",{"numerator":"1","denominator":"5"},") = 15 ÷ 3 = 5 min"],["Toda la pista (5 unidades): 5 × 5 = 25 min"]],"answerLabel":"Respuesta:","answer":["Le tomará 25 minutos."],"answerImage":"reloj.png"},
+                      {"id":"building","title":"Construcción","icon":"ladrillos.png","tone":"orange","problem":["Para un muro se usan ",{"numerator":"2","denominator":"3"}," de 24 ladrillos. ¿Cuántos ladrillos se usan? ¿Cuántos quedan?"],"image":"ladrillos2.png","exampleTitle":"Ejemplo:","steps":[[{"numerator":"2","denominator":"3"}," de 24 = 24 ÷ 3 × 2"],["24 ÷ 3 = 8"],["8 × 2 = 16"],["Ladrillos que quedan: 24 − 16 = 8"]],"answerLabel":"Respuesta:","answer":["Se usan 16 ladrillos y quedan 8."],"answerImage":"ladrillos.png"},
+                      {"id":"science","title":"Ciencia","icon":"ciencia.png","tone":"violet","problem":["En un experimento se mezclan ",{"numerator":"2","denominator":"5"}," de litro de agua con ",{"numerator":"1","denominator":"4"}," de litro de alcohol. ¿Cuánta mezcla se obtiene en total?"],"image":"ejemplo_matraz.png","exampleTitle":"Ejemplo:","steps":[[{"numerator":"2","denominator":"5"}," + ",{"numerator":"1","denominator":"4"}," = ",{"numerator":"8","denominator":"20"}," + ",{"numerator":"5","denominator":"20"}], ["= ",{"numerator":"13","denominator":"20"}," de litro"]],"answerLabel":"Respuesta:","answer":["Se obtiene ",{"numerator":"13","denominator":"20"}," de litro de mezcla."],"answerImage":"matraz.png"}
+                    ]},
+                    {"type":"level_completion","title":"¡Felicidades!","paragraphs":["Has completado todas las lecciones del nivel avanzado.","Ahora estás listo para resolver desafíos más grandes y aplicar las fracciones en cualquier situación."],"image":"copa.png"},
+                    {"type":"level_achievements","title":"Lo que lograste en este nivel","items":["Simplificar fracciones.","Comparar fracciones.","Encontrar fracciones de una cantidad.","Resolver operaciones combinadas.","Aplicar todo en problemas reales."],"image":"neo_logros.png"}
+                  ],
+                  "finalAction":{"label":"¡Nivel completado! 🚀","loadingLabel":"Guardando progreso..."}
+                }
+                """;
         if (lessonNumber == 5) return """
                 {
                   "layout":"advanced_combined_operations",

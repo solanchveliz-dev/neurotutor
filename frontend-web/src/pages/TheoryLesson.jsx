@@ -412,6 +412,53 @@ function AdvancedCombinedOperationsContent({ sections }) {
   </div>;
 }
 
+function InlineMathContent({ values, className = "" }) {
+  return <span className={`inline-flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1 ${className}`}>
+    {values?.map((value, index) => typeof value === "string"
+      ? <span key={`${value}-${index}`}>{value}</span>
+      : <EquivalentFraction key={`${value.numerator}-${value.denominator}-${index}`} value={value} />)}
+  </span>;
+}
+
+function AdvancedRealLifeProblemsContent({ sections }) {
+  const challenges = sections.find((item) => item.type === "real_life_challenges");
+  const completion = sections.find((item) => item.type === "level_completion");
+  const achievements = sections.find((item) => item.type === "level_achievements");
+  const tones = {
+    rose: { card: "border-rose-200 bg-rose-50/65 text-rose-700", button: "border-rose-200 bg-rose-100/70 text-rose-700", answer: "border-rose-100 bg-rose-100/65" },
+    green: { card: "border-emerald-200 bg-emerald-50/65 text-emerald-700", button: "border-emerald-200 bg-emerald-100/70 text-emerald-700", answer: "border-emerald-100 bg-emerald-100/65" },
+    blue: { card: "border-blue-200 bg-blue-50/65 text-blue-700", button: "border-blue-200 bg-blue-100/70 text-blue-700", answer: "border-blue-100 bg-blue-100/65" },
+    orange: { card: "border-orange-200 bg-orange-50/65 text-orange-700", button: "border-orange-200 bg-orange-100/70 text-orange-700", answer: "border-orange-100 bg-orange-100/65" },
+    violet: { card: "border-violet-200 bg-violet-50/65 text-violet-700", button: "border-violet-200 bg-violet-100/70 text-violet-700", answer: "border-violet-100 bg-violet-100/65" },
+  };
+  const showExample = (id) => document.getElementById(`real-life-example-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  return <div className="mt-3 grid gap-3">
+    {challenges && <section className="min-w-0">
+      <h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><BookOpen className="size-5" />{challenges.title}</h2>
+      <div className="mt-2 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {challenges.items?.map((item) => { const tone = tones[item.tone] ?? tones.blue; return <article key={item.id} className={`grid min-h-[270px] min-w-0 grid-rows-[auto_1fr_auto_auto] overflow-hidden rounded-[20px] border p-3 shadow-sm ${tone.card}`}>
+          <div className="flex min-w-0 items-center gap-2"><img src={assetUrl(item.icon)} alt="" className="size-10 shrink-0 object-contain" /><h3 className="min-w-0 text-sm font-black leading-5">{item.title}</h3></div>
+          <p className="mt-3 min-w-0 text-xs font-semibold leading-5 text-nt-text-primary"><InlineMathContent values={item.problem} /></p>
+          <img src={assetUrl(item.image)} alt={item.title} className="mx-auto mt-2 h-24 w-full object-contain" />
+          <button type="button" onClick={() => showExample(item.id)} className={`mt-2 rounded-lg border px-3 py-2 text-xs font-black ${tone.button}`}>{challenges.buttonLabel}</button>
+        </article>; })}
+      </div>
+      <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {challenges.items?.map((item) => { const tone = tones[item.tone] ?? tones.blue; return <article id={`real-life-example-${item.id}`} key={item.id} className={`grid min-h-[275px] min-w-0 grid-rows-[auto_1fr_auto] overflow-hidden rounded-[20px] border p-3 shadow-sm ${tone.card}`}>
+          <div><h3 className="text-sm font-black">{item.exampleTitle}</h3><div className="mt-3 grid gap-2">{item.steps?.map((step, index) => <div key={index} className="grid min-w-0 grid-cols-[18px_minmax(0,1fr)] items-start gap-1.5 text-xs font-semibold leading-5 text-nt-text-primary"><span className="font-black text-current">{index + 1}.</span><InlineMathContent values={step} /></div>)}</div></div>
+          <div />
+          <div className={`relative mt-3 min-h-16 overflow-hidden rounded-xl border p-2 pr-14 ${tone.answer}`}><h4 className="text-xs font-black">{item.answerLabel}</h4><p className="mt-1 min-w-0 text-[11px] font-semibold leading-4 text-nt-text-primary"><InlineMathContent values={item.answer} /></p><img src={assetUrl(item.answerImage)} alt="" className="absolute bottom-1 right-1 h-12 w-12 object-contain" /></div>
+        </article>; })}
+      </div>
+    </section>}
+    {(completion || achievements) && <section className="grid min-w-0 items-stretch overflow-hidden rounded-[20px] border border-blue-100 bg-gradient-to-r from-sky-50 to-blue-100/60 shadow-sm lg:grid-cols-[.9fr_1.1fr]">
+      {completion && <div className="grid min-w-0 items-center gap-3 border-b border-blue-100 p-4 sm:grid-cols-[64px_minmax(0,1fr)] lg:border-b-0 lg:border-r"><img src={assetUrl(completion.image)} alt="Trofeo" className="mx-auto h-14 w-full object-contain" /><div><h2 className="font-black text-nt-blue">{completion.title}</h2>{completion.paragraphs?.map((paragraph) => <p key={paragraph} className="mt-1 text-xs font-semibold leading-5 text-slate-700">{paragraph}</p>)}</div></div>}
+      {achievements && <div className="grid min-w-0 items-center gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_100px]"><div><h2 className="font-black text-nt-blue">{achievements.title}</h2><div className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">{achievements.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold text-slate-700"><Check className="size-4 shrink-0 text-green-600" strokeWidth={3} />{item}</p>)}</div></div><img src={assetUrl(achievements.image)} alt="NEO celebrando" className="mx-auto h-20 w-full object-contain" /></div>}
+    </section>}
+  </div>;
+}
+
 function LessonTwoContent({ sections, onNext }) {
   const section = (type) => sections.find((item) => item.type === type);
   const objective = section("lesson_objective");
@@ -824,6 +871,7 @@ function TheoryLesson() {
   const isAdvancedComparison = webContent?.layout === "advanced_fraction_comparison";
   const isAdvancedQuantity = webContent?.layout === "advanced_fraction_of_quantity";
   const isAdvancedCombinedOperations = webContent?.layout === "advanced_combined_operations";
+  const isAdvancedRealLifeProblems = webContent?.layout === "advanced_real_life_problems";
   const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
   const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
   const remainingSections = contentSections.filter((section) =>
@@ -919,7 +967,7 @@ function TheoryLesson() {
       <article className="rounded-nt-card border border-white/85 bg-white/95 p-3 shadow-nt-card sm:p-4 lg:p-5">
         <section className="relative overflow-hidden rounded-[24px] border border-blue-100 bg-gradient-to-br from-white via-blue-50 to-sky-50 px-4 py-4 shadow-[0_10px_26px_rgba(59,130,246,0.10)] sm:px-5">
           <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-sky-200/25 blur-3xl" />
-          <div className={`relative grid items-center gap-4 md:gap-5 ${isLessonThree || isLessonFour || isAdvancedWelcome || isAdvancedSimplification || isAdvancedComparison || isAdvancedQuantity || isAdvancedCombinedOperations ? "md:grid-cols-[minmax(0,42%)_minmax(360px,58%)]" : "md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)]"}`}>
+          <div className={`relative grid items-center gap-4 md:gap-5 ${isLessonThree || isLessonFour || isAdvancedWelcome || isAdvancedSimplification || isAdvancedComparison || isAdvancedQuantity || isAdvancedCombinedOperations || isAdvancedRealLifeProblems ? "md:grid-cols-[minmax(0,42%)_minmax(360px,58%)]" : "md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)]"}`}>
             <div className="min-w-0">
               <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">
                 {heroContent?.badge ?? `Lección ${position}`}
@@ -949,7 +997,7 @@ function TheoryLesson() {
                 <img
                   src={assetUrl(heroContent?.image) ?? (isLessonTwo ? "/assets/lecciones_basico2.png" : "/assets/lecciones_saludo.png")}
                   alt=""
-                  className={`${isAdvancedWelcome || isAdvancedSimplification || isAdvancedComparison || isAdvancedQuantity || isAdvancedCombinedOperations ? "max-h-[260px]" : "max-h-[205px]"} w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]`}
+                  className={`${isAdvancedWelcome || isAdvancedSimplification || isAdvancedComparison || isAdvancedQuantity || isAdvancedCombinedOperations || isAdvancedRealLifeProblems ? "max-h-[260px]" : "max-h-[205px]"} w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]`}
                 />
               )}
             </div>
@@ -993,7 +1041,9 @@ function TheoryLesson() {
 
         {isAdvancedCombinedOperations && <AdvancedCombinedOperationsContent sections={webSections} />}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && !isAdvancedComparison && !isAdvancedQuantity && !isAdvancedCombinedOperations && (learningObjectives.length > 0 || importantSection || neoTip) && (
+        {isAdvancedRealLifeProblems && <AdvancedRealLifeProblemsContent sections={webSections} />}
+
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && !isAdvancedComparison && !isAdvancedQuantity && !isAdvancedCombinedOperations && !isAdvancedRealLifeProblems && (learningObjectives.length > 0 || importantSection || neoTip) && (
           <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
             {learningObjectives.length > 0 && (
               <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
@@ -1037,7 +1087,7 @@ function TheoryLesson() {
           </section>
         )}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && !isAdvancedComparison && !isAdvancedQuantity && !isAdvancedCombinedOperations && webContent && contentSections.length > 0 && (
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && !isAdvancedComparison && !isAdvancedQuantity && !isAdvancedCombinedOperations && !isAdvancedRealLifeProblems && webContent && contentSections.length > 0 && (
           <div className="mt-4 grid gap-3">
             {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
               <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">
