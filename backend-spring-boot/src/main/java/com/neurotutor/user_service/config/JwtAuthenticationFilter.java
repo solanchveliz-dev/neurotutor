@@ -1,6 +1,7 @@
 package com.neurotutor.user_service.config;
 
 import com.neurotutor.user_service.service.JwtService;
+import com.neurotutor.user_service.repository.EstudianteRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -19,9 +21,12 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final EstudianteRepository estudianteRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService,
+                                   EstudianteRepository estudianteRepository) {
         this.jwtService = jwtService;
+        this.estudianteRepository = estudianteRepository;
     }
 
     @Override
@@ -33,11 +38,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authorization != null && authorization.startsWith("Bearer ")) {
             try {
                 String studentId = jwtService.extractStudentId(authorization.substring(7));
+                Long id = Long.valueOf(studentId);
+                if (!estudianteRepository.existsById(id)) {
+                    SecurityContextHolder.clearContext();
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "JWT student does not exist");
+                    return;
+                }
                 SecurityContextHolder.getContext().setAuthentication(
-                        new UsernamePasswordAuthenticationToken(studentId, null, List.of())
+                        new UsernamePasswordAuthenticationToken(
+                                studentId,
+                                null,
+                                List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))
+                        )
                 );
             } catch (JwtException | IllegalArgumentException | IllegalStateException ignored) {
                 SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT");
+                return;
             }
         }
         filterChain.doFilter(request, response);

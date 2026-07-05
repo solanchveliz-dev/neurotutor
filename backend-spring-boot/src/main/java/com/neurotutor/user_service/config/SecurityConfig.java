@@ -39,6 +39,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Deshabilitamos CSRF para facilitar las pruebas con la App móvil
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Configuramos CORS
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                response.sendError(401, "Authentication required"))
+                        .accessDeniedHandler((request, response, exception) ->
+                                response.sendError(403, "Access denied"))
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/register",
