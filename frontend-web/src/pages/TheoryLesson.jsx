@@ -284,6 +284,33 @@ function AdvancedWelcomeContent({ sections }) {
   </div>;
 }
 
+function SimplificationBar({ visual, className = "w-full" }) {
+  const total = Math.max(1, Number(visual?.denominator) || 1);
+  const filled = Math.min(total, Math.max(0, Number(visual?.numerator) || 0));
+  return <div className={`grid h-10 overflow-hidden rounded-sm border-2 border-slate-500 bg-white ${className}`} style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>{Array.from({ length: total }, (_, index) => <span key={index} className="border-r border-slate-400 last:border-r-0" style={{ backgroundColor: index < filled ? visual.color : "white" }} />)}</div>;
+}
+
+function AdvancedSimplificationContent({ sections }) {
+  const section = (type) => sections.find((item) => item.type === type);
+  const idea = section("simplification_key_idea");
+  const steps = section("simplification_steps");
+  const examples = section("simplification_examples");
+  const irreducible = section("irreducible_fraction");
+  const mistakes = section("simplification_mistakes");
+  const summary = section("simplification_summary");
+  const tones = { green: "border-emerald-200 bg-emerald-50/60 text-emerald-700", blue: "border-blue-200 bg-sky-50/60 text-blue-600", violet: "border-violet-200 bg-violet-50/60 text-violet-700", orange: "border-orange-200 bg-orange-50/60 text-orange-600" };
+
+  return <div className="mt-3 grid gap-3">
+    {idea && <section className="grid items-center gap-3 rounded-[20px] border border-amber-200 bg-amber-50/80 px-4 py-3 shadow-sm sm:grid-cols-[32px_minmax(0,1fr)_70px]"><Star className="size-7 fill-amber-400 text-amber-400" /><div><h2 className="font-black text-amber-900">{idea.title}</h2><p className="mt-1 text-sm font-semibold leading-5 text-slate-700">{idea.text}</p></div><img src={assetUrl(idea.image)} alt="Idea clave" className="h-14 w-full object-contain" /></section>}
+    {steps && <section><h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><BookOpen className="size-5" />{steps.title}<EquivalentFraction value={steps.titleFraction} /></h2><div className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{steps.items?.map((item) => <article key={item.number} className={`grid min-h-56 content-between rounded-[22px] border p-3 shadow-sm ${tones[item.tone]}`}><h3 className="flex items-start gap-2 text-sm font-black leading-5"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-current text-white"><span className="text-white">{item.number}</span></span>{item.title}</h3>{item.fraction && <div className="grid gap-3"><div className="mx-auto"><EquivalentFraction value={item.fraction} /></div><SimplificationBar visual={item.visual} /></div>}{item.text && <p className="text-center text-xs font-semibold leading-5 text-slate-700">{item.text}</p>}{item.calculation && <p className="text-center text-base font-black text-nt-text-primary">{item.calculation}</p>}{item.operation && <div className="flex items-center justify-center gap-4"><EquivalentFraction value={item.operation} /><ArrowRight className="size-5" /><EquivalentFraction value={item.result} /></div>}{item.resultLabel && <p className="text-center text-xs font-semibold text-slate-700">{item.resultLabel}</p>}{item.equation && <FractionEquation values={item.equation} />}</article>)}</div></section>}
+    {(examples || irreducible) && <section><h2 className="flex items-center gap-2 text-lg font-black text-nt-blue"><BookOpen className="size-5" />{examples?.title}</h2><div className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1.1fr]">{examples?.items?.map((item, index) => <article key={index} className="grid min-h-44 content-between rounded-[22px] border border-violet-200 bg-violet-50/60 p-3 shadow-sm"><div className="flex items-center justify-center gap-2 text-violet-700"><EquivalentFraction value={{ numerator: `${item.from.numerator} ÷ ${item.divisor}`, denominator: `${item.from.denominator} ÷ ${item.divisor}` }} /><ArrowRight className="size-4" /><EquivalentFraction value={item.to} /></div><div className="flex items-center justify-center gap-2"><SimplificationBar visual={item.visualFrom} className="w-24" /><span className="font-black text-violet-600">÷ {item.divisor}</span><SimplificationBar visual={item.visualTo} className="w-16" /></div></article>)}{irreducible && <aside className="relative min-h-44 overflow-hidden rounded-[22px] border border-blue-200 bg-blue-50/70 p-4 shadow-sm"><div className="max-w-[70%]"><h3 className="font-black leading-5 text-blue-700">{irreducible.title}</h3><p className="mt-2 text-xs font-semibold leading-5 text-slate-700">{irreducible.text}</p><div className="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-700"><strong>{irreducible.exampleLabel}</strong><EquivalentFraction value={irreducible.example} /><span>{irreducible.exampleText}</span></div></div><img src={assetUrl(irreducible.image)} alt="NEO explicando" className="absolute bottom-0 right-1 h-28 w-[30%] object-contain" /></aside>}</div></section>}
+    <div className="grid gap-3 lg:grid-cols-2">
+      {mistakes && <section className="rounded-[22px] border border-red-200 bg-red-50/70 p-4 shadow-sm"><h2 className="flex items-center gap-2 font-black text-red-600"><AlertTriangle className="size-5" />{mistakes.title}</h2><div className="mt-3 grid gap-2">{mistakes.items?.map((item) => <div key={item.text} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2"><p className="flex gap-2 text-xs font-semibold text-slate-700"><span className="font-black text-red-500">×</span>{item.text}</p><FractionEquation values={item.equation} /><span className="text-xs font-black text-red-500">×</span></div>)}</div></section>}
+      {summary && <section className="grid items-center gap-3 rounded-[22px] border border-violet-200 bg-violet-50/60 p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_130px]"><div><h2 className="font-black text-violet-700">{summary.title}</h2><div className="mt-3 grid gap-2">{summary.items?.map((item) => <p key={item} className="flex gap-2 text-xs font-semibold text-slate-700"><Check className="size-4 shrink-0 text-green-500" strokeWidth={3} />{item}</p>)}</div></div><img src={assetUrl(summary.image)} alt="Libros de estudio" className="mx-auto h-24 w-full object-contain" /></section>}
+    </div>
+  </div>;
+}
+
 function LessonTwoContent({ sections, onNext }) {
   const section = (type) => sections.find((item) => item.type === type);
   const objective = section("lesson_objective");
@@ -692,6 +719,7 @@ function TheoryLesson() {
   const isIntermediateFractionMultiplication = webContent?.layout === "intermediate_fraction_multiplication";
   const isIntermediateFractionDivision = webContent?.layout === "intermediate_fraction_division";
   const isAdvancedWelcome = webContent?.layout === "advanced_welcome";
+  const isAdvancedSimplification = webContent?.layout === "advanced_fraction_simplification";
   const featuredTypes = new Set(["important_idea", "example", "observe", "summary"]);
   const lessonTwoTypes = new Set(["main_concept", "common_mistakes", "reflection"]);
   const remainingSections = contentSections.filter((section) =>
@@ -787,7 +815,7 @@ function TheoryLesson() {
       <article className="rounded-nt-card border border-white/85 bg-white/95 p-3 shadow-nt-card sm:p-4 lg:p-5">
         <section className="relative overflow-hidden rounded-[24px] border border-blue-100 bg-gradient-to-br from-white via-blue-50 to-sky-50 px-4 py-4 shadow-[0_10px_26px_rgba(59,130,246,0.10)] sm:px-5">
           <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-sky-200/25 blur-3xl" />
-          <div className={`relative grid items-center gap-4 md:gap-5 ${isLessonThree || isLessonFour || isAdvancedWelcome ? "md:grid-cols-[minmax(0,42%)_minmax(360px,58%)]" : "md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)]"}`}>
+          <div className={`relative grid items-center gap-4 md:gap-5 ${isLessonThree || isLessonFour || isAdvancedWelcome || isAdvancedSimplification ? "md:grid-cols-[minmax(0,42%)_minmax(360px,58%)]" : "md:grid-cols-[minmax(0,1fr)_minmax(240px,42%)]"}`}>
             <div className="min-w-0">
               <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">
                 {heroContent?.badge ?? `Lección ${position}`}
@@ -817,7 +845,7 @@ function TheoryLesson() {
                 <img
                   src={assetUrl(heroContent?.image) ?? (isLessonTwo ? "/assets/lecciones_basico2.png" : "/assets/lecciones_saludo.png")}
                   alt=""
-                  className={`${isAdvancedWelcome ? "max-h-[260px]" : "max-h-[205px]"} w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]`}
+                  className={`${isAdvancedWelcome || isAdvancedSimplification ? "max-h-[260px]" : "max-h-[205px]"} w-full object-contain drop-shadow-[0_16px_22px_rgba(30,58,138,0.18)]`}
                 />
               )}
             </div>
@@ -853,7 +881,9 @@ function TheoryLesson() {
 
         {isAdvancedWelcome && <AdvancedWelcomeContent sections={webSections} />}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && (learningObjectives.length > 0 || importantSection || neoTip) && (
+        {isAdvancedSimplification && <AdvancedSimplificationContent sections={webSections} />}
+
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && (learningObjectives.length > 0 || importantSection || neoTip) && (
           <section className="mt-4 grid items-stretch gap-3 md:grid-cols-2 lg:grid-cols-[35fr_32fr_33fr]">
             {learningObjectives.length > 0 && (
               <div className="h-full rounded-[22px] border border-sky-100 bg-sky-50/60 p-3 shadow-sm">
@@ -897,7 +927,7 @@ function TheoryLesson() {
           </section>
         )}
 
-        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && webContent && contentSections.length > 0 && (
+        {!isLessonTwo && !isLessonThree && !isLessonFour && !isLessonFive && !isIntermediateWelcome && !isIntermediateEquivalent && !isIntermediateSameDenominator && !isIntermediateDifferentDenominator && !isIntermediateFractionSubtraction && !isIntermediateFractionMultiplication && !isIntermediateFractionDivision && !isAdvancedWelcome && !isAdvancedSimplification && webContent && contentSections.length > 0 && (
           <div className="mt-4 grid gap-3">
             {isLessonTwo && (exampleSection || mainConceptSection || commonMistakesSection) && (
               <div className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]">

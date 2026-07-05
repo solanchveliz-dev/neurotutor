@@ -157,10 +157,16 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.saveAndFlush(lesson);
             }
 
-            if ("AVANZADO".equals(expectedLevel) && orderNumber == 1) {
-                lesson.setTitle("¡Bienvenido al nivel avanzado!");
-                lesson.setSubtitle("Es momento de llevar tus habilidades con fracciones al siguiente nivel.");
-                lesson.setSummary("En este último nivel, usarás todo lo aprendido para resolver desafíos reales y situaciones más complejas.");
+            if ("AVANZADO".equals(expectedLevel) && (orderNumber == 1 || orderNumber == 2)) {
+                if (orderNumber == 1) {
+                    lesson.setTitle("¡Bienvenido al nivel avanzado!");
+                    lesson.setSubtitle("Es momento de llevar tus habilidades con fracciones al siguiente nivel.");
+                    lesson.setSummary("En este último nivel, usarás todo lo aprendido para resolver desafíos reales y situaciones más complejas.");
+                } else {
+                    lesson.setTitle("Simplificación de fracciones");
+                    lesson.setSubtitle("Expresa una fracción en su forma más simple.");
+                    lesson.setSummary("Dos fracciones pueden representar la misma cantidad aunque tengan números diferentes.");
+                }
                 lesson.setIcon(seed.icon());
                 lesson.setContentHtml(seed.contentHtml());
                 lesson.setWebContentJson(advancedWebContent(orderNumber));
@@ -433,6 +439,34 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String advancedWebContent(int lessonNumber) {
+        if (lessonNumber == 2) return """
+                {
+                  "layout":"advanced_fraction_simplification",
+                  "hero":{"badge":"Lección 2","title":"Simplificación de fracciones","subtitle":"Expresa una fracción en su forma más simple.","description":"Dos fracciones pueden representar la misma cantidad aunque tengan números diferentes.","image":"leccion2_avanzado.png"},
+                  "sections":[
+                    {"type":"simplification_key_idea","title":"Idea clave","text":"Si el numerador y el denominador pueden dividirse por el mismo número, podemos simplificar.","image":"idea.png"},
+                    {"type":"simplification_steps","title":"Paso a paso: simplifiquemos","titleFraction":{"numerator":"8","denominator":"12"},"items":[
+                      {"number":"1","title":"Identificamos la fracción","fraction":{"numerator":"8","denominator":"12"},"visual":{"numerator":8,"denominator":12,"color":"#3b82f6"},"text":"Tiene el mismo valor que otra fracción más simple.","tone":"green"},
+                      {"number":"2","title":"Buscamos un número que divida a 8 y 12","text":"8 y 12 son divisibles por 4","calculation":"MCD(8,12) = 4","tone":"blue"},
+                      {"number":"3","title":"Dividimos numerador y denominador","operation":{"numerator":"8 ÷ 4","denominator":"12 ÷ 4"},"result":{"numerator":"2","denominator":"3"},"resultLabel":"Fracción simplificada","tone":"violet"},
+                      {"number":"4","title":"Resultado final","equation":[{"numerator":"8","denominator":"12"},"=",{"numerator":"2","denominator":"3"}],"text":"Formas diferentes, misma cantidad.","tone":"orange"}
+                    ]},
+                    {"type":"simplification_examples","title":"Más ejemplos","items":[
+                      {"from":{"numerator":"2","denominator":"4"},"divisor":"2","to":{"numerator":"1","denominator":"2"},"visualFrom":{"numerator":2,"denominator":4,"color":"#86d65c"},"visualTo":{"numerator":1,"denominator":2,"color":"#86d65c"}},
+                      {"from":{"numerator":"6","denominator":"8"},"divisor":"2","to":{"numerator":"3","denominator":"4"},"visualFrom":{"numerator":6,"denominator":8,"color":"#8b5cf6"},"visualTo":{"numerator":3,"denominator":4,"color":"#8b5cf6"}},
+                      {"from":{"numerator":"10","denominator":"20"},"divisor":"10","to":{"numerator":"1","denominator":"2"},"visualFrom":{"numerator":10,"denominator":20,"color":"#3b82f6"},"visualTo":{"numerator":1,"denominator":2,"color":"#3b82f6"}}
+                    ]},
+                    {"type":"irreducible_fraction","title":"¿Cuándo ya no se puede simplificar?","text":"Cuando el numerador y el denominador no tienen ningún divisor común además de 1.","exampleLabel":"Ejemplo:","example":{"numerator":"2","denominator":"3"},"exampleText":"ya está simplificada.","image":"neo_ideas.png"},
+                    {"type":"simplification_mistakes","title":"Errores comunes","items":[
+                      {"text":"Dividir solo el numerador.","equation":[{"numerator":"6","denominator":"8"},"→",{"numerator":"3","denominator":"8"}]},
+                      {"text":"Dividir solo el denominador.","equation":[{"numerator":"6","denominator":"8"},"→",{"numerator":"6","denominator":"4"}]},
+                      {"text":"Dividir por números diferentes.","equation":[{"numerator":"8","denominator":"12"},"→",{"numerator":"2","denominator":"4"}]}
+                    ]},
+                    {"type":"simplification_summary","title":"Resumen","image":"libro.png","items":["Simplificar es escribir una fracción en su forma más simple.","Buscamos el mayor número que divida a ambos.","Una fracción simplificada se llama fracción irreducible."]},
+                    {"type":"neo_tip","title":"Consejo de NEO","text":"Siempre busca el número más grande que divida exactamente al numerador y al denominador.","image":"neo_ideas.png"}
+                  ]
+                }
+                """;
         if (lessonNumber != 1) return null;
         return """
                 {
