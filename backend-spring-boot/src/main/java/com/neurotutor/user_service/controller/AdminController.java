@@ -59,7 +59,7 @@ public class AdminController {
     }
 
     private boolean isProxyKeyValid(String requestKey) {
-        return proxyKey == null || proxyKey.isBlank() || proxyKey.equals(requestKey);
+        return proxyKey != null && !proxyKey.isBlank() && proxyKey.equals(requestKey);
     }
 
     @org.springframework.web.bind.annotation.ExceptionHandler(InvalidAdminProxyKeyException.class)

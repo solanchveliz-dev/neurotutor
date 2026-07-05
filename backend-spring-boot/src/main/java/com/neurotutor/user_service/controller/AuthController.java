@@ -41,8 +41,11 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
-            String token = authService.forgotPassword(request);
-            return ResponseEntity.ok(new TokenResponse(token, "Token generado exitosamente. Úsalo para restablecer tu contraseña."));
+            authService.forgotPassword(request);
+            return ResponseEntity.ok(new TokenResponse(
+                    null,
+                    "Si el correo está registrado, recibirás un código para restablecer tu contraseña."
+            ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
@@ -82,4 +85,5 @@ public class AuthController {
         public String getToken() { return token; }
         public String getMessage() { return message; }
     }
+
 }

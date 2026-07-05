@@ -4,6 +4,7 @@ import com.neurotutor.user_service.dto.*;
 import com.neurotutor.user_service.service.LearningService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -51,12 +52,14 @@ public class LearningController {
     }
 
     @PostMapping("/exam-attempts")
+    @PreAuthorize("#request.studentId != null && #request.studentId.toString() == authentication.name")
     public ResponseEntity<SubmitFinalExamAttemptResponse> submitFinalExamAttempt(
             @RequestBody SubmitFinalExamAttemptRequest request) {
         return ResponseEntity.ok(learningService.submitFinalExamAttempt(request));
     }
 
     @PostMapping("/submit-exam")
+    @PreAuthorize("#studentId.toString() == authentication.name")
     public ResponseEntity<String> submitExam(@RequestParam Long studentId,
                                              @RequestParam Long moduloId,
                                              @RequestParam int score) {
@@ -65,11 +68,13 @@ public class LearningController {
     }
 
     @GetMapping("/topic-ruta/{moduloId}")
+    @PreAuthorize("#studentId.toString() == authentication.name")
     public ResponseEntity<List<ModuleItem>> getTopicRuta(@PathVariable Long moduloId, @RequestParam Long studentId) {
         return ResponseEntity.ok(learningService.getTopicRuta(moduloId, studentId));
     }
 
     @PostMapping("/add-points")
+    @PreAuthorize("#studentId.toString() == authentication.name")
     public ResponseEntity<Void> addPoints(@RequestParam Long studentId, @RequestParam int points) {
         learningService.sumarPuntos(studentId, points);
         return ResponseEntity.ok().build();
@@ -78,6 +83,7 @@ public class LearningController {
     // ==================== NUEVOS ENDPOINTS HU-25 ====================
 
     @GetMapping("/exam-passed")
+    @PreAuthorize("#studentId.toString() == authentication.name")
     public ResponseEntity<ExamPassedResponse> checkExamPassed(
             @RequestParam Long studentId,
             @RequestParam Long moduloId) {
@@ -85,6 +91,7 @@ public class LearningController {
     }
 
     @PostMapping("/submit-exam-v2")
+    @PreAuthorize("#request.studentId != null && #request.studentId.toString() == authentication.name")
     public ResponseEntity<SubmitExamResponse> submitExamV2(@RequestBody SubmitExamRequest request) {
         return ResponseEntity.ok(learningService.procesarExamenV2(request));
     }

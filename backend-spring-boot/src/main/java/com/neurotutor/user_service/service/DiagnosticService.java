@@ -50,7 +50,7 @@ public class DiagnosticService {
     public DiagnosticResponse calcularYGuardarNivel(DiagnosticRequest request) {
 
         //  Plantilla oficial sincronizada con DiagnosticScreen.kt en Android
-        String[] plantillaCorrectas = {"C", "C", "C", "B", "C", "B", "C", "B", "C", "D"};
+        String[] plantillaCorrectas = {"D", "C", "C", "B", "C", "B", "C", "B", "A", "D"};
 
         List<String> respuestasAlumno = request.getRespuestas();
 

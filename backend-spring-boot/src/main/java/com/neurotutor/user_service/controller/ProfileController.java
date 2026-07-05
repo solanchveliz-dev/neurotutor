@@ -4,6 +4,7 @@ import com.neurotutor.user_service.dto.ProfileResponse;
 import com.neurotutor.user_service.dto.UpdateProfileRequest;
 import com.neurotutor.user_service.service.ProfileService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -20,6 +21,7 @@ public class ProfileController {
     }
 
     @GetMapping("/students/{studentId}/profile")
+    @PreAuthorize("#studentId.toString() == authentication.name")
     public ResponseEntity<?> getProfile(@PathVariable Long studentId) {
         try {
             ProfileResponse response = profileService.getProfile(studentId);
@@ -30,6 +32,7 @@ public class ProfileController {
     }
 
     @PutMapping("/students/{studentId}/profile")
+    @PreAuthorize("#studentId.toString() == authentication.name")
     public ResponseEntity<?> updateProfile(@PathVariable Long studentId,
                                            @RequestBody UpdateProfileRequest request) {
         try {

@@ -4,6 +4,7 @@ import com.neurotutor.user_service.dto.*;
 import com.neurotutor.user_service.service.DiagnosticService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,6 +16,7 @@ public class DiagnosticController {
 
     // 🚀 EP-02 / HU-11: Recibir respuestas y asignar nivel
     @PostMapping("/diagnostic/submit")
+    @PreAuthorize("#request.studentId == authentication.name")
     public ResponseEntity<DiagnosticResponse> submitDiagnostic(@RequestBody DiagnosticRequest request) {
         try {
             DiagnosticResponse response = diagnosticService.calcularYGuardarNivel(request);
@@ -29,6 +31,7 @@ public class DiagnosticController {
     // 🚀 EP-02 / HU-14: Obtener datos reales para el Dashboard de Android
     // Este es el endpoint que tu App de Android está intentando llamar
     @GetMapping("/diagnostic/student/{id}")
+    @PreAuthorize("#id.toString() == authentication.name")
     public ResponseEntity<?> getStudentProfile(@PathVariable("id") Long id) {
         try {
             StudentProfileResponse profile = diagnosticService.obtenerDatosDashboard(id);
@@ -45,6 +48,7 @@ public class DiagnosticController {
     }
 
     @PostMapping("/diagnostic/submit-v2")
+    @PreAuthorize("#request.studentId != null && #request.studentId.toString() == authentication.name")
     public ResponseEntity<?> submitDiagnosticV2(@RequestBody SubmitDiagnosticV2Request request) {
         try {
             DiagnosticResultResponse response = diagnosticService.submitDiagnosticV2(request);
@@ -65,6 +69,7 @@ public class DiagnosticController {
     }
 
     @GetMapping("/students/{studentId}/diagnostic/latest-review")
+    @PreAuthorize("#studentId.toString() == authentication.name")
     public ResponseEntity<?> getLatestDiagnosticReview(@PathVariable Long studentId) {
         try {
             DiagnosticReviewResponse response = diagnosticService.getLatestDiagnosticReview(studentId);

@@ -6,6 +6,7 @@ import com.neurotutor.user_service.dto.AiTutorResponse;
 import com.neurotutor.user_service.service.AiService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +24,7 @@ public class AiController {
     }
 
     @PostMapping("/tutor")
+    @PreAuthorize("#request.studentId != null && #request.studentId.toString() == authentication.name")
     public ResponseEntity<?> askTutor(@RequestBody AiTutorRequest request) {
         try {
             AiTutorResponse response = aiService.askTutor(request);

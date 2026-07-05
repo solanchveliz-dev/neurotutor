@@ -8,7 +8,9 @@ import com.neurotutor.user_service.repository.PasswordResetTokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 
@@ -27,7 +29,11 @@ public class AuthService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private JwtService jwtService;
+
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     // ==================== REGISTRO ====================
     public AuthResponse register(RegisterRequest request) {
@@ -55,7 +61,7 @@ public class AuthService {
 
         estudianteRepository.save(estudiante);
 
-        String token = "token-registro-" + System.currentTimeMillis();
+        String token = jwtService.generateToken(estudiante);
 
         // 🚀 Enviamos el ID recién generado por MySQL
         return new AuthResponse(
@@ -90,7 +96,7 @@ public class AuthService {
         estudiante.setBloqueadoHasta(null);
         estudianteRepository.save(estudiante);
 
-        String token = "token-login-" + System.currentTimeMillis();
+        String token = jwtService.generateToken(estudiante);
 
         // 🚀 CRÍTICO: Devolvemos el ID real y el estado del examen
         // Con esto Android sabrá si mandar al niño al DiagnosticScreen o al Dashboard
@@ -105,13 +111,13 @@ public class AuthService {
 
     // ... (El resto de métodos forgotPassword y resetPassword se mantienen igual ya que funcionan bien)
     public String forgotPassword(ForgotPasswordRequest request) {
-        String email = request.getEmail();
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
         if (!estudianteRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email no registrado");
+            return null;
         }
         tokenRepository.findByEmail(email).ifPresent(tokenRepository::delete);
 
-        int numeroAleatorio = (int) (Math.random() * 900000) + 100000;
+        int numeroAleatorio = SECURE_RANDOM.nextInt(900000) + 100000;
         String token = String.valueOf(numeroAleatorio);
 
         PasswordResetToken resetToken = new PasswordResetToken();
@@ -125,19 +131,21 @@ public class AuthService {
         return token;
     }
 
+    @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new RuntimeException("Las contraseñas no coinciden");
         }
 
-        PasswordResetToken resetToken = tokenRepository.findByToken(request.getToken())
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        PasswordResetToken resetToken = tokenRepository.findByTokenAndEmail(request.getToken(), email)
                 .orElseThrow(() -> new RuntimeException("Token inválido o expirado"));
 
         if (resetToken.isUsed() || resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Token inválido o expirado");
         }
 
-        Estudiante estudiante = estudianteRepository.findByEmail(request.getEmail())
+        Estudiante estudiante = estudianteRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         estudiante.setPassword(passwordEncoder.encode(request.getNewPassword()));
