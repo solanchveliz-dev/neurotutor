@@ -157,15 +157,19 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.saveAndFlush(lesson);
             }
 
-            if ("AVANZADO".equals(expectedLevel) && (orderNumber == 1 || orderNumber == 2)) {
+            if ("AVANZADO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 3)) {
                 if (orderNumber == 1) {
                     lesson.setTitle("¡Bienvenido al nivel avanzado!");
                     lesson.setSubtitle("Es momento de llevar tus habilidades con fracciones al siguiente nivel.");
                     lesson.setSummary("En este último nivel, usarás todo lo aprendido para resolver desafíos reales y situaciones más complejas.");
-                } else {
+                } else if (orderNumber == 2) {
                     lesson.setTitle("Simplificación de fracciones");
                     lesson.setSubtitle("Expresa una fracción en su forma más simple.");
                     lesson.setSummary("Dos fracciones pueden representar la misma cantidad aunque tengan números diferentes.");
+                } else {
+                    lesson.setTitle("Comparación de fracciones");
+                    lesson.setSubtitle("¿Qué fracción es mayor?");
+                    lesson.setSummary("Comparamos fracciones para saber cuál representa una cantidad mayor.");
                 }
                 lesson.setIcon(seed.icon());
                 lesson.setContentHtml(seed.contentHtml());
@@ -439,6 +443,25 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String advancedWebContent(int lessonNumber) {
+        if (lessonNumber == 3) return """
+                {
+                  "layout":"advanced_fraction_comparison",
+                  "hero":{"badge":"Lección 3","title":"Comparación de fracciones","subtitle":"¿Qué fracción es mayor?","description":"Comparamos fracciones para saber cuál representa una cantidad mayor.","image":"leccion3_avanzado.png"},
+                  "sections":[
+                    {"type":"comparison_methods","title":"Formas de comparar fracciones","items":[
+                      {"number":"1","title":"Mismo denominador","subtitle":"Se compara el numerador","equation":[{"numerator":"3","denominator":"8"},">",{"numerator":"2","denominator":"8"}],"visual":"bars","figures":[{"numerator":3,"denominator":8,"color":"#66cc54"},{"numerator":2,"denominator":8,"color":"#8b5cf6"}],"text":"3 partes de 8 es mayor que 2 partes de 8.","tone":"green"},
+                      {"number":"2","title":"Mismo numerador","subtitle":"Se compara el denominador","equation":[{"numerator":"3","denominator":"5"},">",{"numerator":"3","denominator":"8"}],"visual":"circles","figures":[{"numerator":3,"denominator":5,"color":"#3b82f6"},{"numerator":3,"denominator":8,"color":"#2563eb"}],"text":"3 partes de 5 es mayor que 3 partes de 8.","tone":"blue"},
+                      {"number":"3","title":"Con fracciones equivalentes","subtitle":"Convertimos a fracciones equivalentes","initial":[{"numerator":"1","denominator":"2"},"vs",{"numerator":"2","denominator":"5"}],"equivalents":[{"numerator":"1","denominator":"2"},"=",{"numerator":"5","denominator":"10"},"y",{"numerator":"2","denominator":"5"},"=",{"numerator":"4","denominator":"10"}],"comparison":[{"numerator":"5","denominator":"10"},">",{"numerator":"4","denominator":"10"},"⇒",{"numerator":"1","denominator":"2"},">",{"numerator":"2","denominator":"5"}],"tone":"orange"},
+                      {"number":"4","title":"Con dibujos","subtitle":"Observamos las partes","equation":[{"numerator":"3","denominator":"4"},">",{"numerator":"2","denominator":"4"}],"visual":"rectangles","figures":[{"numerator":3,"denominator":4,"color":"#75d158"},{"numerator":2,"denominator":4,"color":"#8b5cf6"}],"text":"La parte verde es mayor que la parte morada.","tone":"violet"}
+                    ]},
+                    {"type":"comparison_number_line","title":"Usamos la recta numérica","marks":["0",{"numerator":"1","denominator":"8"},{"numerator":"2","denominator":"8","color":"#6d28d9"},{"numerator":"3","denominator":"8","color":"#2563eb"},{"numerator":"4","denominator":"8","color":"#16a34a"},{"numerator":"5","denominator":"8"},{"numerator":"7","denominator":"8"},"1"],"text":"En la recta numérica, la fracción que está más a la derecha es mayor.","exampleLabel":"Ejemplo:","example":[{"numerator":"2","denominator":"8"},"<",{"numerator":"3","denominator":"8"}],"explanationPrefix":"porque","left":{"numerator":"2","denominator":"8"},"explanationMiddle":"está a la izquierda de","right":{"numerator":"3","denominator":"8"},"neo":"neo_ideas.png","target":"proximo_objetivo.png"},
+                    {"type":"comparison_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Comparar solo los numeradores.","Comparar solo los denominadores.","No convertir a equivalentes cuando es necesario."]},
+                    {"type":"comparison_summary","title":"Resumen","image":"libro.png","items":["Con mismo denominador → compara numeradores.","Con mismo numerador → compara denominadores.","Si son diferentes → usa equivalentes o dibujos.","La fracción mayor está más a la derecha en la recta."]},
+                    {"type":"comparison_tip","title":"Consejo de NEO","text":"Dibuja, convierte o usa la recta numérica.\nAsí comparar fracciones será más fácil.","image":"neo_ideas.png"},
+                    {"type":"neo_tip","title":"¡Tú puedes!","text":"Cada fracción que comparas te acerca a resolver grandes desafíos.","image":"neo_ideas.png"}
+                  ]
+                }
+                """;
         if (lessonNumber == 2) return """
                 {
                   "layout":"advanced_fraction_simplification",
