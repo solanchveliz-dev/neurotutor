@@ -157,6 +157,17 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.saveAndFlush(lesson);
             }
 
+            if ("AVANZADO".equals(expectedLevel) && orderNumber == 1) {
+                lesson.setTitle("¡Bienvenido al nivel avanzado!");
+                lesson.setSubtitle("Es momento de llevar tus habilidades con fracciones al siguiente nivel.");
+                lesson.setSummary("En este último nivel, usarás todo lo aprendido para resolver desafíos reales y situaciones más complejas.");
+                lesson.setIcon(seed.icon());
+                lesson.setContentHtml(seed.contentHtml());
+                lesson.setWebContentJson(advancedWebContent(orderNumber));
+                lesson.setActive(true);
+                theoryLessonRepository.saveAndFlush(lesson);
+            }
+
             if ("BASICO".equals(expectedLevel) && orderNumber == 2) {
                 lesson.setTitle("¿Qué es una fracción?");
                 lesson.setSubtitle("Fracciones: partes iguales de un todo");
@@ -416,6 +427,29 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                       {"title":"Reparto","text":"Si divides una pizza entre varias personas o porciones, necesitas multiplicar o dividir fracciones.","image":"pizza3.png","tone":"orange"}
                     ]},
                     {"type":"fraction_reminder","title":"Recordatorio rápido","text":"Cada fracción tiene dos partes importantes:","fraction":{"numerator":"3","denominator":"4"},"numeratorLabel":"Numerador","numeratorText":"Indica cuántas partes tomamos del todo.","denominatorLabel":"Denominador","denominatorText":"Indica en cuántas partes iguales se divide el todo.","image":"neo_lupa.png","reminderTitle":"¡Recuerda!","reminderText":"Siempre que operemos, usaremos bien estas dos partes."}
+                  ]
+                }
+                """;
+    }
+
+    private String advancedWebContent(int lessonNumber) {
+        if (lessonNumber != 1) return null;
+        return """
+                {
+                  "layout":"advanced_welcome",
+                  "hero":{"badge":"Lección 1","title":"¡Bienvenido al nivel avanzado!","subtitle":"Es momento de llevar tus habilidades con fracciones al siguiente nivel.","description":"En este último nivel, usarás todo lo aprendido para resolver desafíos reales y situaciones más complejas.","image":"leccion1_avanzado.png","objectives":["Simplificar fracciones","Comparar fracciones","Encontrar fracciones de una cantidad","Resolver operaciones combinadas","Aplicar fracciones en problemas de la vida real"]},
+                  "sections":[
+                    {"type":"advanced_review","title":"Recordemos lo aprendido","paragraphs":["Ya sabes sumar, restar, multiplicar y dividir fracciones.","Ahora usarás todo eso para resolver problemas más grandes."],"operations":["+","−","×","÷"],"image":"cerebrito.png"},
+                    {"type":"advanced_real_life","title":"¿Dónde usamos fracciones en la vida real?","items":[
+                      {"title":"Recetas","text":"Medimos ingredientes con fracciones.","image":"receta.png","tone":"blue"},
+                      {"title":"Compras","text":"Calculamos descuentos y porciones.","image":"compras.png","tone":"green"},
+                      {"title":"Construcción","text":"Usamos medidas precisas en planos.","image":"construccion.png","tone":"violet"},
+                      {"title":"Mapas","text":"Interpretamos escalas y distancias.","image":"mapa.png","tone":"amber"},
+                      {"title":"Mediciones","text":"Tomamos medidas de longitudes y tiempos.","image":"mediciones.png","tone":"rose"}
+                    ]},
+                    {"type":"advanced_think","title":"Importante: piensa antes de operar","intro":"Antes de hacer cualquier operación con fracciones, pregúntate siempre:","questions":["¿Qué me piden?","¿Qué información tengo?"],"conclusion":"Así elegirás la mejor estrategia.","image":"neo_pensando.png"},
+                    {"type":"advanced_goals","title":"¿Qué lograrás en este nivel?","items":["Entender situaciones reales.","Tomar decisiones correctas.","Resolver problemas paso a paso.","Aplicar las fracciones con confianza."],"image":"copa.png"},
+                    {"type":"neo_tip","title":"Consejo de NÉO","text":"Cada desafío es una oportunidad para crecer.\n¡Confía en ti y usa tu estrategia!\nTú puedes lograrlo.","image":"neo_ideas.png"}
                   ]
                 }
                 """;
