@@ -157,7 +157,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                 theoryLessonRepository.saveAndFlush(lesson);
             }
 
-            if ("AVANZADO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 3)) {
+            if ("AVANZADO".equals(expectedLevel) && (orderNumber >= 1 && orderNumber <= 4)) {
                 if (orderNumber == 1) {
                     lesson.setTitle("¡Bienvenido al nivel avanzado!");
                     lesson.setSubtitle("Es momento de llevar tus habilidades con fracciones al siguiente nivel.");
@@ -166,10 +166,14 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     lesson.setTitle("Simplificación de fracciones");
                     lesson.setSubtitle("Expresa una fracción en su forma más simple.");
                     lesson.setSummary("Dos fracciones pueden representar la misma cantidad aunque tengan números diferentes.");
-                } else {
+                } else if (orderNumber == 3) {
                     lesson.setTitle("Comparación de fracciones");
                     lesson.setSubtitle("¿Qué fracción es mayor?");
                     lesson.setSummary("Comparamos fracciones para saber cuál representa una cantidad mayor.");
+                } else {
+                    lesson.setTitle("Fracción de una cantidad");
+                    lesson.setSubtitle("¿Cuánto representa una fracción dentro de un número?");
+                    lesson.setSummary("Para encontrar una fracción de una cantidad, dividimos y luego multiplicamos.");
                 }
                 lesson.setIcon(seed.icon());
                 lesson.setContentHtml(seed.contentHtml());
@@ -443,6 +447,36 @@ public class TheoryLessonSeeder implements ApplicationRunner {
     }
 
     private String advancedWebContent(int lessonNumber) {
+        if (lessonNumber == 4) return """
+                {
+                  "layout":"advanced_fraction_of_quantity",
+                  "hero":{"badge":"Lección 4","title":"Fracción de una cantidad","subtitle":"¿Cuánto representa una fracción dentro de un número?","description":"Para encontrar una fracción de una cantidad, dividimos y luego multiplicamos.","image":"leccion4_avanzado.png"},
+                  "sections":[
+                    {"type":"quantity_steps","title":"Pasos para encontrar una fracción de una cantidad","items":[
+                      {"number":"1","text":"Divide la cantidad entre el denominador.","symbol":"÷","tone":"blue"},
+                      {"number":"2","text":"Multiplica el resultado por el numerador.","symbol":"×","tone":"green"},
+                      {"number":"3","text":"Ese es el valor que representa la fracción.","symbol":"★","tone":"orange"}
+                    ]},
+                    {"type":"quantity_examples","title":"Ejemplos","answerLabel":"Respuesta:","items":[
+                      {"title":"Ejemplo 1:","fraction":{"numerator":"1","denominator":"2"},"quantity":"de 20","visual":"circle","figure":{"numerator":1,"denominator":2,"color":"#f4bd55"},"operations":["20 ÷ 2 = 10","10 × 1 = 10"],"answer":"10","tone":"blue"},
+                      {"title":"Ejemplo 2:","fraction":{"numerator":"1","denominator":"4"},"quantity":"de 16","visual":"image","image":"chocolate3.png","operations":["16 ÷ 4 = 4","4 × 1 = 4"],"answer":"4","tone":"green"},
+                      {"title":"Ejemplo 3:","fraction":{"numerator":"3","denominator":"5"},"quantity":"de 25","visual":"people","figure":{"numerator":3,"denominator":5},"operations":["25 ÷ 5 = 5","5 × 3 = 15"],"answer":"15","tone":"violet"}
+                    ]},
+                    {"type":"daily_quantity_situations","title":"Situaciones cotidianas","items":[
+                      {"title":"Dinero","image":"monedas.png","fraction":{"numerator":"1","denominator":"2"},"text":"de S/40 = S/20"},
+                      {"title":"Chocolate","image":"chocolate3.png","fraction":{"numerator":"2","denominator":"3"},"text":"de una barra de 18 cuadritos = 12 cuadritos"},
+                      {"title":"Personas","image":"personas.png","fraction":{"numerator":"3","denominator":"4"},"text":"de 20 personas = 15"},
+                      {"title":"Frutas","image":"manzana.png","fraction":{"numerator":"2","denominator":"5"},"text":"de 15 manzanas = 6"},
+                      {"title":"Tiempo","image":"reloj.png","fraction":{"numerator":"3","denominator":"6"},"text":"de 60 minutos = 30 min"}
+                    ]},
+                    {"type":"quantity_visual","title":"Representación visual","totalLabel":"Cantidad total","total":"24","fraction":{"numerator":"1","denominator":"3"},"fractionSuffix":"de 24","totalVisual":{"numerator":24,"denominator":24,"color":"#60a5fa"},"resultVisual":{"numerator":8,"denominator":24,"color":"#65c451"},"operations":"24 ÷ 3 = 8 → 8 × 1 = 8","answerLabel":"Respuesta:","answer":"8","image":"neo_lupa.png"},
+                    {"type":"quantity_use","title":"¿Cuándo uso esta idea?","intro":"Cuando el problema pregunta:","prompts":[{"prefix":"¿Cuánto es","fraction":{"numerator":"3","denominator":"5"},"suffix":"de...?"},{"prefix":"Si tomo","fraction":{"numerator":"3","denominator":"4"},"suffix":"de..., ¿cuánto tengo?"}],"image":"proximo_objetivo.png"},
+                    {"type":"quantity_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Multiplicar antes de dividir.","Olvidar usar el denominador para dividir.","Usar el numerador para dividir."]},
+                    {"type":"quantity_summary","title":"Resumen","image":"libro.png","items":["Divide entre el denominador.","Multiplica por el numerador.","Obtienes la parte que representa la fracción."]},
+                    {"type":"neo_tip","title":"Consejo de NEO","text":"Siempre divide primero y luego multiplica. ¡Así nunca te equivocarás!","image":"neo_ideas.png"}
+                  ]
+                }
+                """;
         if (lessonNumber == 3) return """
                 {
                   "layout":"advanced_fraction_comparison",
