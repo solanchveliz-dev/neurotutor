@@ -825,6 +825,8 @@ function TheoryLesson() {
     } catch (parseError) {
       console.warn("[TheoryLesson] web_content_json inválido", {
         lessonId: lesson?.id,
+        orderNumber: lesson?.order_number ?? lesson?.orderNumber,
+        title: lesson?.title,
         webContentJson: value,
         parseError,
       });
@@ -836,8 +838,10 @@ function TheoryLesson() {
     const rawWebContent = lesson.web_content_json ?? lesson.webContent ?? null;
     console.info("[TheoryLesson] diagnóstico de contenido", {
       lessonId: lesson.id,
+      orderNumber: lesson.order_number ?? lesson.orderNumber,
+      title: lesson.title,
       webContentJson: rawWebContent,
-      parsedWebContent: webContent,
+      parseWebContentResult: webContent,
       usingContentHtmlFallback: !webContent && Boolean(parsedLessonContent.contentHtml.trim()),
     });
   }, [lesson, parsedLessonContent.contentHtml, webContent]);

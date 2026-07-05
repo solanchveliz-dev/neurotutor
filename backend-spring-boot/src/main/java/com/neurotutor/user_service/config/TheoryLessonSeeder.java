@@ -458,7 +458,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
         if (lessonNumber == 6) return """
                 {
                   "layout":"advanced_real_life_problems",
-                  "hero":{"badge":"Lección 6","title":"Problemas de la vida real","subtitle":"¡Hora de aplicar todo lo que aprendiste!","description":"Las fracciones están presentes en muchas situaciones de nuestro día a día.\nAnaliza, piensa y elige la mejor estrategia para resolver cada desafío.","image":"leccion6_avanzado.png"},
+                  "hero":{"badge":"Lección 6","title":"Problemas de la vida real","subtitle":"¡Hora de aplicar todo lo que aprendiste!","description":"Las fracciones están presentes en muchas situaciones de nuestro día a día.\\nAnaliza, piensa y elige la mejor estrategia para resolver cada desafío.","image":"leccion6_avanzado.png"},
                   "sections":[
                     {"type":"real_life_challenges","title":"Desafíos de la vida real","buttonLabel":"Ver ejemplo","items":[
                       {"id":"recipes","title":"Recetas","icon":"gorro_chef.png","tone":"rose","problem":["Para una receta se necesita ",{"numerator":"3","denominator":"4"}," de taza de harina. Si quiero hacer la receta 2 veces, ¿cuánta harina necesito en total?"],"image":"ejemplo_recetas.png","exampleTitle":"Ejemplo:","steps":[[{"numerator":"3","denominator":"4"}," de taza × 2"],[{"numerator":"3","denominator":"4"}," × 2 = ",{"numerator":"6","denominator":"4"}],[{"numerator":"6","denominator":"4"}," = 1 ",{"numerator":"2","denominator":"4"}," = 1 ",{"numerator":"1","denominator":"2"}]],"answerLabel":"Respuesta:","answer":["Necesito 1 ",{"numerator":"1","denominator":"2"}," tazas de harina."],"answerImage":"ejemplo_recetas.png"},
@@ -534,7 +534,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     {"type":"comparison_number_line","title":"Usamos la recta numérica","marks":["0",{"numerator":"1","denominator":"8"},{"numerator":"2","denominator":"8","color":"#6d28d9"},{"numerator":"3","denominator":"8","color":"#2563eb"},{"numerator":"4","denominator":"8","color":"#16a34a"},{"numerator":"5","denominator":"8"},{"numerator":"7","denominator":"8"},"1"],"text":"En la recta numérica, la fracción que está más a la derecha es mayor.","exampleLabel":"Ejemplo:","example":[{"numerator":"2","denominator":"8"},"<",{"numerator":"3","denominator":"8"}],"explanationPrefix":"porque","left":{"numerator":"2","denominator":"8"},"explanationMiddle":"está a la izquierda de","right":{"numerator":"3","denominator":"8"},"neo":"neo_ideas.png","target":"proximo_objetivo.png"},
                     {"type":"comparison_mistakes","title":"Errores comunes","image":"neo_pensando.png","items":["Comparar solo los numeradores.","Comparar solo los denominadores.","No convertir a equivalentes cuando es necesario."]},
                     {"type":"comparison_summary","title":"Resumen","image":"libro.png","items":["Con mismo denominador → compara numeradores.","Con mismo numerador → compara denominadores.","Si son diferentes → usa equivalentes o dibujos.","La fracción mayor está más a la derecha en la recta."]},
-                    {"type":"comparison_tip","title":"Consejo de NEO","text":"Dibuja, convierte o usa la recta numérica.\nAsí comparar fracciones será más fácil.","image":"neo_ideas.png"},
+                    {"type":"comparison_tip","title":"Consejo de NEO","text":"Dibuja, convierte o usa la recta numérica.\\nAsí comparar fracciones será más fácil.","image":"neo_ideas.png"},
                     {"type":"neo_tip","title":"¡Tú puedes!","text":"Cada fracción que comparas te acerca a resolver grandes desafíos.","image":"neo_ideas.png"}
                   ]
                 }
@@ -583,7 +583,7 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                     ]},
                     {"type":"advanced_think","title":"Importante: piensa antes de operar","intro":"Antes de hacer cualquier operación con fracciones, pregúntate siempre:","questions":["¿Qué me piden?","¿Qué información tengo?"],"conclusion":"Así elegirás la mejor estrategia.","image":"neo_pensando.png"},
                     {"type":"advanced_goals","title":"¿Qué lograrás en este nivel?","items":["Entender situaciones reales.","Tomar decisiones correctas.","Resolver problemas paso a paso.","Aplicar las fracciones con confianza."],"image":"copa.png"},
-                    {"type":"neo_tip","title":"Consejo de NÉO","text":"Cada desafío es una oportunidad para crecer.\n¡Confía en ti y usa tu estrategia!\nTú puedes lograrlo.","image":"neo_ideas.png"}
+                    {"type":"neo_tip","title":"Consejo de NÉO","text":"Cada desafío es una oportunidad para crecer.\\n¡Confía en ti y usa tu estrategia!\\nTú puedes lograrlo.","image":"neo_ideas.png"}
                   ]
                 }
                 """;
