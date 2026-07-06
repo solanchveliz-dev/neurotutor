@@ -2,29 +2,37 @@ package com.neurotutor.app.mobile.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// --- Colores Base Iniciales del Proyecto (No se tocan para mantener compatibilidad) ---
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Paleta NeuroTutor
+val NeuroBlue = Color(0xFF3B82F6)
+val NeuroPurple = Color(0xFF7C3AED)
+val NeuroSky = Color(0xFFE0F2FE)
+val NeuroGreen = Color(0xFF22C55E)
+val NeuroOrange = Color(0xFFF59E0B)
+val NeuroRed = Color(0xFFEF4444)
+val NeuroWhite = Color(0xFFFFFFFF)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Gradientes
+val GradientPrincipal = listOf(NeuroBlue, NeuroPurple)
+val GradientExito = listOf(Color(0xFF10B981), Color(0xFF059669))
+val GradientEstudiante = listOf(Color(0xFF4F46E5), Color(0xFF6366F1))
+val GradientNaranja = listOf(Color(0xFFF59E0B), Color(0xFFFB923C))
+val GradientMorado = listOf(NeuroPurple, Color(0xFF8B5CF6))
 
-val PrimaryPurple = Color(0xFF5E49B0)
-val BackgroundLight = Color(0xFFF7F9FC)
-val CardBackground = Color(0xFFFFFFFF)
-val TabSelected = Color(0xFFFFFFFF)
-val TabUnselected = Color(0xFFEAF4FB)
-val InputBackground = Color(0xFFF5F9FF)
-val TextDark = Color(0xFF2D4B8E)
-val TextGray = Color(0xFF7A869A)
-val ButtonGray = Color(0xFFD1D5DB)
+// Fondos
+val FondoGradiente = listOf(
+    Color(0xFFEEF2FF),  // indigo-50
+    NeuroWhite,         // white
+    Color(0xFFFAF5FF)   // purple-50
+)
 
-// --- Nueva Paleta NeuroTutor Oficial (6to Grado - Gamificado) ---
-val MoradoActivo = Color(0xFF7F3DFF)         // Módulo activo y vivo
-val FondoModulo = Color(0xFFFFFFFF)          // Blanco puro para las tarjetas
-val VerdeProgreso = Color(0xFF2ECC71)        // Éxito / Ejercicios al 100%
-val GrisBloqueado = Color(0xFFE0E0E0)        // Candados y opacidad de deshabilitado
-val TextoBase = Color(0xFF1A1A2E)            // Azul noche ultra legible para lectura
-val FondoPanelEstudiante = Color(0xFFF7F2FA) // Lavanda pastel sutil de fondo de pantalla
+// Colores base existentes
+val MoradoActivo = NeuroPurple
+val TextoBase = Color(0xFF1F2937)      // ← Corregido: faltaba Color()
+val FondoPanelEstudiante = NeuroSky.copy(alpha = 0.3f)
+val CardBackground = NeuroWhite
+val InputBackground = Color(0xFFF9FAFB)
+val TextDark = Color(0xFF1F2937)
+val TextGray = Color(0xFF6B7280)
+val BackgroundLight = Color(0xFFF5F7FA)
+val TabUnselected = Color(0xFFF3F4F6)
+val TabSelected = NeuroPurple

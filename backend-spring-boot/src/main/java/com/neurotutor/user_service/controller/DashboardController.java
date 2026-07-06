@@ -4,6 +4,7 @@ import com.neurotutor.user_service.dto.StudentProfileResponse;
 import com.neurotutor.user_service.service.DiagnosticService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,6 +17,7 @@ public class DashboardController {
 
     // 🚀 CAMBIO CLAVE: Cambiamos {email} por {id} y el tipo a Long
     @GetMapping("/student/{id}")
+    @PreAuthorize("#id.toString() == authentication.name")
     public ResponseEntity<?> getStudentProfile(@PathVariable("id") Long id) {
         try {
             System.out.println("📡 Solicitud de Dashboard para Estudiante ID: " + id);

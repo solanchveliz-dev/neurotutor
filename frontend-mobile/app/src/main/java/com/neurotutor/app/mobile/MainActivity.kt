@@ -14,6 +14,7 @@ import com.neurotutor.app.mobile.ui.theme.NeuroTutorTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
         setContent {
             NeuroTutorTheme {

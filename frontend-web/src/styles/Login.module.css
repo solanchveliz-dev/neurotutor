@@ -1,0 +1,146 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-width: 3px;
+  border-style: solid;
+  transition: border-color 0.3s ease;
+}
+
+.title {
+  text-align: center;
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 28px;
+}
+
+.rolesContainer {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.rolButton {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.activeEstudiante {
+  background: #22C55E;
+  border-color: #22C55E;
+  color: white;
+}
+
+.activeDocente {
+  background: #F59E0B;
+  border-color: #F59E0B;
+  color: white;
+}
+
+.activeAdmin {
+  background: #7C3AED;
+  border-color: #7C3AED;
+  color: white;
+}
+
+.rolButton:hover:not(.activeEstudiante):not(.activeDocente):not(.activeAdmin) {
+  background: #f0f0f0;
+}
+
+.field {
+  margin-bottom: 20px;
+}
+
+.field input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.forgotLink {
+  text-align: right;
+  margin-bottom: 25px;
+}
+
+.forgotLink a {
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.forgotLink a:hover {
+  color: #667eea;
+}
+
+.button {
+  width: 100%;
+  padding: 14px;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.registerLink {
+  text-align: center;
+  color: #666;
+  margin-top: 10px;
+}
+
+.registerLink a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.errorMessage {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+}

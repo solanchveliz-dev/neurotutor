@@ -2,6 +2,8 @@ package com.neurotutor.user_service.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "estudiantes")
@@ -33,9 +35,46 @@ public class Estudiante {
     @Column(name = "puntos_totales")
     private int puntosTotales = 0;
 
+    // 🚀 HU-25: Módulos que el estudiante ya completó (para control de puntos)
+    @ManyToMany
+    @JoinTable(
+            name = "estudiante_modulos_completados",
+            joinColumns = @JoinColumn(name = "estudiante_id"),
+            inverseJoinColumns = @JoinColumn(name = "modulo_id")
+    )
+    private List<Modulo> modulosCompletados = new ArrayList<>();
+
     // Campos de seguridad existentes
     private int intentosFallidos = 0;
     private LocalDateTime bloqueadoHasta;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    private String genero;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    private String telefonoTutor;
+    private String nombreTutor;
+
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     // --- GETTERS Y SETTERS ---
     public Long getId() { return id; }
@@ -65,9 +104,30 @@ public class Estudiante {
     public int getPuntosTotales() { return puntosTotales; }
     public void setPuntosTotales(int puntosTotales) { this.puntosTotales = puntosTotales; }
 
+    public List<Modulo> getModulosCompletados() { return modulosCompletados; }
+    public void setModulosCompletados(List<Modulo> modulosCompletados) { this.modulosCompletados = modulosCompletados; }
+
     public int getIntentosFallidos() { return intentosFallidos; }
     public void setIntentosFallidos(int intentosFallidos) { this.intentosFallidos = intentosFallidos; }
 
     public LocalDateTime getBloqueadoHasta() { return bloqueadoHasta; }
     public void setBloqueadoHasta(LocalDateTime bloqueadoHasta) { this.bloqueadoHasta = bloqueadoHasta; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public String getGenero() { return genero; }
+    public void setGenero(String genero) { this.genero = genero; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getTelefonoTutor() { return telefonoTutor; }
+    public void setTelefonoTutor(String telefonoTutor) { this.telefonoTutor = telefonoTutor; }
+
+    public String getNombreTutor() { return nombreTutor; }
+    public void setNombreTutor(String nombreTutor) { this.nombreTutor = nombreTutor; }
 }
