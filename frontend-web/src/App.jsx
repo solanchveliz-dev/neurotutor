@@ -20,23 +20,14 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStudents from "./pages/admin/AdminStudents";
 import AdminStudentDetail from "./pages/admin/AdminStudentDetail";
 import AdminRoute from "./components/AdminRoute";
+import Home from "./pages/Home";
 
 function App() {
-  const token = localStorage.getItem("token");
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={
-            token ? (
-              <Navigate to="/student-dashboard" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+        <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
