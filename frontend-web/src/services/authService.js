@@ -29,6 +29,10 @@ export const register = async (userData) => {
       } else {
         errorMessage = error.response.data?.message || errorMessage;
       }
+      errorMessage = error.response.data?.error || error.response.data?.message || errorMessage;
+      if (error.response.status === 400 && !error.response.data?.error && !error.response.data?.message) {
+        errorMessage = 'Datos inválidos';
+      }
     } else if (error.request) {
       errorMessage = 'No se pudo conectar con el servidor. Â¿Spring Boot estÃ¡ corriendo?';
     }
@@ -84,10 +88,15 @@ export const forgotPassword = async (email) => {
       status: response.status
     };
   } catch (error) {
+    const responseData = error.response?.data;
+    const serverMessage = typeof responseData === 'string'
+      ? responseData
+      : responseData?.message || responseData?.error || responseData?.detail;
+
     return {
       success: false,
-      message: error.response?.data?.message || error.response?.data?.error || 'No se pudo solicitar la recuperacion',
-      error: error.response?.data
+      message: serverMessage || 'No se pudo solicitar la recuperacion',
+      error: responseData
     };
   }
 };

@@ -17,6 +17,21 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _load_local_env(path):
+    """Load simple KEY=VALUE entries for local development without overriding real env vars."""
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_local_env(BASE_DIR / ".env")
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -77,8 +92,8 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
-SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false" if DEBUG else "true").lower() == "true"
+SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax" if DEBUG else "None")
 
 SPRING_ADMIN_API_URL = os.getenv(
     "SPRING_ADMIN_API_URL",

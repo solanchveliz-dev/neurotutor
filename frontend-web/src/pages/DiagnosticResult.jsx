@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, BookOpen, Check, CheckCircle2, ClipboardList, Crown, Map, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import AchievementUnlockedModal from "../components/student/AchievementUnlockedModal";
 
 const LEVEL_ORDER = ["Básico", "Intermedio", "Avanzado"];
 
@@ -55,6 +56,7 @@ function DiagnosticResult() {
   const level = levelMap[rawLevel] ?? rawLevel;
   const config = LEVEL_CONFIG[level] ?? LEVEL_CONFIG.Básico;
   const activeIndex = LEVEL_ORDER.indexOf(level);
+  const unlockedAchievementCode = location.state?.unlockedAchievementCodes?.[0];
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center bg-fixed px-3 py-6 text-nt-text-primary sm:px-5">
@@ -76,6 +78,7 @@ function DiagnosticResult() {
           <div className="mt-6 text-center"><p className="text-xs font-bold text-slate-500">Resultado: {percentage}%</p><Button type="button" onClick={() => navigate('/student-dashboard')} className={`mt-2 h-14 w-full max-w-xl rounded-[18px] bg-gradient-to-r text-base font-black text-white shadow-lg ${config.button}`}>Comenzar mi aventura<ArrowRight className="size-5" /></Button></div>
         </CardContent></Card>
       </section>
+      <AchievementUnlockedModal code={unlockedAchievementCode} onContinue={() => navigate("/student-dashboard", { replace: true })} />
     </main>
   );
 }

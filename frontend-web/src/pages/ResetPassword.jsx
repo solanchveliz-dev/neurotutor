@@ -10,11 +10,12 @@ function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
   const initialEmail = useMemo(() => location.state?.email || '', [location.state?.email]);
+  const initialToken = useMemo(() => location.state?.token || '', [location.state?.token]);
   const hasEmailFromState = Boolean(initialEmail);
 
   const [formData, setFormData] = useState({
     email: initialEmail,
-    token: '',
+    token: initialToken,
     newPassword: '',
     confirmPassword: ''
   });

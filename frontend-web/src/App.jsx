@@ -21,6 +21,7 @@ import AdminStudents from "./pages/admin/AdminStudents";
 import AdminStudentDetail from "./pages/admin/AdminStudentDetail";
 import AdminRoute from "./components/AdminRoute";
 import Home from "./pages/Home";
+import Modules from "./pages/Modules";
 
 function App() {
   return (
@@ -64,6 +65,8 @@ function App() {
         />
 
         <Route path="/dashboard" element={<Navigate to="/student-dashboard" replace />} />
+        <Route path="/learning-path" element={<Navigate to="/modules" replace />} />
+        <Route path="/modules" element={<ProtectedRoute><Modules /></ProtectedRoute>} />
 
         <Route
           path="/student-dashboard"

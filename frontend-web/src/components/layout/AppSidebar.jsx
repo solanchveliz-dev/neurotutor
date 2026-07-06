@@ -1,15 +1,9 @@
 import { ArrowUpRight, BookOpen, GraduationCap, Home, LogOut, Sparkles, Trophy, UserRound } from "lucide-react";
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { clearAuthData, getStudentId } from "@/utils/auth";
-import { getCachedStudentData } from "@/utils/studentDataCache";
-import {
-  getRememberedModuleId,
-  resolveCurrentModuleId,
-} from "@/utils/moduleNavigation";
+import { clearAuthData } from "@/utils/auth";
 
 const defaultItems = [
   { label: "Inicio", icon: Home, active: true },
@@ -24,20 +18,7 @@ function AppSidebar({
   className,
 }) {
   const navigate = useNavigate();
-  const { moduleId: routeModuleId } = useParams();
   const visibleItems = items;
-  const [moduleDestinationId] = useState(() => {
-    const studentId = getStudentId();
-    const cachedModules = getCachedStudentData(studentId, "modules") ?? [];
-    return routeModuleId
-      ?? getCachedStudentData(studentId, "resolvedModuleId")
-      ?? getRememberedModuleId()
-      ?? resolveCurrentModuleId(cachedModules);
-  });
-  const [moduleNavigationMessage, setModuleNavigationMessage] = useState("");
-  const isResolvingModule = false;
-  const moduleLoadError = null;
-  const pendingModuleNavigation = { current: false };
   /* Disabled legacy network resolution: the shared sidebar must not fetch.
   useEffect(() => {
     let isMounted = true;
@@ -131,18 +112,7 @@ function AppSidebar({
   const isModulesItem = (label) => label.toLowerCase().includes("mod");
 
   const handleModulesClick = () => {
-    if (moduleDestinationId !== null && moduleDestinationId !== undefined) {
-      setModuleNavigationMessage("");
-      navigate(`/module/${moduleDestinationId}`);
-      return;
-    }
-    if (isResolvingModule) {
-      pendingModuleNavigation.current = true;
-      setModuleNavigationMessage("Estamos buscando tu módulo disponible...");
-      return;
-    }
-    console.log("error modules", moduleLoadError);
-    setModuleNavigationMessage("Aún no tienes módulos disponibles.");
+    navigate("/modules");
   };
 
   const getDefaultAction = (label) => {
@@ -186,9 +156,9 @@ function AppSidebar({
         aria-label="Ir al panel principal"
       >
         <img
-          src="/assets/neo3.png"
+          src="/assets/neo_chat.png"
           alt="NeuroTutor"
-          className="h-auto w-[190px] object-contain"
+          className="h-32 w-[190px] object-contain"
         />
       </button>
 
@@ -217,7 +187,7 @@ function AppSidebar({
               >
                 <Icon className="pointer-events-none size-5 shrink-0" aria-hidden="true" />
                 <span className="pointer-events-none truncate">
-                  {isResolvingModule ? "Cargando módulo..." : item.label}
+                  {item.label}
                 </span>
               </button>
             );
@@ -242,12 +212,6 @@ function AppSidebar({
           );
         })}
       </div>
-
-      {moduleNavigationMessage && (
-        <p className="mt-2 rounded-[14px] bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800" role="status">
-          {moduleNavigationMessage}
-        </p>
-      )}
 
       <div className="group relative mt-5 min-h-[168px] overflow-hidden rounded-[30px] border border-white/85 bg-gradient-to-br from-[#dbeafe] via-[#c4d7ff] to-[#ddd6fe] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_38px_rgba(37,99,235,0.16)] transition hover:-translate-y-0.5 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_22px_44px_rgba(37,99,235,0.2)] lg:mt-auto">
         <div className="pointer-events-none absolute left-4 top-4 text-white/80">

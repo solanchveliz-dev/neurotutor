@@ -103,6 +103,7 @@ function DiagnosticExam() {
           correctAnswers: diagnosticResult.correct_answers,
           totalQuestions: diagnosticResult.total_questions,
           message: diagnosticResult.message,
+          unlockedAchievementCodes: diagnosticResult.unlocked_achievement_codes,
         },
       });
     } catch {

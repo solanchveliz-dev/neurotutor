@@ -4,6 +4,7 @@ import com.neurotutor.user_service.dto.AdminStudentResponse;
 import com.neurotutor.user_service.dto.AdminSummaryResponse;
 import com.neurotutor.user_service.service.AdminService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,34 +14,44 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin(origins = "*")
 public class AdminController {
 
-    private final AdminService adminService;
-    private final String proxyKey = System.getenv("ADMIN_PROXY_KEY");
+    private static final String ADMIN_PROXY_HEADER = "X-ADMIN-PROXY-KEY";
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminController.class);
 
-    public AdminController(AdminService adminService) {
+    private final AdminService adminService;
+    private final String proxyKey;
+
+    public AdminController(AdminService adminService,
+                           @Value("${admin.proxy-key:}") String proxyKey) {
         this.adminService = adminService;
+        this.proxyKey = proxyKey;
+        LOGGER.info("Spring admin.proxy-key exists: {}", proxyKey != null && !proxyKey.isBlank());
+        LOGGER.info("Spring admin.proxy-key length: {}", proxyKey == null ? 0 : proxyKey.length());
     }
 
     @GetMapping("/summary")
-    public AdminSummaryResponse getSummary(@RequestHeader(value = "X-ADMIN-PROXY-KEY", required = false) String requestKey) {
+    public AdminSummaryResponse getSummary(@RequestHeader(value = ADMIN_PROXY_HEADER, required = false) String requestKey) {
         validateProxyKey(requestKey);
         return adminService.getSummary();
     }
 
     @GetMapping("/students")
-    public List<AdminStudentResponse> getStudents(@RequestHeader(value = "X-ADMIN-PROXY-KEY", required = false) String requestKey) {
+    public List<AdminStudentResponse> getStudents(@RequestHeader(value = ADMIN_PROXY_HEADER, required = false) String requestKey) {
         validateProxyKey(requestKey);
         return adminService.getStudents();
     }
 
     @GetMapping("/students/{id}")
     public ResponseEntity<?> getStudent(@PathVariable Long id,
-                                        @RequestHeader(value = "X-ADMIN-PROXY-KEY", required = false) String requestKey) {
+                                        @RequestHeader(value = ADMIN_PROXY_HEADER, required = false) String requestKey) {
+        logReceivedProxyKey(requestKey);
         if (!isProxyKeyValid(requestKey)) {
             return ResponseEntity.status(403).body(Map.of("detail", "Invalid admin proxy key."));
         }
@@ -53,6 +64,7 @@ public class AdminController {
     }
 
     private void validateProxyKey(String requestKey) {
+        logReceivedProxyKey(requestKey);
         if (!isProxyKeyValid(requestKey)) {
             throw new InvalidAdminProxyKeyException();
         }
@@ -60,6 +72,11 @@ public class AdminController {
 
     private boolean isProxyKeyValid(String requestKey) {
         return proxyKey != null && !proxyKey.isBlank() && proxyKey.equals(requestKey);
+    }
+
+    private void logReceivedProxyKey(String requestKey) {
+        LOGGER.info("Spring received X-ADMIN-PROXY-KEY: {}", requestKey != null && !requestKey.isBlank());
+        LOGGER.info("Spring received key length: {}", requestKey == null ? 0 : requestKey.length());
     }
 
     @org.springframework.web.bind.annotation.ExceptionHandler(InvalidAdminProxyKeyException.class)

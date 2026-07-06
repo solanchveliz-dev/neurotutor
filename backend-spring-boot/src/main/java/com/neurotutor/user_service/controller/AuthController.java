@@ -3,16 +3,24 @@ package com.neurotutor.user_service.controller;
 import com.neurotutor.user_service.dto.*;
 import com.neurotutor.user_service.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class AuthController {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
+
     @Autowired
     private AuthService authService;
+
+    @Value("${app.environment:production}")
+    private String appEnvironment;
 
     // ==================== REGISTRO ====================
     @PostMapping("/register")
@@ -41,10 +49,29 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
-            authService.forgotPassword(request);
+            LOGGER.info("forgot-password request received");
+            LOGGER.info("forgot-password app env: {}", appEnvironment);
+            AuthService.ForgotPasswordResult result = authService.forgotPassword(request);
+            boolean development = "development".equalsIgnoreCase(appEnvironment);
+            if (development && result.accountExists()) {
+                System.out.println("[DEV] Token de recuperacion para " + request.getEmail() + ": " + result.token());
+                return ResponseEntity.ok(new TokenResponse(
+                        null,
+                        result.emailSent()
+                                ? "Solicitud registrada. Usa el codigo de desarrollo o revisa tu correo."
+                                : "SMTP no esta configurado. Usa el codigo de desarrollo.",
+                        result.token()
+                ));
+            }
+            if (result.accountExists() && !result.emailSent()) {
+                return ResponseEntity.status(503).body(new ErrorResponse(
+                        "El código fue generado, pero el servicio de correo no está disponible. Intenta nuevamente."
+                ));
+            }
             return ResponseEntity.ok(new TokenResponse(
                     null,
-                    "Si el correo está registrado, recibirás un código para restablecer tu contraseña."
+                    "Si el correo está registrado, recibirás un código para restablecer tu contraseña.",
+                    null
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
@@ -78,12 +105,15 @@ public class AuthController {
     static class TokenResponse {
         private String token;
         private String message;
-        public TokenResponse(String token, String message) {
+        private String devCode;
+        public TokenResponse(String token, String message, String devCode) {
             this.token = token;
             this.message = message;
+            this.devCode = devCode;
         }
         public String getToken() { return token; }
         public String getMessage() { return message; }
+        public String getDevCode() { return devCode; }
     }
 
 }

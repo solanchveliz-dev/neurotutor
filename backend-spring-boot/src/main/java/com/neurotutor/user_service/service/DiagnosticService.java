@@ -206,7 +206,7 @@ public class DiagnosticService {
         estudiante.setNivelDiagnostico(assignedLevel);
         estudiante.setExamenCompletado(true);
         estudianteRepository.save(estudiante);
-        achievementService.evaluateStudentAchievements(estudiante.getId());
+        List<String> unlockedAchievementCodes = achievementService.evaluateStudentAchievements(estudiante.getId());
 
         return new DiagnosticResultResponse(
                 savedAttempt.getId(),
@@ -215,7 +215,8 @@ public class DiagnosticService {
                 totalQuestions,
                 scorePercentage,
                 assignedLevel,
-                message
+                message,
+                unlockedAchievementCodes
         );
     }
 

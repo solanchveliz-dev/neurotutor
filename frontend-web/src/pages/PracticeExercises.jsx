@@ -12,6 +12,7 @@ import LearningProgressPanel from "../components/student/LearningProgressPanel";
 import { getLearningContent } from "../services/learningService";
 import { submitPracticeAttempt } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
+import AchievementUnlockedModal from "../components/student/AchievementUnlockedModal";
 
 function mapExercise(exercise) {
   return {
@@ -89,7 +90,7 @@ function PracticeExercises() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [attemptError, setAttemptError] = useState("");
-  const [showAchievementModal, setShowAchievementModal] = useState(false);
+  const [unlockedAchievementCode, setUnlockedAchievementCode] = useState(null);
 
   const module = routeModule ?? { id: moduleId, title: "Módulo" };
   const level = routeLevel ?? { id: learningModuloId, name: "Nivel" };
@@ -180,8 +181,9 @@ function PracticeExercises() {
       setShowFeedback(false);
     } else {
       const result = await submitAttemptIfReady();
-      if (isBasicLevel && result?.practice_completed) {
-        setShowAchievementModal(true);
+      const newAchievement = result?.unlocked_achievement_codes?.[0];
+      if (newAchievement) {
+        setUnlockedAchievementCode(newAchievement);
         return;
       }
       navigate(`/final-exam/${learningModuloId}`, { state: { module, level } });
@@ -189,7 +191,7 @@ function PracticeExercises() {
   };
 
   const continueAfterAchievement = () => {
-    setShowAchievementModal(false);
+    setUnlockedAchievementCode(null);
     navigate(`/final-exam/${learningModuloId}`, { state: { module, level } });
   };
 
@@ -272,7 +274,7 @@ function PracticeExercises() {
           </div>
         </section>
 
-        {showAchievementModal && <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/35 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="practice-achievement-title"><section className="w-full max-w-md rounded-[30px] border border-amber-200 bg-white p-7 text-center shadow-[0_28px_80px_rgba(30,58,138,0.28)]"><img src="/assets/manos_a_la_practica.png" alt="Insignia Manos a la práctica" className="mx-auto h-36 w-full object-contain" /><h2 id="practice-achievement-title" className="mt-3 text-3xl font-black text-green-700">¡Lo lograste!</h2><p className="mt-2 font-bold text-slate-600">Ganaste una nueva insignia</p><div className="mx-auto mt-4 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3"><strong className="text-lg font-black text-amber-800">Manos a la práctica</strong><p className="mt-1 text-sm font-bold text-slate-700">Aprobaste tu primera práctica.</p></div><Button type="button" onClick={continueAfterAchievement} className="mt-6 h-12 w-full rounded-[16px] bg-gradient-to-r from-emerald-500 to-green-600 font-black text-white"><Check className="size-5" />Continuar</Button></section></div>}
+        <AchievementUnlockedModal code={unlockedAchievementCode} onContinue={continueAfterAchievement} />
       </StudentLayout>
     );
   }

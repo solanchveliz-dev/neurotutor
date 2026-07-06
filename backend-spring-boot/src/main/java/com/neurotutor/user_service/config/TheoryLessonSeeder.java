@@ -248,7 +248,8 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                         ]},
                         {"type":"important_note","title":"¡Importante!","text":"Cada fracción representa una parte de un todo que ha sido dividido en partes iguales."},
                         {"type":"keep_learning","title":"Sigue aprendiendo","text":"Cada fracción está formada por dos números. En la siguiente lección descubrirás qué significa cada uno.","image":"neo_ideas.png"}
-                      ]
+                      ],
+                      "nextLesson":{"title":"Partes de una fraccion","description":"En la siguiente leccion aprenderas a identificar numerador y denominador.","image":"neo_ideas.png"}
                     }
                     """;
             case 3 -> """
@@ -268,7 +269,8 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                         ]},
                         {"type":"remember","title":"¡Recuerda!","text":"El denominador nunca puede ser 0.","detail":"Cada fracción representa una parte de un todo.","image":"neo_recuerda.png"},
                         {"type":"neo_help","title":"NEO te ayuda","text":"Siempre observa primero el denominador para saber en cuántas partes se dividió el todo. Luego mira el numerador para saber cuántas partes se tomaron.","image":"neo_ideas.png"}
-                      ]
+                      ],
+                      "nextLesson":{"label":"Siguiente paso","title":"Consejo de NEO","description":"En la siguiente lección aprenderás a diferenciar fracciones propias e impropias.","image":"neo_ideas.png"}
                     }
                     """;
             case 4 -> """
@@ -292,7 +294,8 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                         ],"note":{"title":"Importante","text":"En las fracciones impropias, se toman más partes de las que hay en total."}},
                         {"type":"life_example","title":"Ejemplo en la vida diaria","text":"Si tienes 2 pizzas y divides cada una en 4 partes, en total tienes 8 partes. Si tomas 5 partes, has tomado más de una pizza completa.","numerator":"5","denominator":"4","message":"Es una fracción impropia.","image":"pizza.png","neoImage":"neo_indicando.png"},
                         {"type":"continue_learning","title":"¡Continúa aprendiendo!","text":"Ya sabes diferenciar entre fracciones propias e impropias. En la siguiente lección haremos un repaso antes de la práctica.","image":"neo_ideas.png"}
-                      ]
+                      ],
+                      "nextLesson":{"label":"Siguiente paso","title":"Consejo de NEO","description":"En la siguiente lección harás un repaso antes de iniciar la práctica.","image":"neo_ideas.png"}
                     }
                     """;
             case 5 -> """
@@ -309,7 +312,8 @@ public class TheoryLessonSeeder implements ApplicationRunner {
                         {"type":"important_ideas","title":"Ideas importantes","image":"idea.png","items":["Las fracciones nos ayudan a repartir, medir y comparar.","Siempre trabajamos con partes iguales.","El numerador está arriba y el denominador abajo.","Las fracciones propias son menores que 1.","Las fracciones impropias son mayores que 1."]},
                         {"type":"review_mistakes","title":"Errores comunes","image":"neo_recuerda.png","items":["Pensar que el denominador puede ser 0.","Olvidar que las partes deben ser iguales.","Confundir numerador y denominador.","Creer que todas las fracciones son menores que 1."]},
                         {"type":"ready_for_practice","title":"¡Estás preparado!","text":"Ahora pondrás a prueba todo lo que aprendiste.\\nEn la siguiente sección encontrarás ejercicios para seguir mejorando.","image":"neo_ideas.png"}
-                      ]
+                      ],
+                      "nextLesson":{"label":"Siguiente paso","title":"Consejo de NEO","description":"Terminaste el repaso. Ahora estás listo para iniciar la práctica del Nivel Básico.","image":"neo_ideas.png"}
                     }
                     """;
             default -> null;

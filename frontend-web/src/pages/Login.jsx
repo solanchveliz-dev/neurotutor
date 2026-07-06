@@ -107,7 +107,7 @@ function Login() {
         <Card className="w-full max-w-lg rounded-[36px] border border-white/80 bg-white/72 p-0 shadow-[0_28px_90px_rgba(30,58,138,0.24)] backdrop-blur-2xl">
           <CardHeader className="px-7 pb-4 pt-6 text-center sm:px-10">
             <img
-              src="/assets/neo_login.png"
+              src="/assets/neo_chat.png"
               alt="NEO"
               className="mx-auto mb-2 block w-32 object-contain drop-shadow-[0_22px_28px_rgba(30,58,138,0.22)] sm:w-40 lg:w-44"
             />

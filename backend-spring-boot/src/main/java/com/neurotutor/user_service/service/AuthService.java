@@ -13,9 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AuthService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
     private EstudianteRepository estudianteRepository;
@@ -37,11 +41,28 @@ public class AuthService {
 
     // ==================== REGISTRO ====================
     public AuthResponse register(RegisterRequest request) {
-        if (!EMAIL_PATTERN.matcher(request.getEmail()).matches()) {
+        if (request == null) {
+            throw new RuntimeException("Los datos de registro son obligatorios");
+        }
+        String email = normalizeEmail(request.getEmail());
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
             throw new RuntimeException("Correo inválido");
         }
 
-        if (estudianteRepository.existsByEmail(request.getEmail())) {
+        if (request.getNombreCompleto() == null || request.getNombreCompleto().trim().isEmpty()) {
+            throw new RuntimeException("El nombre completo es obligatorio");
+        }
+        if (request.getGrado() == null || request.getGrado().isBlank()) {
+            throw new RuntimeException("El grado es obligatorio");
+        }
+        if (request.getSeccion() == null || request.getSeccion().isBlank()) {
+            throw new RuntimeException("La sección es obligatoria");
+        }
+        if (request.getPassword() == null || request.getPassword().length() < 8) {
+            throw new RuntimeException("La contraseña debe tener al menos 8 caracteres");
+        }
+
+        if (estudianteRepository.existsByEmail(email)) {
             throw new RuntimeException("Este correo ya tiene una cuenta.");
         }
 
@@ -50,8 +71,8 @@ public class AuthService {
         }
 
         Estudiante estudiante = new Estudiante();
-        estudiante.setEmail(request.getEmail());
-        estudiante.setNombreCompleto(request.getNombreCompleto());
+        estudiante.setEmail(email);
+        estudiante.setNombreCompleto(request.getNombreCompleto().trim());
         estudiante.setGrado(request.getGrado());
         estudiante.setSeccion(request.getSeccion());
         estudiante.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -110,25 +131,36 @@ public class AuthService {
     }
 
     // ... (El resto de métodos forgotPassword y resetPassword se mantienen igual ya que funcionan bien)
-    public String forgotPassword(ForgotPasswordRequest request) {
-        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+    public ForgotPasswordResult forgotPassword(ForgotPasswordRequest request) {
+        String email = normalizeEmail(request.getEmail());
+        LOGGER.info("forgot-password email received: {}", email);
         if (!estudianteRepository.existsByEmail(email)) {
-            return null;
+            LOGGER.info("forgot-password account exists: false");
+            return new ForgotPasswordResult(false, false, null);
         }
         tokenRepository.findByEmail(email).ifPresent(tokenRepository::delete);
 
         int numeroAleatorio = SECURE_RANDOM.nextInt(900000) + 100000;
         String token = String.valueOf(numeroAleatorio);
+        LOGGER.info("forgot-password token generated suffix: **{}", token.substring(token.length() - 2));
 
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setToken(token);
         resetToken.setEmail(email);
         resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(60));
         resetToken.setUsed(false);
-        tokenRepository.save(resetToken);
+        try {
+            tokenRepository.saveAndFlush(resetToken);
+            LOGGER.info("forgot-password token saved in database: true");
+        } catch (RuntimeException exception) {
+            LOGGER.error("forgot-password token saved in database: false; type={}", exception.getClass().getSimpleName());
+            throw exception;
+        }
 
-        emailService.sendResetToken(email, token);
-        return token;
+        boolean emailConfigured = emailService.isConfigured();
+        LOGGER.info("forgot-password smtp enabled: {}", emailConfigured);
+        boolean emailSent = emailConfigured && emailService.sendResetToken(email, token);
+        return new ForgotPasswordResult(true, emailSent, token);
     }
 
     @Transactional
@@ -137,7 +169,7 @@ public class AuthService {
             throw new RuntimeException("Las contraseñas no coinciden");
         }
 
-        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        String email = normalizeEmail(request.getEmail());
         PasswordResetToken resetToken = tokenRepository.findByTokenAndEmail(request.getToken(), email)
                 .orElseThrow(() -> new RuntimeException("Token inválido o expirado"));
 
@@ -156,4 +188,10 @@ public class AuthService {
         resetToken.setUsed(true);
         tokenRepository.save(resetToken);
     }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    public record ForgotPasswordResult(boolean accountExists, boolean emailSent, String token) { }
 }
