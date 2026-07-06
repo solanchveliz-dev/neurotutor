@@ -251,8 +251,8 @@ function Register({ initialTab = 'register' }) {
             )}
 
             {serverError && (
-              <div className="mb-4 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-bold text-red-600">
-                {serverError}
+              <div className="mb-4 flex min-h-12 items-center justify-center rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-bold leading-5 text-red-600" role="alert">
+                <span className="max-w-full break-words">{serverError}</span>
               </div>
             )}
 

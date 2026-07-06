@@ -29,8 +29,8 @@ const breadcrumbs = {
 function Brand() {
   return (
     <Link to="/admin/dashboard" className="flex items-center gap-3" aria-label="NeuroTutor Admin">
-      <div className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-[#DFF4FF] to-white p-1.5 shadow-[0_14px_30px_rgba(37,99,255,0.16)] ring-1 ring-[#2563FF]/10">
-        <img src="/assets/neo3.png" alt="" className="size-full object-contain" />
+      <div className="grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-[#DFF4FF] to-white p-1 shadow-[0_14px_30px_rgba(37,99,255,0.16)] ring-1 ring-[#2563FF]/10">
+        <img src="/assets/neo_chat.png" alt="NEO" className="size-full object-contain" />
       </div>
       <div>
         <p className="text-[12px] font-extrabold uppercase tracking-[0.18em] text-[#1E2A4A]">NEUROTUTOR</p>

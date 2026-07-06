@@ -47,16 +47,20 @@ public class AuthController {
         try {
             AuthService.ForgotPasswordResult result = authService.forgotPassword(request);
             boolean development = "development".equalsIgnoreCase(appEnvironment);
-            if (development && result.accountExists() && !result.emailSent()) {
+            if (development && result.accountExists()) {
                 System.out.println("[DEV] Token de recuperacion para " + request.getEmail() + ": " + result.token());
                 return ResponseEntity.ok(new TokenResponse(
-                        result.token(),
-                        "SMTP no esta configurado. Usa el codigo de desarrollo mostrado en esta respuesta."
+                        null,
+                        result.emailSent()
+                                ? "Solicitud registrada. Usa el codigo de desarrollo o revisa tu correo."
+                                : "SMTP no esta configurado. Usa el codigo de desarrollo.",
+                        result.token()
                 ));
             }
             return ResponseEntity.ok(new TokenResponse(
                     null,
-                    "Si el correo está registrado, recibirás un código para restablecer tu contraseña."
+                    "Si el correo está registrado, recibirás un código para restablecer tu contraseña.",
+                    null
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
@@ -90,12 +94,15 @@ public class AuthController {
     static class TokenResponse {
         private String token;
         private String message;
-        public TokenResponse(String token, String message) {
+        private String devCode;
+        public TokenResponse(String token, String message, String devCode) {
             this.token = token;
             this.message = message;
+            this.devCode = devCode;
         }
         public String getToken() { return token; }
         public String getMessage() { return message; }
+        public String getDevCode() { return devCode; }
     }
 
 }

@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,9 +24,10 @@ public class EmailService {
                 && emailPassword != null && !emailPassword.isBlank();
     }
 
-    public boolean sendResetToken(String to, String token) {
+    @Async
+    public void sendResetToken(String to, String token) {
         if (!isConfigured()) {
-            return false;
+            return;
         }
         try {
             System.out.println("⏳ Iniciando envío de correo asíncrono para: " + to + " en segundo plano...");
@@ -43,12 +45,10 @@ public class EmailService {
             mailSender.send(message);
 
             System.out.println("📧 Correo enviado con éxito a: " + to);
-            return true;
 
         } catch (Exception e) {
             // Captura cualquier error de Gmail (claves mal puestas o puertos bloqueados) sin tirar la app móvil
             System.err.println("❌ Error crítico enviando el correo de fondo a " + to + ": " + e.getMessage());
-            return false;
         }
     }
 }

@@ -29,6 +29,10 @@ export const register = async (userData) => {
       } else {
         errorMessage = error.response.data?.message || errorMessage;
       }
+      errorMessage = error.response.data?.error || error.response.data?.message || errorMessage;
+      if (error.response.status === 400 && !error.response.data?.error && !error.response.data?.message) {
+        errorMessage = 'Datos inválidos';
+      }
     } else if (error.request) {
       errorMessage = 'No se pudo conectar con el servidor. Â¿Spring Boot estÃ¡ corriendo?';
     }

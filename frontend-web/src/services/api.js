@@ -14,7 +14,10 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const publicAuthPaths = ["/api/register", "/api/login", "/api/forgot-password", "/api/reset-password"];
+  const isPublicAuthRequest = publicAuthPaths.some((path) => config.url?.endsWith(path));
+  if (token && !isPublicAuthRequest) config.headers.Authorization = `Bearer ${token}`;
+  if (isPublicAuthRequest) delete config.headers.Authorization;
   return config;
 });
 

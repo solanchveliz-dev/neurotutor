@@ -37,11 +37,28 @@ public class AuthService {
 
     // ==================== REGISTRO ====================
     public AuthResponse register(RegisterRequest request) {
-        if (!EMAIL_PATTERN.matcher(request.getEmail()).matches()) {
+        if (request == null) {
+            throw new RuntimeException("Los datos de registro son obligatorios");
+        }
+        String email = normalizeEmail(request.getEmail());
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
             throw new RuntimeException("Correo inválido");
         }
 
-        if (estudianteRepository.existsByEmail(request.getEmail())) {
+        if (request.getNombreCompleto() == null || request.getNombreCompleto().trim().isEmpty()) {
+            throw new RuntimeException("El nombre completo es obligatorio");
+        }
+        if (request.getGrado() == null || request.getGrado().isBlank()) {
+            throw new RuntimeException("El grado es obligatorio");
+        }
+        if (request.getSeccion() == null || request.getSeccion().isBlank()) {
+            throw new RuntimeException("La sección es obligatoria");
+        }
+        if (request.getPassword() == null || request.getPassword().length() < 8) {
+            throw new RuntimeException("La contraseña debe tener al menos 8 caracteres");
+        }
+
+        if (estudianteRepository.existsByEmail(email)) {
             throw new RuntimeException("Este correo ya tiene una cuenta.");
         }
 
@@ -50,8 +67,8 @@ public class AuthService {
         }
 
         Estudiante estudiante = new Estudiante();
-        estudiante.setEmail(request.getEmail());
-        estudiante.setNombreCompleto(request.getNombreCompleto());
+        estudiante.setEmail(email);
+        estudiante.setNombreCompleto(request.getNombreCompleto().trim());
         estudiante.setGrado(request.getGrado());
         estudiante.setSeccion(request.getSeccion());
         estudiante.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -127,8 +144,11 @@ public class AuthService {
         resetToken.setUsed(false);
         tokenRepository.save(resetToken);
 
-        boolean emailSent = emailService.sendResetToken(email, token);
-        return new ForgotPasswordResult(true, emailSent, token);
+        boolean emailConfigured = emailService.isConfigured();
+        if (emailConfigured) {
+            emailService.sendResetToken(email, token);
+        }
+        return new ForgotPasswordResult(true, emailConfigured, token);
     }
 
     @Transactional
