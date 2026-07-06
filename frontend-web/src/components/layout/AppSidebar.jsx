@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { clearAuthData } from "@/utils/auth";
+import { clearAuthData, getStoredUser, getStudentId } from "@/utils/auth";
+import { getCachedStudentData } from "@/utils/studentDataCache";
+import { getRememberedModuleId, rememberCurrentModuleId } from "@/utils/moduleNavigation";
 
 const defaultItems = [
   { label: "Inicio", icon: Home, active: true },
@@ -111,8 +113,45 @@ function AppSidebar({
 
   const isModulesItem = (label) => label.toLowerCase().includes("mod");
 
+  const normalizeLevel = (value) =>
+    String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+
+  const getLevelModuleId = (level) => {
+    const normalized = normalizeLevel(level);
+    if (normalized.includes("basico") || normalized === "basic") return 6;
+    if (normalized.includes("intermedio") || normalized === "intermediate") return 7;
+    if (normalized.includes("avanzado") || normalized === "advanced") return 8;
+    return null;
+  };
+
+  const getStudentLevelModuleId = () => {
+    const user = getStoredUser();
+    const studentId = getStudentId();
+    const cachedUser = getCachedStudentData(studentId, "user");
+    const level =
+      user?.level ??
+      user?.nivel ??
+      user?.nivelActual ??
+      user?.currentLevel ??
+      cachedUser?.level ??
+      cachedUser?.nivel ??
+      cachedUser?.nivelActual ??
+      cachedUser?.currentLevel;
+
+    return getLevelModuleId(level);
+  };
+
   const handleModulesClick = () => {
-    navigate("/modules");
+    const moduleId = getStudentLevelModuleId() ?? getRememberedModuleId();
+
+    if (moduleId !== null && moduleId !== undefined && String(moduleId).trim()) {
+      rememberCurrentModuleId(moduleId);
+      navigate(`/module/${moduleId}`);
+    }
   };
 
   const getDefaultAction = (label) => {
@@ -147,7 +186,6 @@ function AppSidebar({
         className
       )}
       aria-label="Navegacion principal"
-      onClickCapture={(event) => console.log("CLICK CAPTURE SIDEBAR", event.target)}
     >
       <button
         type="button"
@@ -156,7 +194,7 @@ function AppSidebar({
         aria-label="Ir al panel principal"
       >
         <img
-          src="/assets/neo_chat.png"
+          src="/assets/neo3.png"
           alt="NeuroTutor"
           className="h-32 w-[190px] object-contain"
         />
@@ -175,10 +213,8 @@ function AppSidebar({
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  console.log("CLICK MODULOS SIDEBAR REAL");
                   handleModulesClick();
                 }}
-                onMouseDown={() => console.log("MOUSEDOWN MODULOS")}
                 className={cn(
                   "relative z-10 flex h-12 w-full cursor-pointer items-center justify-start gap-3 rounded-nt-button border-0 bg-transparent px-4 text-sm font-extrabold text-nt-text-secondary transition-all outline-none hover:bg-nt-sky hover:text-nt-blue focus-visible:ring-4 focus-visible:ring-nt-blue-light/30",
                   item.active && "bg-nt-blue text-white shadow-lg shadow-nt-blue/25 hover:bg-nt-blue hover:text-white"

@@ -3,9 +3,11 @@ package com.neurotutor.user_service.controller;
 import com.neurotutor.user_service.dto.AdminStudentResponse;
 import com.neurotutor.user_service.dto.AdminSummaryResponse;
 import com.neurotutor.user_service.service.AdminService;
+import com.neurotutor.user_service.service.ChatHistoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,11 +28,14 @@ public class AdminController {
     private static final Logger LOGGER = LoggerFactory.getLogger(AdminController.class);
 
     private final AdminService adminService;
+    private final ChatHistoryService chatHistoryService;
     private final String proxyKey;
 
     public AdminController(AdminService adminService,
+                           ChatHistoryService chatHistoryService,
                            @Value("${admin.proxy-key:}") String proxyKey) {
         this.adminService = adminService;
+        this.chatHistoryService = chatHistoryService;
         this.proxyKey = proxyKey;
         LOGGER.info("Spring admin.proxy-key exists: {}", proxyKey != null && !proxyKey.isBlank());
         LOGGER.info("Spring admin.proxy-key length: {}", proxyKey == null ? 0 : proxyKey.length());
@@ -72,6 +77,33 @@ public class AdminController {
 
     private boolean isProxyKeyValid(String requestKey) {
         return proxyKey != null && !proxyKey.isBlank() && proxyKey.equals(requestKey);
+    }
+
+    @GetMapping("/chat/conversations")
+    public ResponseEntity<?> getChatConversations(@RequestHeader(value = ADMIN_PROXY_HEADER, required = false) String requestKey) {
+        validateProxyKey(requestKey);
+        return ResponseEntity.ok(chatHistoryService.getConversations());
+    }
+
+    @GetMapping("/chat/student/{id}")
+    public ResponseEntity<?> getStudentChat(@PathVariable Long id,
+                                            @RequestHeader(value = ADMIN_PROXY_HEADER, required = false) String requestKey) {
+        validateProxyKey(requestKey);
+        return ResponseEntity.ok(chatHistoryService.getStudentMessages(id));
+    }
+
+    @GetMapping("/chat/statistics")
+    public ResponseEntity<?> getChatStatistics(@RequestHeader(value = ADMIN_PROXY_HEADER, required = false) String requestKey) {
+        validateProxyKey(requestKey);
+        return ResponseEntity.ok(chatHistoryService.getStatistics());
+    }
+
+    @DeleteMapping("/chat/conversations/{conversationId}")
+    public ResponseEntity<?> deleteChatConversation(@PathVariable String conversationId,
+                                                   @RequestHeader(value = ADMIN_PROXY_HEADER, required = false) String requestKey) {
+        validateProxyKey(requestKey);
+        chatHistoryService.deleteConversation(conversationId);
+        return ResponseEntity.noContent().build();
     }
 
     private void logReceivedProxyKey(String requestKey) {

@@ -7,7 +7,9 @@ import { askNeoTutor } from "@/services/aiService";
 import { getStudentId } from "@/utils/auth";
 import NeoFloatingButton from "./NeoFloatingButton";
 
-const HISTORY_KEY = "neotutor_neo_session_messages";
+const HISTORY_KEY_PREFIX = "neotutor_neo_session_messages_student_";
+const SESSION_KEY_PREFIX = "neotutor_neo_session_id_student_";
+const CONVERSATION_KEY_PREFIX = "neotutor_neo_conversation_id_student_";
 const dashboardActions = [["PROGRESS", "¿Cómo voy?"], ["NEXT_STEP", "¿Qué debo hacer ahora?"]];
 const theoryActions = [["EXPLAIN", "Explícame este tema"], ["EXAMPLE", "Dame un ejemplo"], ["SUMMARY", "Resúmelo fácil"]];
 const practiceActions = [["HINT", "Dame una pista"], ["PROCEDURE", "Explícame el procedimiento"], ["SIMILAR_EXERCISE", "Ejercicio parecido"]];
@@ -23,17 +25,49 @@ const screens = [
   ["/student-dashboard", "DASHBOARD", dashboardActions],
 ];
 
-const readHistory = () => {
+const getStudentScopedKey = (prefix, studentId) => `${prefix}${studentId}`;
+
+const readHistory = (studentId) => {
   try {
-    const history = JSON.parse(sessionStorage.getItem(HISTORY_KEY));
+    if (!studentId) return [];
+    const history = JSON.parse(localStorage.getItem(getStudentScopedKey(HISTORY_KEY_PREFIX, studentId)));
     return Array.isArray(history) ? history : [];
   } catch {
     return [];
   }
 };
 
+const getOrCreateScopedId = (prefix, studentId) => {
+  if (!studentId) return null;
+  const key = getStudentScopedKey(prefix, studentId);
+  const existing = localStorage.getItem(key);
+  if (existing) return existing;
+  const generated = crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  localStorage.setItem(key, generated);
+  return generated;
+};
+
+const getOrCreateConversationId = (studentId) => {
+  if (!studentId) return null;
+  const key = getStudentScopedKey(CONVERSATION_KEY_PREFIX, studentId);
+  const now = Date.now();
+  try {
+    const stored = JSON.parse(localStorage.getItem(key));
+    if (stored?.id && now - Number(stored.lastActivityAt || 0) < 30 * 60 * 1000) {
+      localStorage.setItem(key, JSON.stringify({ ...stored, lastActivityAt: now }));
+      return stored.id;
+    }
+  } catch {
+    // Replace legacy or invalid values with a fresh scoped conversation.
+  }
+  const id = crypto?.randomUUID?.() ?? `${now}-${Math.random().toString(16).slice(2)}`;
+  localStorage.setItem(key, JSON.stringify({ id, lastActivityAt: now }));
+  return id;
+};
+
 function NeoChatDrawer() {
   const location = useLocation();
+  const storedStudentId = getStudentId();
   const context = (() => {
     for (const [pattern, currentScreen, actions] of screens) {
       const match = matchPath({ path: pattern, end: true }, location.pathname);
@@ -42,26 +76,37 @@ function NeoChatDrawer() {
     return null;
   })();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState(readHistory);
+  const [messages, setMessages] = useState(() => readHistory(storedStudentId));
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const messagesEndRef = useRef(null);
-
-  console.log("neo open", isOpen);
+  const skipHistorySaveRef = useRef(false);
 
   useEffect(() => {
-    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-30)));
+    skipHistorySaveRef.current = true;
+    setMessages(readHistory(storedStudentId));
+  }, [storedStudentId]);
+
+  useEffect(() => {
+    if (skipHistorySaveRef.current) {
+      skipHistorySaveRef.current = false;
+      return;
+    }
+    if (storedStudentId) {
+      localStorage.setItem(
+        getStudentScopedKey(HISTORY_KEY_PREFIX, storedStudentId),
+        JSON.stringify(messages.slice(-30))
+      );
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, storedStudentId]);
 
   if (!context || location.pathname.startsWith("/final-exam/")) return null;
 
   const sendMessage = async (text, action = "QUESTION") => {
     const cleanMessage = text.trim();
     if (!cleanMessage || isLoading) return;
-
-    console.log("sending message");
 
     setMessages((current) => [...current, { id: `${Date.now()}-user`, role: "user", text: cleanMessage }]);
     setInput("");
@@ -70,7 +115,7 @@ function NeoChatDrawer() {
 
     try {
       const { moduleId, levelId, lessonId } = context.params;
-      const studentId = Number(getStudentId());
+      const studentId = Number(storedStudentId);
       const response = await askNeoTutor({
         studentId: Number.isFinite(studentId) && studentId > 0 ? studentId : null,
         moduleId: moduleId ? Number(moduleId) : null,
@@ -80,6 +125,8 @@ function NeoChatDrawer() {
         action,
         message: cleanMessage,
         context: `Ruta actual: ${location.pathname}`,
+        sessionId: getOrCreateScopedId(SESSION_KEY_PREFIX, storedStudentId),
+        conversationId: getOrCreateConversationId(storedStudentId),
       });
       setMessages((current) => [...current, { id: `${Date.now()}-neo`, role: "assistant", text: response.answer }]);
     } catch {
@@ -91,7 +138,6 @@ function NeoChatDrawer() {
 
   const handleInputKeyDown = (event) => {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-      console.log("enter pressed");
       event.preventDefault();
       sendMessage(input);
     }

@@ -5,6 +5,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   Search,
   Settings,
   Users,
@@ -14,6 +15,7 @@ import { logoutAdmin } from "@/services/adminService";
 const navigation = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Estudiantes", href: "/admin/students", icon: Users },
+  { label: "Conversaciones IA", href: "/admin/chat", icon: MessageCircle },
 ];
 
 const upcomingNavigation = [

@@ -19,9 +19,9 @@ import Achievements from "./pages/Achievements";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStudents from "./pages/admin/AdminStudents";
 import AdminStudentDetail from "./pages/admin/AdminStudentDetail";
+import AdminChatConversations from "./pages/admin/AdminChatConversations";
 import AdminRoute from "./components/AdminRoute";
 import Home from "./pages/Home";
-import Modules from "./pages/Modules";
 
 function App() {
   return (
@@ -38,6 +38,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />
         <Route path="/admin/students/:id" element={<AdminRoute><AdminStudentDetail /></AdminRoute>} />
+        <Route path="/admin/chat" element={<AdminRoute><AdminChatConversations /></AdminRoute>} />
 
         <Route
           path="/diagnostic-exam"
@@ -65,8 +66,6 @@ function App() {
         />
 
         <Route path="/dashboard" element={<Navigate to="/student-dashboard" replace />} />
-        <Route path="/learning-path" element={<Navigate to="/modules" replace />} />
-        <Route path="/modules" element={<ProtectedRoute><Modules /></ProtectedRoute>} />
 
         <Route
           path="/student-dashboard"

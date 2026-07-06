@@ -59,7 +59,7 @@ const requestAdminResource = async (path, options = {}) => {
     console.info("[admin auth] Authorization sent:", Boolean(headers.Authorization));
   }
 
-  if (path === "/summary/" || path === "/students/" || path.startsWith("/students/")) {
+  if (path === "/summary/" || path === "/students/" || path.startsWith("/students/") || path.startsWith("/chat/")) {
     console.info("[admin api] URL:", `${ADMIN_API_BASE_URL}${path}`);
     console.info("[admin api] Authorization sent:", Boolean(headers.Authorization));
   }
@@ -110,3 +110,15 @@ export const getAdminSummary = () => requestAdminResource("/summary/");
 export const getAdminStudents = () => requestAdminResource("/students/");
 
 export const getAdminStudentById = (id) => requestAdminResource(`/students/${id}/`);
+
+export const getAdminChatConversations = () => requestAdminResource("/chat/conversations/");
+
+export const getAdminChatStudent = (id) => requestAdminResource(`/chat/student/${id}/`);
+
+export const getAdminChatStatistics = () => requestAdminResource("/chat/statistics/");
+
+export const deleteAdminChatConversation = (conversationId) => (
+  requestAdminResource(`/chat/conversations/${encodeURIComponent(conversationId)}/`, {
+    method: "DELETE",
+  })
+);

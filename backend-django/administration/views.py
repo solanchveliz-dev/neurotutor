@@ -69,7 +69,7 @@ def _load_admin_user_from_token(token, max_age):
     return user
 
 
-def _get_from_spring(endpoint):
+def _request_spring(endpoint, method="GET"):
     headers = {}
     proxy_key = settings.SPRING_ADMIN_PROXY_KEY
     logger.info("Django ADMIN_PROXY_KEY exists: %s", bool(proxy_key))
@@ -86,7 +86,8 @@ def _get_from_spring(endpoint):
     try:
         spring_url = f"{settings.SPRING_ADMIN_API_URL}/{endpoint}"
         logger.info("Django admin proxy request: %s", spring_url)
-        spring_response = requests.get(
+        spring_response = requests.request(
+            method,
             spring_url,
             headers=headers,
             timeout=settings.SPRING_REQUEST_TIMEOUT_SECONDS,
@@ -116,6 +117,14 @@ def _get_from_spring(endpoint):
             {"detail": "Spring Boot service is currently unavailable."},
             status=503,
         )
+
+
+def _get_from_spring(endpoint):
+    return _request_spring(endpoint, method="GET")
+
+
+def _delete_from_spring(endpoint):
+    return _request_spring(endpoint, method="DELETE")
 
 
 @csrf_exempt
@@ -189,3 +198,31 @@ def admin_students(request):
 @permission_classes([IsDjangoAdmin])
 def admin_student_detail(request, student_id):
     return _get_from_spring(f"students/{student_id}")
+
+
+@api_view(["GET"])
+@authentication_classes([AdminBearerAuthentication, SessionAuthentication])
+@permission_classes([IsDjangoAdmin])
+def admin_chat_conversations(request):
+    return _get_from_spring("chat/conversations")
+
+
+@api_view(["GET"])
+@authentication_classes([AdminBearerAuthentication, SessionAuthentication])
+@permission_classes([IsDjangoAdmin])
+def admin_chat_student(request, student_id):
+    return _get_from_spring(f"chat/student/{student_id}")
+
+
+@api_view(["GET"])
+@authentication_classes([AdminBearerAuthentication, SessionAuthentication])
+@permission_classes([IsDjangoAdmin])
+def admin_chat_statistics(request):
+    return _get_from_spring("chat/statistics")
+
+
+@api_view(["DELETE"])
+@authentication_classes([AdminBearerAuthentication, SessionAuthentication])
+@permission_classes([IsDjangoAdmin])
+def admin_chat_conversation_delete(request, conversation_id):
+    return _delete_from_spring(f"chat/conversations/{conversation_id}")

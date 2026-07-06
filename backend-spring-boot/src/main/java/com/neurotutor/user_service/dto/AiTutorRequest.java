@@ -11,6 +11,8 @@ public class AiTutorRequest {
     private String message;
     private String question;
     private String context;
+    private String sessionId;
+    private String conversationId;
 
     public AiTutorRequest() {}
 
@@ -65,4 +67,12 @@ public class AiTutorRequest {
     public void setContext(String context) {
         this.context = context;
     }
+
+    public String getSessionId() { return sessionId; }
+
+    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+
+    public String getConversationId() { return conversationId; }
+
+    public void setConversationId(String conversationId) { this.conversationId = conversationId; }
 }
