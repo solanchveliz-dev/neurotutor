@@ -7,11 +7,7 @@ const ADMIN_ACCESS_TOKEN_KEY = "admin_access_token";
 const ADMIN_REFRESH_TOKEN_KEY = "admin_refresh_token";
 const ADMIN_USER_KEY = "admin_user";
 
-const getAdminAccessToken = () => (
-  localStorage.getItem(ADMIN_ACCESS_TOKEN_KEY)
-  || localStorage.getItem("access_token")
-  || localStorage.getItem("adminToken")
-);
+const getAdminAccessToken = () => localStorage.getItem(ADMIN_ACCESS_TOKEN_KEY);
 
 const saveAdminAuthData = (payload) => {
   const accessToken = payload?.access || payload?.access_token || payload?.token;
@@ -74,7 +70,10 @@ const requestAdminResource = async (path, options = {}) => {
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     console.error("[admin api] Backend error:", response.status, payload);
-    const error = new Error(payload?.detail || "No se pudo completar la solicitud administrativa.");
+    const message = response.status === 401
+      ? "Sesión de administrador expirada. Vuelve a iniciar sesión."
+      : payload?.detail || "No se pudo completar la solicitud administrativa.";
+    const error = new Error(message);
     error.status = response.status;
     throw error;
   }
