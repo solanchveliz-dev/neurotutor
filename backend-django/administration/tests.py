@@ -23,8 +23,28 @@ class AdminApiTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
+        self.assertIn("access", response.json())
+        self.assertIn("token", response.json())
+        self.assertIn("refresh", response.json())
 
         response = self.client.get("/api/admin/me/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["username"], "admin")
+
+    def test_staff_user_can_read_identity_with_bearer_token(self):
+        response = self.client.post(
+            "/api/admin/login/",
+            {"username": "admin", "password": "safe-password"},
+            content_type="application/json",
+        )
+        access_token = response.json()["access"]
+
+        anonymous_client = Client()
+        response = anonymous_client.get(
+            "/api/admin/me/",
+            HTTP_AUTHORIZATION=f"Bearer {access_token}",
+        )
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["username"], "admin")
 
@@ -62,3 +82,17 @@ class AdminApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["total_students"], 3)
+        self.assertIn("X-ADMIN-PROXY-KEY", spring_get.call_args.kwargs["headers"])
+
+    @patch("administration.views.requests.get")
+    def test_invalid_spring_proxy_key_returns_actionable_hint(self, spring_get):
+        spring_response = Mock(status_code=403)
+        spring_response.json.return_value = {"detail": "Invalid admin proxy key."}
+        spring_get.return_value = spring_response
+        self.client.force_login(self.admin)
+
+        response = self.client.get("/api/admin/summary/")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["detail"], "Invalid admin proxy key.")
+        self.assertIn("Railway Spring ADMIN_PROXY_KEY", response.json()["hint"])

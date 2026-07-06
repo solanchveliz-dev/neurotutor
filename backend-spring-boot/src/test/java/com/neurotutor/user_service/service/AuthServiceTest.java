@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
@@ -35,7 +36,11 @@ class AuthServiceTest {
         request.setEmail("unknown@example.com");
         when(estudianteRepository.existsByEmail("unknown@example.com")).thenReturn(false);
 
-        assertNull(authService.forgotPassword(request));
+        AuthService.ForgotPasswordResult result = authService.forgotPassword(request);
+
+        assertFalse(result.accountExists());
+        assertFalse(result.emailSent());
+        assertNull(result.token());
         verify(emailService, never()).sendResetToken(
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString()

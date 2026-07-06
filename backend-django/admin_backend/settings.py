@@ -99,7 +99,7 @@ SPRING_ADMIN_API_URL = os.getenv(
     "SPRING_ADMIN_API_URL",
     "https://neurotutor-production.up.railway.app/api/admin",
 ).rstrip("/")
-SPRING_ADMIN_PROXY_KEY = os.getenv("ADMIN_PROXY_KEY", "")
+SPRING_ADMIN_PROXY_KEY = os.getenv("ADMIN_PROXY_KEY", os.getenv("SPRING_ADMIN_PROXY_KEY", ""))
 SPRING_REQUEST_TIMEOUT_SECONDS = int(os.getenv("SPRING_REQUEST_TIMEOUT_SECONDS", "5"))
 
 ROOT_URLCONF = 'admin_backend.urls'

@@ -11,7 +11,10 @@ function AdminRoute({ children }) {
     let active = true;
 
     getCurrentAdmin()
-      .then(() => active && setStatus("authenticated"))
+      .then((admin) => {
+        if (!active) return;
+        setStatus(admin?.is_staff || admin?.is_superuser ? "authenticated" : "anonymous");
+      })
       .catch(() => active && setStatus("anonymous"));
 
     return () => {
