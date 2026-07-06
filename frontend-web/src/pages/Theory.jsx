@@ -18,6 +18,13 @@ const getLessonLevelKey = (level) => {
   return "basico";
 };
 
+const getLessonImageSrc = (levelKey, lessonNumber) => {
+  if (levelKey === "intermedio" || levelKey === "avanzado") {
+    return `/assets/leccion_${levelKey}${lessonNumber}.png`;
+  }
+  return `/assets/lecciones_${levelKey}${lessonNumber}.png`;
+};
+
 const asPercentage = (value) => {
   if (value === null || value === undefined || value === "") return null;
   return Math.min(100, Math.max(0, Number(value) || 0));
@@ -227,12 +234,12 @@ function Theory() {
                 key={lesson.id}
                 type="button"
                 onClick={() => openLesson(lesson)}
-                className="group grid min-w-0 grid-cols-[88px_minmax(0,1fr)_auto] items-center gap-4 rounded-[26px] border border-white bg-white p-4 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-nt-blue/25 hover:shadow-md"
+                className="group grid min-w-0 grid-cols-[88px_minmax(0,1fr)_auto] items-center gap-4 rounded-[26px] border border-white bg-white p-4 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-nt-blue/25 hover:shadow-md sm:grid-cols-[96px_minmax(0,1fr)_auto]"
               >
                 <img
-                  src={`/assets/lecciones_${lessonLevelKey}${index + 1}.png`}
+                  src={getLessonImageSrc(lessonLevelKey, index + 1)}
                   alt=""
-                  className="size-[88px] object-contain drop-shadow-[0_10px_14px_rgba(30,58,138,0.16)]"
+                  className="size-[88px] object-contain drop-shadow-[0_10px_14px_rgba(30,58,138,0.16)] sm:size-24"
                   onError={(event) => {
                     event.currentTarget.onerror = null;
                     event.currentTarget.src = "/assets/teoria.png";

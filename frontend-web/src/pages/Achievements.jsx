@@ -22,9 +22,9 @@ const iconMap = {
 };
 
 const levelAchievementVisuals = [
-  { key: "basic", name: "Básico", description: "Progreso registrado en el nivel básico.", image: "/assets/logro_basico.png", accent: "text-emerald-700", progress: "bg-gradient-to-r from-emerald-400 to-emerald-600", surface: "from-green-50 to-emerald-100/80", border: "border-emerald-200" },
-  { key: "intermediate", name: "Intermedio", description: "Progreso registrado en el nivel intermedio.", image: "/assets/logro_intermedio.png", accent: "text-blue-700", progress: "bg-gradient-to-r from-sky-400 to-blue-600", surface: "from-blue-50 to-sky-100/80", border: "border-blue-200" },
-  { key: "advanced", name: "Avanzado", description: "Progreso registrado en el nivel avanzado.", image: "/assets/logro_avanzado.png", accent: "text-violet-700", progress: "bg-gradient-to-r from-violet-400 to-purple-600", surface: "from-purple-50 to-violet-100/80", border: "border-violet-200" },
+  { key: "basic", name: "Básico", description: "Progreso registrado en el nivel básico.", image: "/assets/nivel_basico.png", accent: "text-emerald-700", progress: "bg-gradient-to-r from-emerald-400 to-emerald-600", surface: "from-green-50 to-emerald-100/80", border: "border-emerald-200" },
+  { key: "intermediate", name: "Intermedio", description: "Progreso registrado en el nivel intermedio.", image: "/assets/nivel_intermedio.png", accent: "text-blue-700", progress: "bg-gradient-to-r from-sky-400 to-blue-600", surface: "from-blue-50 to-sky-100/80", border: "border-blue-200" },
+  { key: "advanced", name: "Avanzado", description: "Progreso registrado en el nivel avanzado.", image: "/assets/nivel_avanzado.png", accent: "text-violet-700", progress: "bg-gradient-to-r from-violet-400 to-purple-600", surface: "from-purple-50 to-violet-100/80", border: "border-violet-200" },
 ];
 
 function normalizeLevelKey(value = "") {
@@ -51,6 +51,24 @@ function getLevelProgressMetrics(levelKey, modules) {
   };
 }
 
+function getAchievementVisualImage(achievement) {
+  const mappedImage = getAchievementImage(achievement);
+  if (mappedImage) return mappedImage;
+
+  const levelKey = normalizeLevelKey([
+    achievement?.code,
+    achievement?.title,
+    achievement?.nombre,
+    achievement?.name,
+    achievement?.description,
+  ].filter(Boolean).join(" "));
+
+  if (levelKey === "basic") return "/assets/nivel_basico.png";
+  if (levelKey === "intermediate") return "/assets/nivel_intermedio.png";
+  if (levelKey === "advanced") return "/assets/nivel_avanzado.png";
+  return null;
+}
+
 const formatDate = (value) => {
   if (!value) return "";
   return new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short", year: "numeric" })
@@ -59,7 +77,7 @@ const formatDate = (value) => {
 
 function LockedAchievementItem({ achievement }) {
   const Icon = iconMap[achievement.icon] ?? Award;
-  const achievementImage = getAchievementImage(achievement);
+  const achievementImage = getAchievementVisualImage(achievement);
 
   return (
     <article className="group relative flex min-w-0 flex-col items-center rounded-[22px] border border-slate-200 bg-white px-3 py-4 text-center shadow-[0_10px_24px_rgba(30,58,138,0.08)] transition hover:-translate-y-1 hover:shadow-nt-card sm:px-4">
@@ -68,7 +86,7 @@ function LockedAchievementItem({ achievement }) {
           <img
             src={achievementImage}
             alt=""
-            className="size-32 object-contain grayscale opacity-45 drop-shadow-[0_12px_14px_rgba(71,85,105,0.18)] sm:size-40"
+            className="h-24 max-h-full w-full max-w-28 object-contain grayscale opacity-45 drop-shadow-[0_12px_14px_rgba(71,85,105,0.18)] sm:h-28 sm:max-w-32"
           />
         ) : (
           <Icon className="size-20 text-slate-400 sm:size-24" aria-hidden="true" />
@@ -94,7 +112,7 @@ function LockedAchievementItem({ achievement }) {
 
 function UnlockedAchievementItem({ achievement }) {
   const Icon = iconMap[achievement.icon] ?? Award;
-  const achievementImage = getAchievementImage(achievement);
+  const achievementImage = getAchievementVisualImage(achievement);
 
   return (
     <article
@@ -106,7 +124,7 @@ function UnlockedAchievementItem({ achievement }) {
           <img
             src={achievementImage}
             alt=""
-            className="size-32 object-contain drop-shadow-[0_14px_16px_rgba(30,58,138,0.22)] transition-transform group-hover:scale-105 sm:size-40"
+            className="h-24 max-h-full w-full max-w-28 object-contain drop-shadow-[0_14px_16px_rgba(30,58,138,0.22)] transition-transform group-hover:scale-105 sm:h-28 sm:max-w-32"
           />
         ) : (
           <Icon className="size-20 text-nt-purple drop-shadow-[0_10px_12px_rgba(124,58,237,0.22)] sm:size-24" aria-hidden="true" />
@@ -273,7 +291,7 @@ function Achievements() {
                   <img
                     src={level.image}
                     alt=""
-                    className="h-52 w-full object-contain drop-shadow-[0_18px_22px_rgba(30,58,138,0.22)] lg:h-60 xl:h-56"
+                    className="mx-auto h-40 max-h-full w-full max-w-44 object-contain drop-shadow-[0_18px_22px_rgba(30,58,138,0.22)] lg:h-44"
                   />
                   <div className="min-w-0">
                     <h3 className={`text-xl font-black ${level.accent}`}>{level.name}</h3>

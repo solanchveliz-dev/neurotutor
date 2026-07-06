@@ -642,7 +642,7 @@ function StudentDashboard() {
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             {recentAchievements.map((achievement) => {
               const visual = achievementCardVisuals[achievement.code] ?? defaultAchievementVisual;
-              const image = getAchievementImage(achievement.code);
+              const image = getAchievementImage(achievement);
 
               return (
                 <div
@@ -654,7 +654,7 @@ function StudentDashboard() {
                     <img
                       src={image}
                       alt=""
-                      className="relative z-10 mx-auto size-[72px] object-contain drop-shadow-[0_14px_20px_rgba(37,99,235,0.24)] sm:size-[88px] lg:size-[204px]"
+                      className="relative z-10 mx-auto h-24 max-h-full w-full max-w-28 object-contain drop-shadow-[0_14px_20px_rgba(37,99,235,0.24)] sm:h-28 sm:max-w-32"
                     />
                   ) : (
                     <Medal className="relative z-10 mx-auto size-[72px] text-nt-purple drop-shadow-[0_12px_18px_rgba(124,58,237,0.24)] sm:size-[88px] lg:size-[104px]" />

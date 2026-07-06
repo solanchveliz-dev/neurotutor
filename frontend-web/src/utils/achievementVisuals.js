@@ -4,6 +4,9 @@ export const achievementImageMap = {
   FIRST_PRACTICE_PASSED: "/assets/manos_a_la_practica.png",
   FIRST_EXAM_PASSED: "/assets/examen_superado.png",
   FIRST_MODULE_COMPLETED: "/assets/modulo_dominado.png",
+  BASIC_LEVEL_COMPLETED: "/assets/nivel_basico.png",
+  INTERMEDIATE_LEVEL_COMPLETED: "/assets/nivel_intermedio.png",
+  ADVANCED_LEVEL_COMPLETED: "/assets/nivel_avanzado.png",
   POINTS_100: "/assets/centena_dorada.png",
 };
 
@@ -19,6 +22,9 @@ export const getAchievementImage = (achievement) => {
   );
 
   if (normalizedTitle.includes("modulo dominado")) return "/assets/modulo_dominado.png";
+  if (normalizedTitle.includes("nivel basico completado")) return "/assets/nivel_basico.png";
+  if (normalizedTitle.includes("nivel intermedio completado")) return "/assets/nivel_intermedio.png";
+  if (normalizedTitle.includes("nivel avanzado completado")) return "/assets/nivel_avanzado.png";
   if (normalizedTitle.includes("examen superado")) return "/assets/examen_superado.png";
   if (normalizedTitle.includes("manos a la practica")) return "/assets/manos_a_la_practica.png";
   if (normalizedTitle.includes("centena")) return "/assets/centena_dorada.png";
