@@ -16,10 +16,10 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:}")
+    @Value("${spring.mail.username}")
     private String emailRemitente;
 
-    @Value("${spring.mail.password:}")
+    @Value("${spring.mail.password}")
     private String emailPassword;
 
     public boolean isConfigured() {

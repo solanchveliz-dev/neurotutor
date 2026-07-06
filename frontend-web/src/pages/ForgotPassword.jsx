@@ -23,14 +23,16 @@ function ForgotPassword() {
 
     try {
       const result = await forgotPassword(normalizedEmail);
-      if (!result.success) throw new Error(result.message);
+      if (!result.success || result.data?.emailSent !== true) {
+        throw new Error(result.message || 'No se pudo enviar el correo. Revisa configuracion SMTP.');
+      }
 
       setMessage(result.data?.message || 'Te enviamos un código a tu correo');
       setEmail('');
 
       setTimeout(() => {
         navigate('/reset-password', {
-          state: { email: normalizedEmail, token: result.data?.debugToken || result.data?.devCode || '' }
+          state: { email: normalizedEmail, token: '' }
         });
       }, 900);
     } catch (requestError) {

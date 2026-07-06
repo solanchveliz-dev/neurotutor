@@ -83,9 +83,10 @@ export const forgotPassword = async (email) => {
   try {
     const response = await api.post('/api/forgot-password', { email });
     return {
-      success: true,
+      success: response.data?.success === true && response.data?.emailSent === true,
       data: response.data,
-      status: response.status
+      status: response.status,
+      message: response.data?.message
     };
   } catch (error) {
     const responseData = error.response?.data;
@@ -96,7 +97,8 @@ export const forgotPassword = async (email) => {
     return {
       success: false,
       message: serverMessage || 'No se pudo solicitar la recuperacion',
-      error: responseData
+      error: responseData,
+      data: responseData
     };
   }
 };

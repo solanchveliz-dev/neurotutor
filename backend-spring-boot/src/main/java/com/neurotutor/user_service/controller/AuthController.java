@@ -1,5 +1,6 @@
 package com.neurotutor.user_service.controller;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.neurotutor.user_service.dto.*;
 import com.neurotutor.user_service.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,23 +61,22 @@ public class AuthController {
             LOGGER.info("forgot-password app env: {}", appEnvironment);
             AuthService.ForgotPasswordResult result = authService.forgotPassword(request);
             boolean debugEnabled = resetTokenDebug || !isProductionProfile();
-            if (debugEnabled && result.accountExists() && !result.emailSent()) {
-                LOGGER.warn("RESET TOKEN DEBUG habilitado para {}. No activar en produccion salvo pruebas controladas.", request.getEmail());
-                return ResponseEntity.ok(new TokenResponse(
-                        null,
-                        "El codigo fue generado, pero no se pudo enviar el correo. Revisa configuracion SMTP.",
-                        result.token()
+            if (!result.accountExists()) {
+                return ResponseEntity.ok(new ForgotPasswordResponse(
+                        false, false, "No se pudo procesar la solicitud de recuperacion.", null
                 ));
             }
-            if (result.accountExists() && !result.emailSent()) {
-                return ResponseEntity.status(503).body(new ErrorResponse(
-                        "El codigo fue generado, pero no se pudo enviar el correo. Revisa configuracion SMTP."
+            if (!result.emailSent()) {
+                String debugToken = debugEnabled ? result.token() : null;
+                if (debugToken != null) {
+                    LOGGER.warn("RESET TOKEN DEBUG habilitado para {}. No activar en produccion salvo pruebas controladas.", request.getEmail());
+                }
+                return ResponseEntity.status(503).body(new ForgotPasswordResponse(
+                        false, false, "No se pudo enviar el correo. Revisa configuracion SMTP.", debugToken
                 ));
             }
-            return ResponseEntity.ok(new TokenResponse(
-                    null,
-                    "Si el correo está registrado, recibirás un código para restablecer tu contraseña.",
-                    null
+            return ResponseEntity.ok(new ForgotPasswordResponse(
+                    true, true, "Si el correo esta registrado, recibiras un codigo para restablecer tu contrasena.", null
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
@@ -120,16 +120,22 @@ public class AuthController {
         public String getMessage() { return message; }
     }
 
-    static class TokenResponse {
-        private String token;
-        private String message;
-        private String debugToken;
-        public TokenResponse(String token, String message, String debugToken) {
-            this.token = token;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    static class ForgotPasswordResponse {
+        private final boolean success;
+        private final boolean emailSent;
+        private final String message;
+        private final String debugToken;
+
+        public ForgotPasswordResponse(boolean success, boolean emailSent, String message, String debugToken) {
+            this.success = success;
+            this.emailSent = emailSent;
             this.message = message;
             this.debugToken = debugToken;
         }
-        public String getToken() { return token; }
+
+        public boolean isSuccess() { return success; }
+        public boolean isEmailSent() { return emailSent; }
         public String getMessage() { return message; }
         public String getDebugToken() { return debugToken; }
         public String getDevCode() { return debugToken; }
