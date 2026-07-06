@@ -19,6 +19,8 @@ import com.neurotutor.app.mobile.ui.screens.learning.*
 import com.neurotutor.app.mobile.ui.screens.profile.ProfileScreen
 import com.neurotutor.app.mobile.ui.screens.achievements.AchievementsScreen
 import com.neurotutor.app.mobile.data.network.RetrofitClient
+import com.neurotutor.app.mobile.feature.groqexercise.GroqExerciseNavigationError
+import com.neurotutor.app.mobile.feature.groqexercise.GroqExerciseRoute
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -27,6 +29,9 @@ fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
+    // 🚀 Bug 1: Scope ViewModel to AppNavigation (survives screen transitions)
+    val aiTutorViewModel: AiTutorViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = Screen.Login.route,
@@ -418,6 +423,42 @@ fun AppNavigation(
             )
         }
 
+        composable(
+            route = GroqExerciseDestination.route,
+            arguments = listOf(
+                navArgument(GroqExerciseDestination.STUDENT_ID_ARGUMENT) {
+                    type = NavType.StringType
+                },
+                navArgument(GroqExerciseDestination.MODULE_ID_ARGUMENT) {
+                    type = NavType.StringType
+                },
+                navArgument(GroqExerciseDestination.TOPIC_ARGUMENT) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val arguments = GroqExerciseDestination.parse(
+                studentId = backStackEntry.arguments
+                    ?.getString(GroqExerciseDestination.STUDENT_ID_ARGUMENT),
+                moduleId = backStackEntry.arguments
+                    ?.getString(GroqExerciseDestination.MODULE_ID_ARGUMENT),
+                encodedTopic = backStackEntry.arguments
+                    ?.getString(GroqExerciseDestination.TOPIC_ARGUMENT)
+            )
+
+            if (arguments == null) {
+                GroqExerciseNavigationError(
+                    onBack = { navController.popBackStack() }
+                )
+            } else {
+                GroqExerciseRoute(
+                    studentId = arguments.studentId,
+                    moduleId = arguments.moduleId,
+                    topic = arguments.topic
+                )
+            }
+        }
+
         // ✅ TUTOR IA UNIFICADO
         composable(
             route = Screen.TutorHelp.route,
@@ -474,7 +515,12 @@ fun AppNavigation(
             val topicName = backStackEntry.arguments?.getString("topicName") ?: ""
             val questionStatus = backStackEntry.arguments?.getString("questionStatus") ?: ""
             val exerciseId = backStackEntry.arguments?.getString("exerciseId") ?: ""
-            val exerciseQuestion = backStackEntry.arguments?.getString("exerciseQuestion") ?: ""
+            val exerciseQuestionRaw = backStackEntry.arguments?.getString("exerciseQuestion") ?: ""
+            val exerciseQuestion = try {
+                URLDecoder.decode(exerciseQuestionRaw, StandardCharsets.UTF_8.toString())
+            } catch (e: Exception) {
+                exerciseQuestionRaw
+            }
             val exerciseOptionsRaw = backStackEntry.arguments?.getString("exerciseOptions") ?: ""
             val exerciseOptions = try {
                 URLDecoder.decode(exerciseOptionsRaw, StandardCharsets.UTF_8.toString()).split("|")
@@ -495,6 +541,7 @@ fun AppNavigation(
                 exerciseQuestion = exerciseQuestion,
                 exerciseOptions = exerciseOptions,
                 correctAnswer = correctAnswer,
+                viewModel = aiTutorViewModel, // 🚀 Bug 1 Fixed: Using shared ViewModel
                 onBack = { navController.popBackStack() }
             )
         }

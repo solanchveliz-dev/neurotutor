@@ -244,14 +244,14 @@ fun StudentDashboardScreen(
                     ModuleProgressItem(
                         title = "Decimales",
                         progress = 0f,
-                        icon = R.drawable.fraction_neo_chat,
+                        icon = R.drawable.ic_decimales,
                         isLocked = true
                     )
 
                     ModuleProgressItem(
                         title = "Porcentajes",
                         progress = 0f,
-                        icon = R.drawable.fraction_neo_chat,
+                        icon = R.drawable.ic_porcentajes,
                         isLocked = true
                     )
 

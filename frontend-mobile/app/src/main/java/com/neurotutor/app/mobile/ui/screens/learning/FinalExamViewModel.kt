@@ -18,7 +18,7 @@ data class FinalExamUiState(
     val isLoading: Boolean = false,
     val questions: List<Exercise> = emptyList(),
     val currentQuestionIndex: Int = 0,
-    val answers: List<Int?> = emptyList(),
+    val answers: MutableList<Int?> = mutableListOf(),
     val isFinished: Boolean = false,
     val score: Int = 0,
     val correctAnswers: Int = 0,
@@ -42,9 +42,6 @@ class FinalExamViewModel : ViewModel() {
     val uiState: StateFlow<FinalExamUiState> = _uiState.asStateFlow()
 
     fun loadExam(moduleId: String, level: String) {
-        // 🛡️ GUARDA: Evita recargas destructivas si ya hay preguntas en memoria
-        if (_uiState.value.questions.isNotEmpty()) return
-
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
@@ -55,8 +52,7 @@ class FinalExamViewModel : ViewModel() {
                         it.copy(
                             isLoading = false,
                             questions = examQuestions,
-                            answers = List(examQuestions.size) { null },
-                            currentQuestionIndex = 0 // 🎯 Garantiza iniciar desde la primera pregunta
+                            answers = MutableList(examQuestions.size) { null }
                         )
                     }
                 } else {
@@ -71,11 +67,9 @@ class FinalExamViewModel : ViewModel() {
     }
 
     fun selectAnswer(index: Int) {
-        _uiState.update { currentState ->
-            val newAnswers = currentState.answers.toMutableList()
-            newAnswers[currentState.currentQuestionIndex] = index
-            currentState.copy(answers = newAnswers)
-        }
+        val currentAnswers = _uiState.value.answers.toMutableList()
+        currentAnswers[_uiState.value.currentQuestionIndex] = index
+        _uiState.update { it.copy(answers = currentAnswers) }
     }
 
     fun nextQuestion() {
@@ -153,7 +147,19 @@ class FinalExamViewModel : ViewModel() {
                 it.copy(
                     isLoading = false,
                     isFinished = false,
-                    // ❌ SE ELIMINÓ EL RESET DE QUESTIONS Y ANSWERS PARA PERMITIR REINTENTOS SEGUROS
+                    isPassed = false,
+                    score = 0,
+                    correctAnswers = 0,
+                    totalQuestions = 0,
+                    pointsEarned = 0,
+                    levelUp = false,
+                    newLevel = null,
+                    topicCompleted = false,
+                    alreadyPassedBefore = false,
+                    moduleProgress = 0,
+                    unlockedBadgeId = null,
+                    unlockedAchievementCodes = emptyList(),
+                    showResultDialog = false,
                     errorMessage = message
                 )
             }

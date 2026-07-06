@@ -4,5 +4,7 @@ data class AiTutorRequest(
     val studentId: Long,
     val moduleId: Long,
     val question: String,
-    val context: String? = null
+    val context: String? = null,
+    val currentScreen: String? = null,
+    val action: String? = null
 )
