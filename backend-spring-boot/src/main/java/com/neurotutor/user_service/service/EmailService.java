@@ -36,8 +36,20 @@ public class EmailService {
             System.out.println("📧 Correo enviado con éxito a: " + to);
 
         } catch (Exception e) {
-            // Captura cualquier error de Gmail (claves mal puestas o puertos bloqueados) sin tirar la app móvil
-            System.err.println("❌ Error crítico enviando el correo de fondo a " + to + ": " + e.getMessage());
+
+            System.err.println("====================================");
+            System.err.println("ERROR COMPLETO EN ENVÍO DE CORREO");
+            System.err.println("Destinatario: " + to);
+            System.err.println("Tipo: " + e.getClass().getName());
+            System.err.println("Mensaje: " + e.getMessage());
+
+            if (e.getCause() != null) {
+                System.err.println("Causa: " + e.getCause().getMessage());
+            }
+
+            e.printStackTrace();
+
+            System.err.println("====================================");
         }
     }
 }
