@@ -3,6 +3,7 @@ package com.neurotutor.user_service.controller;
 import com.neurotutor.user_service.dto.*;
 import com.neurotutor.user_service.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +14,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Value("${app.environment:production}")
+    private String appEnvironment;
 
     // ==================== REGISTRO ====================
     @PostMapping("/register")
@@ -41,7 +45,15 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
-            authService.forgotPassword(request);
+            AuthService.ForgotPasswordResult result = authService.forgotPassword(request);
+            boolean development = "development".equalsIgnoreCase(appEnvironment);
+            if (development && result.accountExists() && !result.emailSent()) {
+                System.out.println("[DEV] Token de recuperacion para " + request.getEmail() + ": " + result.token());
+                return ResponseEntity.ok(new TokenResponse(
+                        result.token(),
+                        "SMTP no esta configurado. Usa el codigo de desarrollo mostrado en esta respuesta."
+                ));
+            }
             return ResponseEntity.ok(new TokenResponse(
                     null,
                     "Si el correo está registrado, recibirás un código para restablecer tu contraseña."

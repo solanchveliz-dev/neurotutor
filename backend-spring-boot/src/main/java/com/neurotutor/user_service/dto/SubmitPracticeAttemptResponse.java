@@ -1,6 +1,7 @@
 package com.neurotutor.user_service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
 public class SubmitPracticeAttemptResponse {
     private Long attemptId;
@@ -10,11 +11,12 @@ public class SubmitPracticeAttemptResponse {
     private int pointsEarned;
     private boolean practiceCompleted;
     private int moduleProgress;
+    private List<String> unlockedAchievementCodes;
 
     public SubmitPracticeAttemptResponse(Long attemptId, int correctAnswers,
                                          int totalQuestions, int scorePercentage,
                                          int pointsEarned, boolean practiceCompleted,
-                                         int moduleProgress) {
+                                         int moduleProgress, List<String> unlockedAchievementCodes) {
         this.attemptId = attemptId;
         this.correctAnswers = correctAnswers;
         this.totalQuestions = totalQuestions;
@@ -22,6 +24,7 @@ public class SubmitPracticeAttemptResponse {
         this.pointsEarned = pointsEarned;
         this.practiceCompleted = practiceCompleted;
         this.moduleProgress = moduleProgress;
+        this.unlockedAchievementCodes = unlockedAchievementCodes;
     }
 
     @JsonProperty("attempt_id")
@@ -58,4 +61,7 @@ public class SubmitPracticeAttemptResponse {
     public int getModuleProgress() {
         return moduleProgress;
     }
+
+    @JsonProperty("unlocked_achievement_codes")
+    public List<String> getUnlockedAchievementCodes() { return unlockedAchievementCodes; }
 }

@@ -22,23 +22,17 @@ function ForgotPassword() {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      await forgotPassword(normalizedEmail);
+      const result = await forgotPassword(normalizedEmail);
+      if (!result.success) throw new Error(result.message);
 
-      // Mostrar mismo mensaje siempre (por seguridad)
-      setMessage('Te enviamos un enlace a tu correo');
+      setMessage(result.data?.message || 'Te enviamos un código a tu correo');
       setEmail('');
 
       setTimeout(() => {
-        navigate('/reset-password', { state: { email: normalizedEmail } });
+        navigate('/reset-password', { state: { email: normalizedEmail, token: result.data?.token || '' } });
       }, 900);
-    } catch {
-      // Por seguridad, mostramos el mismo mensaje aunque haya error
-      setMessage('Te enviamos un enlace a tu correo si está registrado');
-      setEmail('');
-
-      setTimeout(() => {
-        navigate('/reset-password', { state: { email: normalizedEmail } });
-      }, 900);
+    } catch (requestError) {
+      setError(requestError.message || 'No se pudo solicitar la recuperación. Intenta nuevamente.');
     }
 
     setIsLoading(false);

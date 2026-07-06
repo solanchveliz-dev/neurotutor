@@ -149,7 +149,7 @@ public class ProgressService {
         progress.setPracticeTotalCount(Math.max(progress.getPracticeTotalCount(), totalQuestions));
         touchAndRecalculate(progress);
         StudentModuleProgress savedProgress = progressRepository.save(progress);
-        achievementService.evaluateStudentAchievements(student.getId());
+        List<String> unlockedAchievementCodes = achievementService.evaluateStudentAchievements(student.getId());
 
         return new SubmitPracticeAttemptResponse(
                 savedAttempt.getId(),
@@ -158,7 +158,8 @@ public class ProgressService {
                 scorePercentage,
                 pointsEarned,
                 savedProgress.isPracticeCompleted(),
-                savedProgress.getProgressPercentage()
+                savedProgress.getProgressPercentage(),
+                unlockedAchievementCodes
         );
     }
 

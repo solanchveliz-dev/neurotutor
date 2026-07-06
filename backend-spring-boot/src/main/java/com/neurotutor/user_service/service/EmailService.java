@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async; // 🚀 IMPORTANTE: Importación añadida
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,11 +12,21 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:}")
     private String emailRemitente;
 
-    @Async // 🚀 SÚPER PODER: Hace que el envío corra en segundo plano sin congelar la petición de Android
-    public void sendResetToken(String to, String token) {
+    @Value("${spring.mail.password:}")
+    private String emailPassword;
+
+    public boolean isConfigured() {
+        return emailRemitente != null && !emailRemitente.isBlank()
+                && emailPassword != null && !emailPassword.isBlank();
+    }
+
+    public boolean sendResetToken(String to, String token) {
+        if (!isConfigured()) {
+            return false;
+        }
         try {
             System.out.println("⏳ Iniciando envío de correo asíncrono para: " + to + " en segundo plano...");
 
@@ -34,10 +43,12 @@ public class EmailService {
             mailSender.send(message);
 
             System.out.println("📧 Correo enviado con éxito a: " + to);
+            return true;
 
         } catch (Exception e) {
             // Captura cualquier error de Gmail (claves mal puestas o puertos bloqueados) sin tirar la app móvil
             System.err.println("❌ Error crítico enviando el correo de fondo a " + to + ": " + e.getMessage());
+            return false;
         }
     }
 }

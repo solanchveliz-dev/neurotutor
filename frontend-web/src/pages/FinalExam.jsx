@@ -15,6 +15,7 @@ import {
 } from "../services/learningService";
 import { getModuleProgress } from "../services/progressService";
 import { getStudentId } from "../utils/auth";
+import AchievementUnlockedModal from "../components/student/AchievementUnlockedModal";
 
 function mapExamQuestion(question) {
   return {
@@ -59,6 +60,7 @@ function FinalExam() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [unlockedAchievementCode, setUnlockedAchievementCode] = useState(null);
 
   const moduleTitle = module?.title;
   const levelName = inferLevelName(level?.level || level?.title);
@@ -137,6 +139,7 @@ function FinalExam() {
         refreshedProgress = null;
       }
       setSubmitResult({ ...result, moduleProgress: refreshedProgress });
+      setUnlockedAchievementCode(result.unlocked_achievement_codes?.[0] ?? null);
       setFinished(true);
     } catch {
       setSubmitError("No pudimos enviar el examen. Tus respuestas siguen guardadas para que puedas reintentar.");
@@ -196,6 +199,7 @@ function FinalExam() {
     const totalQuestions = submitResult.total_questions;
     const percentage = submitResult.score_percentage;
     const approved = submitResult.passed;
+    const achievementModal = <AchievementUnlockedModal code={unlockedAchievementCode} onContinue={() => setUnlockedAchievementCode(null)} />;
 
     if (isBasicLevel) {
       return <main className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,rgba(223,244,255,0.18),rgba(191,231,255,0.12)),url('/assets/hero-bg.png')] bg-cover bg-center bg-fixed p-4 text-nt-text-primary"><Card className="w-full max-w-3xl rounded-[32px] border border-white/90 bg-white/95 p-0 text-center shadow-[0_28px_80px_rgba(30,58,138,0.22)]"><CardContent className="p-7 sm:p-10"><div className={`mx-auto grid size-20 place-items-center rounded-[26px] text-white shadow-lg ${approved ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-orange-400 to-red-500"}`}>{approved ? <Trophy className="size-10" /> : <ShieldCheck className="size-10" />}</div><h1 className={`mt-5 text-3xl font-black sm:text-4xl ${approved ? "text-green-700" : "text-orange-700"}`}>{approved ? "¡Examen aprobado!" : "Aún no aprobaste"}</h1><p className="mx-auto mt-3 max-w-xl text-base font-bold leading-7 text-slate-600">{approved ? "Completaste el Nivel Básico y puedes avanzar al siguiente nivel." : "Necesitas reforzar un poco más antes de avanzar."}</p><div className={`mx-auto mt-6 w-fit rounded-[22px] px-8 py-4 text-4xl font-black text-white ${approved ? "bg-green-600" : "bg-orange-500"}`}>{percentage}%</div><p className="mt-3 text-sm font-bold text-slate-600">{score} de {totalQuestions} respuestas correctas</p>{approved ? <Button type="button" onClick={() => navigate(backPath, { state: { module, level } })} className="mt-7 h-13 w-full rounded-[16px] bg-gradient-to-r from-emerald-500 to-green-600 font-black text-white">Ir al siguiente nivel<ArrowRight className="size-5" /></Button> : <div className="mt-7 grid gap-3 sm:grid-cols-2"><Button type="button" variant="outline" onClick={() => navigate(`/module/${backModuleId}/level/${backLevelId}/theory`, { state: { module, level } })} className="h-13 rounded-[16px] border-2 border-green-600 font-black text-green-700">Repasar teoría</Button><Button type="button" onClick={() => { setFinished(false); setSubmitResult(null); setCurrentIndex(0); setAnswers({}); setSubmitError(""); }} className="h-13 rounded-[16px] bg-gradient-to-r from-emerald-500 to-green-600 font-black text-white">Intentar nuevamente</Button></div>}</CardContent></Card></main>;

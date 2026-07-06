@@ -110,10 +110,10 @@ public class AuthService {
     }
 
     // ... (El resto de métodos forgotPassword y resetPassword se mantienen igual ya que funcionan bien)
-    public String forgotPassword(ForgotPasswordRequest request) {
-        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+    public ForgotPasswordResult forgotPassword(ForgotPasswordRequest request) {
+        String email = normalizeEmail(request.getEmail());
         if (!estudianteRepository.existsByEmail(email)) {
-            return null;
+            return new ForgotPasswordResult(false, false, null);
         }
         tokenRepository.findByEmail(email).ifPresent(tokenRepository::delete);
 
@@ -127,8 +127,8 @@ public class AuthService {
         resetToken.setUsed(false);
         tokenRepository.save(resetToken);
 
-        emailService.sendResetToken(email, token);
-        return token;
+        boolean emailSent = emailService.sendResetToken(email, token);
+        return new ForgotPasswordResult(true, emailSent, token);
     }
 
     @Transactional
@@ -137,7 +137,7 @@ public class AuthService {
             throw new RuntimeException("Las contraseñas no coinciden");
         }
 
-        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        String email = normalizeEmail(request.getEmail());
         PasswordResetToken resetToken = tokenRepository.findByTokenAndEmail(request.getToken(), email)
                 .orElseThrow(() -> new RuntimeException("Token inválido o expirado"));
 
@@ -156,4 +156,10 @@ public class AuthService {
         resetToken.setUsed(true);
         tokenRepository.save(resetToken);
     }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    public record ForgotPasswordResult(boolean accountExists, boolean emailSent, String token) { }
 }
