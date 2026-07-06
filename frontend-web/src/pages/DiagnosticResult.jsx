@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, BookOpen, Check, CheckCircle2, ClipboardList, Crown, Map, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -56,7 +57,9 @@ function DiagnosticResult() {
   const level = levelMap[rawLevel] ?? rawLevel;
   const config = LEVEL_CONFIG[level] ?? LEVEL_CONFIG.Básico;
   const activeIndex = LEVEL_ORDER.indexOf(level);
-  const unlockedAchievementCode = location.state?.unlockedAchievementCodes?.[0];
+  const [unlockedAchievementCode, setUnlockedAchievementCode] = useState(
+    location.state?.unlockedAchievementCodes?.[0] ?? null
+  );
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[url('/assets/fondo_diagnostic.png')] bg-cover bg-center bg-fixed px-3 py-6 text-nt-text-primary sm:px-5">
@@ -75,10 +78,10 @@ function DiagnosticResult() {
 
           <section className="mt-5 rounded-[26px] border border-slate-100 bg-white/90 p-5 shadow-sm"><h2 className="flex items-center gap-2 text-xl font-black"><Map className={config.text} />Tu ruta de aprendizaje</h2><div className="mt-5 grid gap-4 sm:grid-cols-3">{LEVEL_ORDER.map((item, index) => { const active = index === activeIndex; const complete = index < activeIndex; return <div key={item} className="relative text-center"><div className={`mx-auto grid size-20 place-items-center rounded-full border-4 text-lg font-black ${active ? `${config.surface} ${config.text}` : complete ? "border-green-200 bg-green-50 text-green-700" : "border-slate-200 bg-slate-50 text-slate-400"}`}>{complete ? <CheckCircle2 className="size-9" /> : index + 1}</div><p className={`mt-2 font-black ${active ? config.text : complete ? "text-green-700" : "text-slate-400"}`}>{item}</p>{index < 2 && <span className={`absolute left-[65%] top-10 hidden h-1 w-[70%] rounded-full sm:block ${index < activeIndex ? config.dot : "bg-slate-200"}`} />}</div>; })}</div></section>
 
-          <div className="mt-6 text-center"><p className="text-xs font-bold text-slate-500">Resultado: {percentage}%</p><Button type="button" onClick={() => navigate('/student-dashboard')} className={`mt-2 h-14 w-full max-w-xl rounded-[18px] bg-gradient-to-r text-base font-black text-white shadow-lg ${config.button}`}>Comenzar mi aventura<ArrowRight className="size-5" /></Button></div>
+          <div className="mt-6 text-center"><p className="text-xs font-bold text-slate-500">Resultado: {percentage}%</p><Button type="button" onClick={() => navigate('/diagnostic-review', { state: { ...location.state, unlockedAchievementCodes: [] } })} className={`mt-2 h-14 w-full max-w-xl rounded-[18px] bg-gradient-to-r text-base font-black text-white shadow-lg ${config.button}`}>Revisar mis respuestas<ArrowRight className="size-5" /></Button></div>
         </CardContent></Card>
       </section>
-      <AchievementUnlockedModal code={unlockedAchievementCode} onContinue={() => navigate("/student-dashboard", { replace: true })} />
+      <AchievementUnlockedModal code={unlockedAchievementCode} onClose={() => setUnlockedAchievementCode(null)} />
     </main>
   );
 }

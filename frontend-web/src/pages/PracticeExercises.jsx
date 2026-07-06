@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Flag, HelpCircle, Sprout, Star, Target, TrendingUp, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Flag, HelpCircle, Sprout, Star, Target, TrendingUp, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,6 +91,7 @@ function PracticeExercises() {
   const [loadError, setLoadError] = useState("");
   const [attemptError, setAttemptError] = useState("");
   const [unlockedAchievementCode, setUnlockedAchievementCode] = useState(null);
+  const [pendingNavigation, setPendingNavigation] = useState(null);
 
   const module = routeModule ?? { id: moduleId, title: "Módulo" };
   const level = routeLevel ?? { id: learningModuloId, name: "Nivel" };
@@ -182,17 +183,23 @@ function PracticeExercises() {
     } else {
       const result = await submitAttemptIfReady();
       const newAchievement = result?.unlocked_achievement_codes?.[0];
+      const destination = `/final-exam/${learningModuloId}`;
       if (newAchievement) {
+        setPendingNavigation(destination);
         setUnlockedAchievementCode(newAchievement);
         return;
       }
-      navigate(`/final-exam/${learningModuloId}`, { state: { module, level } });
+      navigate(destination, { state: { module, level } });
     }
   };
 
   const continueAfterAchievement = () => {
     setUnlockedAchievementCode(null);
-    navigate(`/final-exam/${learningModuloId}`, { state: { module, level } });
+    const destination = pendingNavigation;
+    setPendingNavigation(null);
+    if (destination) {
+      navigate(destination, { state: { module, level } });
+    }
   };
 
   const handlePrevious = () => {
@@ -210,6 +217,12 @@ function PracticeExercises() {
     { label: "Mis logros", onClick: () => navigate("/achievements") },
     { label: "Perfil", onClick: () => navigate("/profile") },
   ];
+  const achievementModal = (
+    <AchievementUnlockedModal
+      code={unlockedAchievementCode}
+      onClose={continueAfterAchievement}
+    />
+  );
 
   if (isLoading) {
     return (
@@ -274,7 +287,7 @@ function PracticeExercises() {
           </div>
         </section>
 
-        <AchievementUnlockedModal code={unlockedAchievementCode} onContinue={continueAfterAchievement} />
+        {achievementModal}
       </StudentLayout>
     );
   }
@@ -317,6 +330,7 @@ function PracticeExercises() {
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-between"><Button type="button" variant="outline" disabled={currentIndex === 0} onClick={handlePrevious} className="h-12 rounded-[16px] border-2 border-violet-600 px-8 font-black text-violet-700"><ArrowLeft className="size-5" />Anterior</Button>{showFeedback && <Button type="button" onClick={handleNext} className="h-12 rounded-[16px] bg-gradient-to-r from-violet-600 to-purple-700 px-10 font-black text-white shadow-lg shadow-violet-200">{currentIndex === exercises.length - 1 ? "Ir al examen final" : "Siguiente"}<ArrowRight className="size-5" /></Button>}</div>
           </div>
         </section>
+        {achievementModal}
       </StudentLayout>
     );
   }
@@ -350,6 +364,7 @@ function PracticeExercises() {
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-between"><Button type="button" variant="outline" disabled={currentIndex === 0} onClick={handlePrevious} className="h-12 rounded-[16px] border-2 border-red-600 px-8 font-black text-red-700"><ArrowLeft className="size-5" />Anterior</Button>{showFeedback && <Button type="button" onClick={handleNext} className="h-12 rounded-[16px] bg-gradient-to-r from-red-500 to-red-700 px-10 font-black text-white shadow-lg shadow-red-200">{currentIndex === exercises.length - 1 ? "Ir al examen final" : "Siguiente"}<ArrowRight className="size-5" /></Button>}</div>
           </div>
         </section>
+        {achievementModal}
       </StudentLayout>
     );
   }
@@ -514,7 +529,7 @@ function PracticeExercises() {
           </Card>
         </div>
       </section>
-
+      {achievementModal}
     </StudentLayout>
   );
 }
