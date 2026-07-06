@@ -24,7 +24,7 @@ function ForgotPassword() {
     try {
       const result = await forgotPassword(normalizedEmail);
       if (!result.success || result.data?.emailSent !== true) {
-        throw new Error(result.message || 'No se pudo enviar el correo. Revisa configuracion SMTP.');
+        throw new Error(result.message || 'No se pudo enviar el código. Intenta nuevamente o revisa el correo configurado.');
       }
 
       setMessage(result.data?.message || 'Te enviamos un código a tu correo');

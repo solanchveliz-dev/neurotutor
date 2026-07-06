@@ -49,12 +49,7 @@ public class EmailService {
             return true;
 
         } catch (Exception e) {
-            LOGGER.error("Fallo SMTP: tipo={}, mensaje={}, causa={}",
-                    e.getClass().getName(),
-                    e.getMessage(),
-                    e.getCause() == null ? "sin causa adicional" : e.getCause().toString());
-
-            LOGGER.error("EMAIL ERROR COMPLETO enviando reset token a {}", to, e);
+            LOGGER.error("EMAIL ERROR COMPLETO", e);
             return false;
         }
     }

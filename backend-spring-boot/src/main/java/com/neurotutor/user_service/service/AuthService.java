@@ -160,11 +160,6 @@ public class AuthService {
             throw exception;
         }
 
-<<<<<<< HEAD
-        LOGGER.info("forgot-password smtp enabled: true");
-        emailService.sendResetToken(email, token);
-        return new ForgotPasswordResult(true, true, token);
-=======
         boolean emailConfigured = emailService.isConfigured();
         LOGGER.info("forgot-password smtp enabled: {}", emailConfigured);
         boolean emailSent = emailConfigured && emailService.sendResetToken(email, token);
@@ -172,7 +167,6 @@ public class AuthService {
             LOGGER.error("forgot-password email sent: false; el token permanece guardado para {}", email);
         }
         return new ForgotPasswordResult(true, emailSent, token);
->>>>>>> e808153 (fix: mejorar el flujo del correo de recuperación de contraseña)
     }
 
     @Transactional

@@ -82,21 +82,27 @@ export const login = async (credentials) => {
 export const forgotPassword = async (email) => {
   try {
     const response = await api.post('/api/forgot-password', { email });
+    const emailSent = response.data?.emailSent === true;
     return {
-      success: response.data?.success === true && response.data?.emailSent === true,
+      success: response.data?.success === true && emailSent,
       data: response.data,
       status: response.status,
-      message: response.data?.message
+      message: emailSent
+        ? response.data?.message
+        : 'No se pudo enviar el código. Intenta nuevamente o revisa el correo configurado.'
     };
   } catch (error) {
     const responseData = error.response?.data;
     const serverMessage = typeof responseData === 'string'
       ? responseData
       : responseData?.message || responseData?.error || responseData?.detail;
+    const isEmailDeliveryFailure = error.response?.status === 503 || responseData?.emailSent === false;
 
     return {
       success: false,
-      message: serverMessage || 'No se pudo solicitar la recuperacion',
+      message: isEmailDeliveryFailure
+        ? 'No se pudo enviar el código. Intenta nuevamente o revisa el correo configurado.'
+        : serverMessage || 'No se pudo solicitar la recuperación',
       error: responseData,
       data: responseData
     };

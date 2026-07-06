@@ -72,7 +72,7 @@ public class AuthController {
                     LOGGER.warn("RESET TOKEN DEBUG habilitado para {}. No activar en produccion salvo pruebas controladas.", request.getEmail());
                 }
                 return ResponseEntity.status(503).body(new ForgotPasswordResponse(
-                        false, false, "No se pudo enviar el correo. Revisa configuracion SMTP.", debugToken
+                        false, false, "No se pudo enviar el c\u00f3digo. Revisa la configuraci\u00f3n del correo.", debugToken
                 ));
             }
             return ResponseEntity.ok(new ForgotPasswordResponse(
