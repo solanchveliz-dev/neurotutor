@@ -29,7 +29,9 @@ function ForgotPassword() {
       setEmail('');
 
       setTimeout(() => {
-        navigate('/reset-password', { state: { email: normalizedEmail, token: result.data?.devCode || '' } });
+        navigate('/reset-password', {
+          state: { email: normalizedEmail, token: result.data?.debugToken || result.data?.devCode || '' }
+        });
       }, 900);
     } catch (requestError) {
       setError(requestError.message || 'No se pudo solicitar la recuperación. Intenta nuevamente.');

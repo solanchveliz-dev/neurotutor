@@ -132,6 +132,9 @@ public class AuthService {
 
     // ... (El resto de métodos forgotPassword y resetPassword se mantienen igual ya que funcionan bien)
     public ForgotPasswordResult forgotPassword(ForgotPasswordRequest request) {
+        if (request == null || request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new RuntimeException("El correo es obligatorio");
+        }
         String email = normalizeEmail(request.getEmail());
         LOGGER.info("forgot-password email received: {}", email);
         if (!estudianteRepository.existsByEmail(email)) {
@@ -157,14 +160,38 @@ public class AuthService {
             throw exception;
         }
 
+<<<<<<< HEAD
         LOGGER.info("forgot-password smtp enabled: true");
         emailService.sendResetToken(email, token);
         return new ForgotPasswordResult(true, true, token);
+=======
+        boolean emailConfigured = emailService.isConfigured();
+        LOGGER.info("forgot-password smtp enabled: {}", emailConfigured);
+        boolean emailSent = emailConfigured && emailService.sendResetToken(email, token);
+        if (!emailSent) {
+            LOGGER.error("forgot-password email sent: false; el token permanece guardado para {}", email);
+        }
+        return new ForgotPasswordResult(true, emailSent, token);
+>>>>>>> e808153 (fix: mejorar el flujo del correo de recuperación de contraseña)
     }
 
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
-        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+        if (request == null) {
+            throw new RuntimeException("Los datos para restablecer la contrasena son obligatorios");
+        }
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new RuntimeException("El correo es obligatorio");
+        }
+        if (request.getToken() == null || request.getToken().isBlank()) {
+            throw new RuntimeException("El token es obligatorio");
+        }
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 8) {
+            throw new RuntimeException("La contrasena debe tener al menos 8 caracteres");
+        }
+        if (request.getConfirmPassword() != null
+                && !request.getConfirmPassword().isBlank()
+                && !request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new RuntimeException("Las contraseñas no coinciden");
         }
 
