@@ -6,11 +6,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class AuthController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private AuthService authService;
@@ -45,6 +49,8 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
+            LOGGER.info("forgot-password request received");
+            LOGGER.info("forgot-password app env: {}", appEnvironment);
             AuthService.ForgotPasswordResult result = authService.forgotPassword(request);
             boolean development = "development".equalsIgnoreCase(appEnvironment);
             if (development && result.accountExists()) {
@@ -55,6 +61,11 @@ public class AuthController {
                                 ? "Solicitud registrada. Usa el codigo de desarrollo o revisa tu correo."
                                 : "SMTP no esta configurado. Usa el codigo de desarrollo.",
                         result.token()
+                ));
+            }
+            if (result.accountExists() && !result.emailSent()) {
+                return ResponseEntity.status(503).body(new ErrorResponse(
+                        "El código fue generado, pero el servicio de correo no está disponible. Intenta nuevamente."
                 ));
             }
             return ResponseEntity.ok(new TokenResponse(

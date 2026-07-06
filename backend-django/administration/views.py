@@ -1,10 +1,14 @@
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
+import logging
 import requests
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
+
+
+logger = logging.getLogger(__name__)
 
 
 class IsDjangoAdmin(BasePermission):
@@ -17,8 +21,17 @@ class IsDjangoAdmin(BasePermission):
 
 def _get_from_spring(endpoint):
     headers = {}
+    proxy_key = settings.SPRING_ADMIN_PROXY_KEY
+    logger.info("Django ADMIN_PROXY_KEY exists: %s", bool(proxy_key))
+    logger.info("Django ADMIN_PROXY_KEY length: %s", len(proxy_key))
+    logger.info("Django SPRING_ADMIN_API_URL: %s", settings.SPRING_ADMIN_API_URL)
     if settings.SPRING_ADMIN_PROXY_KEY:
         headers["X-ADMIN-PROXY-KEY"] = settings.SPRING_ADMIN_PROXY_KEY
+    logger.info(
+        "Django sends X-ADMIN-PROXY-KEY: %s (length=%s)",
+        "X-ADMIN-PROXY-KEY" in headers,
+        len(headers.get("X-ADMIN-PROXY-KEY", "")),
+    )
 
     try:
         spring_response = requests.get(

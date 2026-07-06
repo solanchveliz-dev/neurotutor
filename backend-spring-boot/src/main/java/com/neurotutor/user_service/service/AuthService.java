@@ -13,9 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AuthService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
 
     @Autowired
     private EstudianteRepository estudianteRepository;
@@ -129,26 +133,34 @@ public class AuthService {
     // ... (El resto de métodos forgotPassword y resetPassword se mantienen igual ya que funcionan bien)
     public ForgotPasswordResult forgotPassword(ForgotPasswordRequest request) {
         String email = normalizeEmail(request.getEmail());
+        LOGGER.info("forgot-password email received: {}", email);
         if (!estudianteRepository.existsByEmail(email)) {
+            LOGGER.info("forgot-password account exists: false");
             return new ForgotPasswordResult(false, false, null);
         }
         tokenRepository.findByEmail(email).ifPresent(tokenRepository::delete);
 
         int numeroAleatorio = SECURE_RANDOM.nextInt(900000) + 100000;
         String token = String.valueOf(numeroAleatorio);
+        LOGGER.info("forgot-password token generated suffix: **{}", token.substring(token.length() - 2));
 
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setToken(token);
         resetToken.setEmail(email);
         resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(60));
         resetToken.setUsed(false);
-        tokenRepository.save(resetToken);
+        try {
+            tokenRepository.saveAndFlush(resetToken);
+            LOGGER.info("forgot-password token saved in database: true");
+        } catch (RuntimeException exception) {
+            LOGGER.error("forgot-password token saved in database: false; type={}", exception.getClass().getSimpleName());
+            throw exception;
+        }
 
         boolean emailConfigured = emailService.isConfigured();
-        if (emailConfigured) {
-            emailService.sendResetToken(email, token);
-        }
-        return new ForgotPasswordResult(true, emailConfigured, token);
+        LOGGER.info("forgot-password smtp enabled: {}", emailConfigured);
+        boolean emailSent = emailConfigured && emailService.sendResetToken(email, token);
+        return new ForgotPasswordResult(true, emailSent, token);
     }
 
     @Transactional

@@ -4,11 +4,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class EmailService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmailService.class);
 
     @Autowired
     private JavaMailSender mailSender;
@@ -24,14 +27,13 @@ public class EmailService {
                 && emailPassword != null && !emailPassword.isBlank();
     }
 
-    @Async
-    public void sendResetToken(String to, String token) {
+    public boolean sendResetToken(String to, String token) {
         if (!isConfigured()) {
-            return;
+            LOGGER.info("email async started: false (SMTP disabled)");
+            return false;
         }
+        LOGGER.info("email async started: true");
         try {
-            System.out.println("⏳ Iniciando envío de correo asíncrono para: " + to + " en segundo plano...");
-
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(to);
             message.setSubject("🔐 NeuroTutor - Recuperación de contraseña");
@@ -43,12 +45,12 @@ public class EmailService {
 
             // 📡 Esto es lo que tardaba varios segundos en conectar con Gmail:
             mailSender.send(message);
-
-            System.out.println("📧 Correo enviado con éxito a: " + to);
+            LOGGER.info("email async success: true");
+            return true;
 
         } catch (Exception e) {
-            // Captura cualquier error de Gmail (claves mal puestas o puertos bloqueados) sin tirar la app móvil
-            System.err.println("❌ Error crítico enviando el correo de fondo a " + to + ": " + e.getMessage());
+            LOGGER.error("email async failed: true; type={}", e.getClass().getSimpleName());
+            return false;
         }
     }
 }
