@@ -162,10 +162,13 @@ public class AuthService {
 
         boolean emailConfigured = emailService.isConfigured();
         LOGGER.info("forgot-password smtp enabled: {}", emailConfigured);
+
         boolean emailSent = emailConfigured && emailService.sendResetToken(email, token);
+
         if (!emailSent) {
             LOGGER.error("forgot-password email sent: false; el token permanece guardado para {}", email);
         }
+
         return new ForgotPasswordResult(true, emailSent, token);
     }
 
