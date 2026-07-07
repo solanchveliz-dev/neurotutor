@@ -38,13 +38,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neurotutor.app.mobile.R
 
-internal val AuthNavy = Color(0xFF111B5C)
-internal val AuthPurple = Color(0xFF5417F5)
-internal val AuthMuted = Color(0xFF747DB6)
-internal val AuthBorder = Color(0xFFD8DCF1)
+val AuthNavy = Color(0xFF111B5C)
+val AuthPurple = Color(0xFF5417F5)
+val AuthMuted = Color(0xFF747DB6)
+val AuthBorder = Color(0xFFD8DCF1)
 
 @Composable
-internal fun AuthBackground(content: @Composable BoxScope.() -> Unit) {
+fun AuthBackground(content: @Composable BoxScope.() -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -73,7 +73,7 @@ internal fun AuthBackground(content: @Composable BoxScope.() -> Unit) {
 }
 
 @Composable
-internal fun AuthHeader(
+fun AuthHeader(
     title: String,
     onBack: () -> Unit
 ) {
@@ -114,7 +114,7 @@ internal fun AuthHeader(
 }
 
 @Composable
-internal fun NeoSpeechHero(
+fun NeoSpeechHero(
     headline: String,
     message: String
 ) {
@@ -161,7 +161,7 @@ internal fun NeoSpeechHero(
 }
 
 @Composable
-internal fun AuthPrimaryButton(
+fun AuthPrimaryButton(
     text: String,
     enabled: Boolean,
     loading: Boolean,

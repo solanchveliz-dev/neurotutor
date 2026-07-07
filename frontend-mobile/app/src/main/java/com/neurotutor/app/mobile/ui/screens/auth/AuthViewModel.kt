@@ -1,13 +1,13 @@
 package com.neurotutor.app.mobile.ui.screens.auth
 
+import android.util.Patterns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.neurotutor.app.mobile.data.model.auth.ForgotPasswordRequest
-import com.neurotutor.app.mobile.data.model.auth.LoginRequest
-import com.neurotutor.app.mobile.data.model.auth.RegisterRequest
+import com.google.gson.Gson
+import com.neurotutor.app.mobile.data.model.auth.*
 import com.neurotutor.app.mobile.data.network.RetrofitClient
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -34,7 +34,8 @@ class AuthViewModel : ViewModel() {
         private set
 
     fun performLogin(email: String, password: String) {
-        if (email.isEmpty() || password.isEmpty()) {
+        val cleanEmail = email.trim()
+        if (cleanEmail.isEmpty() || password.isEmpty()) {
             errorMessage = "Ingresa email y contraseña"
             return
         }
@@ -47,7 +48,7 @@ class AuthViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val request = LoginRequest(email, password)
+                val request = LoginRequest(cleanEmail, password)
                 val response = RetrofitClient.apiService.login(request)
 
                 withContext(Dispatchers.Main) {
@@ -60,8 +61,7 @@ class AuthViewModel : ViewModel() {
                         hasCompletedExam = authResponse?.examenCompletado ?: false
                         isLoginSuccess = true
                     } else {
-                        val errorBody = response.errorBody()?.string()
-                        errorMessage = errorBody ?: "Error en el login"
+                        errorMessage = parseErrorResponse(response.errorBody()?.string())
                     }
                 }
             } catch (e: Exception) {
@@ -80,28 +80,41 @@ class AuthViewModel : ViewModel() {
         private set
 
     fun performForgotPassword(email: String) {
-        if (email.isEmpty()) {
+        val cleanEmail = email.trim()
+        
+        if (cleanEmail.isEmpty()) {
             errorMessage = "Ingresa tu correo electrónico"
+            return
+        }
+        
+        if (!Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            errorMessage = "Formato de correo inválido"
             return
         }
 
         isLoading = true
         errorMessage = null
         isForgotSuccess = false
+        
+        RetrofitClient.clearAuthToken()
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val request = ForgotPasswordRequest(email)
+                val request = ForgotPasswordRequest(cleanEmail)
                 val response = RetrofitClient.apiService.forgotPassword(request)
 
                 withContext(Dispatchers.Main) {
                     isLoading = false
                     if (response.isSuccessful) {
-                        val message = response.body()?.message ?: "Revisa tu correo"
-                        forgotSuccessMessage = message
-                        isForgotSuccess = true
+                        val body = response.body()
+                        if (body?.emailSent == true) {
+                            forgotSuccessMessage = body.message ?: "Código enviado a tu correo"
+                            isForgotSuccess = true
+                        } else {
+                            errorMessage = body?.message ?: "El servidor no pudo enviar el correo. Revisa la configuración SMTP."
+                        }
                     } else {
-                        errorMessage = "Error al enviar solicitud"
+                        errorMessage = parseErrorResponse(response.errorBody()?.string())
                     }
                 }
             } catch (e: Exception) {
@@ -110,6 +123,62 @@ class AuthViewModel : ViewModel() {
                     errorMessage = "Error de conexión: ${e.message}"
                 }
             }
+        }
+    }
+
+    var isResetSuccess by mutableStateOf(false)
+        private set
+
+    fun performResetPassword(email: String, token: String, newPass: String, confirmPass: String) {
+        if (token.length < 6) {
+            errorMessage = "Ingresa el código de 6 dígitos"
+            return
+        }
+        if (newPass.length < 8) {
+            errorMessage = "La contraseña debe tener al menos 8 caracteres"
+            return
+        }
+        if (newPass != confirmPass) {
+            errorMessage = "Las contraseñas no coinciden"
+            return
+        }
+
+        isLoading = true
+        errorMessage = null
+        isResetSuccess = false
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val request = ResetPasswordRequest(email.trim(), token, newPass, confirmPass)
+                val response = RetrofitClient.apiService.resetPassword(request)
+
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                    if (response.isSuccessful) {
+                        successMessage = response.body()?.message ?: "Contraseña restablecida correctamente"
+                        isResetSuccess = true
+                    } else {
+                        val errorText = parseErrorResponse(response.errorBody()?.string())
+                        errorMessage = if (errorText == "Error desconocido") "Código inválido o expirado" else errorText
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                    errorMessage = "Error de conexión: ${e.message}"
+                }
+            }
+        }
+    }
+
+    private fun parseErrorResponse(errorJson: String?): String {
+        if (errorJson == null) return "Error desconocido"
+        return try {
+            val response = Gson().fromJson(errorJson, ForgotPasswordResponse::class.java)
+            response.message ?: "Ocurrió un error en el servidor"
+        } catch (e: Exception) {
+            // Si no es un JSON válido o falta el campo, intentamos con MessageResponse o devolvemos el original
+            errorJson
         }
     }
 
@@ -131,8 +200,9 @@ class AuthViewModel : ViewModel() {
         password: String,
         password2: String
     ) {
+        val cleanEmail = email.trim()
         if (nombreCompleto.isEmpty() || grado.isEmpty() || seccion.isEmpty() ||
-            email.isEmpty() || password.isEmpty() || password2.isEmpty()) {
+            cleanEmail.isEmpty() || password.isEmpty() || password2.isEmpty()) {
             errorMessage = "Por favor, completa todos los campos"
             return
         }
@@ -144,7 +214,7 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val request = RegisterRequest(
-                    email = email,
+                    email = cleanEmail,
                     nombreCompleto = nombreCompleto,
                     grado = grado,
                     seccion = seccion,
@@ -160,8 +230,7 @@ class AuthViewModel : ViewModel() {
                         registerSuccessMessage = authResponse?.mensaje ?: "¡Registro exitoso!"
                         isRegisterSuccess = true
                     } else {
-                        val errorBody = response.errorBody()?.string()
-                        errorMessage = errorBody ?: "Error al registrar estudiante"
+                        errorMessage = parseErrorResponse(response.errorBody()?.string())
                     }
                 }
             } catch (e: Exception) {
@@ -179,7 +248,6 @@ class AuthViewModel : ViewModel() {
 
     fun clearSuccessMessage() {
         successMessage = null
+        isResetSuccess = false
     }
-
-
 }

@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL =   "https://neurotutor-production.up.railway.app/"
+    private const val BASE_URL = "https://neurotutor-production.up.railway.app/"
     @Volatile
     private var authToken: String? = null
 
@@ -18,7 +18,7 @@ object RetrofitClient {
         .writeTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(
             HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BASIC
+                level = HttpLoggingInterceptor.Level.BODY
             }
         )
         .addInterceptor { chain ->
