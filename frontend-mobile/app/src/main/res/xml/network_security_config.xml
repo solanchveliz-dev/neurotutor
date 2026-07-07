@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      CONFIGURACIÓN GLOBAL PARA DESARROLLO:
+      Permite que TODA la aplicación pueda hacer peticiones HTTP (sin S)
+      Esto evita el error "CLEARTEXT communication not permitted"
+    -->
+    <base-config cleartextTrafficPermitted="true" />
+
+    <!--
+      Mantenemos esto por si acaso, pero el base-config de arriba ya hace el trabajo pesado
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>         <!-- Emulador -->
+        <domain includeSubdomains="true">10.0.2.2</domain>           <!-- Emulador Android -->
+        <domain includeSubdomains="true"> 192.168.101.6</domain>     <!-- Tu IP real -->
+    </domain-config>
+
+</network-security-config>
