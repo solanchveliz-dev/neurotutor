@@ -57,28 +57,33 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
-            LOGGER.info("forgot-password request received");
-            LOGGER.info("forgot-password app env: {}", appEnvironment);
+            LOGGER.info("forgot-password request received for: {}", request.getEmail());
             AuthService.ForgotPasswordResult result = authService.forgotPassword(request);
-            boolean debugEnabled = resetTokenDebug || !isProductionProfile();
+            
             if (!result.accountExists()) {
                 return ResponseEntity.ok(new ForgotPasswordResponse(
                         false, false, "No se pudo procesar la solicitud de recuperacion.", null
                 ));
             }
-            if (!result.emailSent()) {
-                String debugToken = debugEnabled ? result.token() : null;
-                if (debugToken != null) {
-                    LOGGER.warn("RESET TOKEN DEBUG habilitado para {}. No activar en produccion salvo pruebas controladas.", request.getEmail());
-                }
-                return ResponseEntity.status(503).body(new ForgotPasswordResponse(
-                        false, false, "No se pudo enviar el c\u00f3digo. Revisa la configuraci\u00f3n del correo.", debugToken
+
+            // Con el procesamiento asíncrono, ya no esperamos a que el correo se envíe.
+            // Retornamos éxito al cliente para que pueda avanzar a la pantalla de Reset.
+            
+            boolean debugEnabled = resetTokenDebug || !isProductionProfile();
+            String debugToken = debugEnabled ? result.token() : null;
+
+            if (debugToken != null) {
+                LOGGER.warn("RESET TOKEN DEBUG habilitado para {}.", request.getEmail());
+                return ResponseEntity.ok(new ForgotPasswordResponse(
+                        true, false, "Codigo de desarrollo: " + debugToken, debugToken
                 ));
             }
+
             return ResponseEntity.ok(new ForgotPasswordResponse(
                     true, true, "Si el correo esta registrado, recibiras un codigo para restablecer tu contrasena.", null
             ));
         } catch (RuntimeException e) {
+            LOGGER.error("Error en forgot-password: {}", e.getMessage());
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }

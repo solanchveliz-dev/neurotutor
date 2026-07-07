@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,14 +28,15 @@ public class EmailService {
                 && emailPassword != null && !emailPassword.isBlank();
     }
 
-    public boolean sendResetToken(String to, String token) {
+    @Async
+    public void sendResetToken(String to, String token) {
         if (!isConfigured()) {
             LOGGER.error("No se puede enviar el reset token a {}: MAIL_USERNAME o MAIL_PASSWORD no estan configurados", to);
-            return false;
+            return;
         }
 
         try {
-            LOGGER.info("Iniciando envio sincronico del reset token a {}", to);
+            LOGGER.info("Iniciando envio asincronico del reset token a {}", to);
 
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(to);
@@ -46,11 +48,9 @@ public class EmailService {
             mailSender.send(message);
 
             LOGGER.info("Reset token enviado correctamente a {}", to);
-            return true;
 
         } catch (Exception e) {
-            LOGGER.error("EMAIL ERROR COMPLETO", e);
-            return false;
+            LOGGER.error("EMAIL ERROR COMPLETO (Async)", e);
         }
     }
 }

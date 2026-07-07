@@ -6,6 +6,7 @@ import com.neurotutor.user_service.model.PasswordResetToken;
 import com.neurotutor.user_service.repository.EstudianteRepository;
 import com.neurotutor.user_service.repository.PasswordResetTokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,9 @@ public class AuthService {
 
     @Autowired
     private JwtService jwtService;
+
+    @Value("${app.environment:production}")
+    private String appEnvironment;
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -130,17 +134,20 @@ public class AuthService {
         );
     }
 
-    // ... (El resto de métodos forgotPassword y resetPassword se mantienen igual ya que funcionan bien)
+    // ==================== RECUPERACIÓN DE CONTRASEÑA ====================
+
     public ForgotPasswordResult forgotPassword(ForgotPasswordRequest request) {
         if (request == null || request.getEmail() == null || request.getEmail().isBlank()) {
             throw new RuntimeException("El correo es obligatorio");
         }
         String email = normalizeEmail(request.getEmail());
         LOGGER.info("forgot-password email received: {}", email);
+        
         if (!estudianteRepository.existsByEmail(email)) {
             LOGGER.info("forgot-password account exists: false");
-            return new ForgotPasswordResult(false, false, null);
+            return new ForgotPasswordResult(false, null);
         }
+        
         tokenRepository.findByEmail(email).ifPresent(tokenRepository::delete);
 
         int numeroAleatorio = SECURE_RANDOM.nextInt(900000) + 100000;
@@ -152,21 +159,19 @@ public class AuthService {
         resetToken.setEmail(email);
         resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(60));
         resetToken.setUsed(false);
-        try {
-            tokenRepository.saveAndFlush(resetToken);
-            LOGGER.info("forgot-password token saved in database: true");
-        } catch (RuntimeException exception) {
-            LOGGER.error("forgot-password token saved in database: false; type={}", exception.getClass().getSimpleName());
-            throw exception;
+        
+        tokenRepository.saveAndFlush(resetToken);
+        LOGGER.info("forgot-password token saved in database: true");
+
+        if ("development".equalsIgnoreCase(appEnvironment)) {
+            LOGGER.info("forgot-password development mode: smtp skipped; dev token available for {}", email);
+            return new ForgotPasswordResult(true, token);
         }
 
-        boolean emailConfigured = emailService.isConfigured();
-        LOGGER.info("forgot-password smtp enabled: {}", emailConfigured);
-        boolean emailSent = emailConfigured && emailService.sendResetToken(email, token);
-        if (!emailSent) {
-            LOGGER.error("forgot-password email sent: false; el token permanece guardado para {}", email);
-        }
-        return new ForgotPasswordResult(true, emailSent, token);
+        // 🚀 Envío asincrónico para evitar timeout 503 en Railway
+        emailService.sendResetToken(email, token);
+        
+        return new ForgotPasswordResult(true, token);
     }
 
     @Transactional
@@ -213,5 +218,5 @@ public class AuthService {
         return email == null ? "" : email.trim().toLowerCase();
     }
 
-    public record ForgotPasswordResult(boolean accountExists, boolean emailSent, String token) { }
+    public record ForgotPasswordResult(boolean accountExists, String token) { }
 }
