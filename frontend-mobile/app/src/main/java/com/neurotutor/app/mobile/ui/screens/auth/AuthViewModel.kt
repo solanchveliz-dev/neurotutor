@@ -107,11 +107,12 @@ class AuthViewModel : ViewModel() {
                     isLoading = false
                     if (response.isSuccessful) {
                         val body = response.body()
-                        if (body?.emailSent == true) {
-                            forgotSuccessMessage = body.message ?: "Código enviado a tu correo"
+                        // Usamos .success (según el modelo ForgotPasswordResponse.kt)
+                        if (body?.success == true) {
+                            forgotSuccessMessage = body.message ?: "Código enviado"
                             isForgotSuccess = true
                         } else {
-                            errorMessage = body?.message ?: "El servidor no pudo enviar el correo. Revisa la configuración SMTP."
+                            errorMessage = body?.message ?: "El correo no está registrado o hubo un error SMTP."
                         }
                     } else {
                         errorMessage = parseErrorResponse(response.errorBody()?.string())
@@ -172,13 +173,12 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun parseErrorResponse(errorJson: String?): String {
-        if (errorJson == null) return "Error desconocido"
+        if (errorJson.isNullOrBlank()) return "Error desconocido"
         return try {
             val response = Gson().fromJson(errorJson, ForgotPasswordResponse::class.java)
-            response.message ?: "Ocurrió un error en el servidor"
+            response.message ?: "Error en el servidor"
         } catch (e: Exception) {
-            // Si no es un JSON válido o falta el campo, intentamos con MessageResponse o devolvemos el original
-            errorJson
+            "Ocurrió un problema en el servidor"
         }
     }
 
