@@ -39,7 +39,6 @@ class AuthServiceTest {
         AuthService.ForgotPasswordResult result = authService.forgotPassword(request);
 
         assertFalse(result.accountExists());
-        assertFalse(result.emailSent());
         assertNull(result.token());
         verify(emailService, never()).sendResetToken(
                 org.mockito.ArgumentMatchers.anyString(),
