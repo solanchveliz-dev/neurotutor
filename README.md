@@ -105,3 +105,159 @@ Al iniciar la aplicación, todas las solicitudes de autenticación, diagnóstico
 ## Resultado del despliegue
 
 El despliegue permitió generar exitosamente el archivo **app-debug.apk**, el cual puede instalarse en dispositivos Android y conectarse al backend desplegado en Railway para utilizar todas las funcionalidades implementadas en NeuroTutor.
+
+---
+
+# 🌐 Despliegue de la Aplicación Web
+
+La aplicación web **NeuroTutor** fue desplegada utilizando **Vercel**, una plataforma especializada para aplicaciones desarrolladas con React y Vite. El despliegue se realizó directamente desde el repositorio de GitHub utilizando la rama principal (**main**), permitiendo publicar automáticamente cada nueva actualización enviada al repositorio.
+
+La aplicación consume los servicios REST del backend desplegado en **Railway**, lo que permite acceder a todas las funcionalidades implementadas en NeuroTutor.
+
+---
+
+## Paso 1. Crear un nuevo proyecto en Vercel
+
+Ingresar a la plataforma de **Vercel** e iniciar sesión con una cuenta vinculada a GitHub.
+
+Seleccionar:
+
+```text
+Add New
+→ Project
+```
+
+Posteriormente importar el repositorio donde se encuentra el proyecto.
+
+<p align="center">
+    <img src="docs/vercel_paso1.webp" width="750">
+</p>
+
+<p align="center">
+    <img src="docs/vercel_paso2.webp" width="650">
+</p>
+---
+
+## Paso 2. Seleccionar el directorio raíz
+
+Como el repositorio contiene múltiples proyectos, se debe seleccionar únicamente el proyecto correspondiente al frontend web.
+
+Root Directory:
+
+```text
+frontend-web
+```
+
+<p align="center">
+    <img src="docs/vercel_paso3.webp" width="650">
+</p>
+
+---
+
+## Paso 3. Configurar la construcción del proyecto
+
+Vercel detecta automáticamente que el proyecto utiliza **Vite**.
+
+La configuración utilizada fue la siguiente:
+
+```text
+Framework Preset:
+Vite
+
+Install Command:
+npm install
+
+Build Command:
+npm run build
+
+Output Directory:
+dist
+```
+
+<p align="center">
+    <img src="docs/vercel_paso4.webp" width="700">
+</p>
+
+---
+
+## Paso 4. Configurar las variables de entorno
+
+Para que la aplicación web pueda comunicarse correctamente con el backend desplegado en Railway se configuró la siguiente variable de entorno:
+
+```text
+VITE_API_URL=https://neurotutor-production.up.railway.app
+```
+
+Esta variable permite que todas las solicitudes HTTP realizadas desde el frontend sean enviadas al backend.
+
+
+---
+
+## Paso 5. Ejecutar el despliegue
+
+Una vez configurado el proyecto, seleccionar:
+
+```text
+Deploy
+```
+
+Vercel compila automáticamente la aplicación y genera una URL pública de acceso.
+
+Al finalizar correctamente el proceso aparece el mensaje indicando que el proyecto fue desplegado exitosamente.
+
+<p align="center">
+    <img src="docs/vercel_paso5.webp" width="750">
+</p>
+
+<p align="center">
+    <img src="docs/vercel_paso6.webp" width="750">
+</p>
+
+---
+
+## URL de Producción
+
+La aplicación web quedó disponible públicamente en la siguiente dirección:
+
+```text
+https://neurotutor-eight.vercel.app/
+```
+
+---
+
+## Conexión con el Backend
+
+La aplicación web se comunica con el backend desplegado en **Railway** mediante una API REST utilizando HTTPS.
+
+URL del backend:
+
+```text
+https://neurotutor-production.up.railway.app/
+```
+
+Todas las operaciones realizadas desde el frontend, como autenticación, registro de usuarios, examen diagnóstico, consulta de módulos, teoría, prácticas, exámenes finales, progreso e insignias, son procesadas por el backend y almacenadas en la base de datos.
+
+---
+
+## Arquitectura del Despliegue
+
+```text
+GitHub (Repositorio)
+        │
+        ▼
+Vercel (Frontend React + Vite)
+        │
+        ▼
+Railway (Backend Spring Boot)
+        │
+        ▼
+Base de Datos MySQL
+```
+
+---
+
+## Resultado del Despliegue
+
+El despliegue fue realizado exitosamente utilizando **Vercel**, permitiendo acceder a NeuroTutor desde cualquier navegador mediante una URL pública.
+
+La aplicación web consume correctamente los servicios REST del backend desplegado en Railway, garantizando el funcionamiento de todas las funcionalidades implementadas durante el desarrollo del proyecto.
