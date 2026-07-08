@@ -4,60 +4,56 @@ La aplicación móvil **NeuroTutor** fue desplegada mediante la generación de u
 
 ---
 
-## Paso 1. Generar el APK
+## Paso 1. Abrir el asistente de generación del APK
 
 En Android Studio seleccionar:
 
 ```text
 Build
-→ Build Bundle(s) / APK(s)
-→ Build APK(s)
+→ Generate Signed App Bundle or APK...
 ```
 
-Esta opción compila el proyecto y genera un archivo APK listo para instalar en dispositivos Android.
+Esta opción abre el asistente para generar un APK listo para ser distribuido e instalado en dispositivos Android.
 
 <p align="center">
-    <img src="docs/paso1.webp" width="750">
+    <img src="docs/paso1.webp" width="650">
 </p>
-
 ---
 
-## Paso 2. Esperar la compilación
+## Paso 2. Seleccionar el tipo de archivo
 
-Android Studio iniciará automáticamente el proceso de compilación del proyecto.
-
-Cuando la compilación finaliza correctamente aparece el siguiente mensaje:
+En el asistente de generación seleccionar la opción:
 
 ```text
-Build completed successfully
+APK
 ```
+
+Luego presionar **Next** para continuar con la configuración del despliegue.
 
 <p align="center">
-    <img src="docs/paso5.webp" width="750">
+    <img src="docs/paso2.webp" width="500">
 </p>
-
 ---
 
-## Paso 3. Localizar el APK
+## Paso 3. Configurar el KeyStore
 
-Seleccionar la opción:
+Si es la primera vez que se genera un APK firmado, seleccionar:
 
 ```text
-Locate
+Create new...
 ```
 
-para abrir la carpeta donde Android Studio almacenó el APK generado.
-
-La ruta generada es:
+En caso de contar con un KeyStore previamente creado, seleccionar:
 
 ```text
-frontend-mobile/
-└── app/
-    └── build/
-        └── outputs/
-            └── apk/
-                └── debug/
-                    └── app-debug.apk
+Choose existing...
+```
+
+El KeyStore almacena el certificado digital utilizado para firmar la aplicación.
+
+<p align="center">
+    <img src="docs/paso3.webp" width="600">
+</p>
 ```
 
 ---
@@ -74,17 +70,21 @@ El archivo generado **app-debug.apk** puede compartirse mediante:
 
 ---
 
-## Paso 5. Instalación en un dispositivo Android
+## Paso 5. Generar el APK
 
-En el dispositivo Android:
+Android Studio compila automáticamente el proyecto.
 
-1. Descargar el archivo **app-debug.apk**.
-2. Abrir el archivo.
-3. Permitir la instalación desde orígenes desconocidos si Android lo solicita.
-4. Presionar **Instalar**.
-5. Esperar a que finalice la instalación.
+Al finalizar el proceso aparece el mensaje:
 
-Una vez instalada la aplicación, el usuario podrá acceder a NeuroTutor desde el menú de aplicaciones del dispositivo.
+```text
+Build completed successfully
+```
+
+Seleccionar **Locate** para abrir la carpeta donde fue generado el archivo APK.
+
+<p align="center">
+    <img src="docs/paso5.webp" width="700">
+</p>.
 
 ---
 
